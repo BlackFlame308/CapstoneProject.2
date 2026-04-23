@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('households', function (Blueprint $table) {
             $table->id();
-            $table->string('household_code', 100)->unique();
-            $table->foreignId('address_id')->constrained('addresses');
-            $table->string('contact_number', 50)->nullable();
+            $table->string('household_code', 100)->unique()->index();
+            $table->foreignId('address_id')->constrained('addresses')->cascadeOnDelete();
+            $table->string('contact_number', 50)->nullable()->index();
             $table->string('emergency_contact', 50)->nullable();
             $table->foreignId('created_by')->constrained('users');
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

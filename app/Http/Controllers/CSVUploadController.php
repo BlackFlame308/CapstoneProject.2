@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\HouseholdCsvImportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class CSVUploadController extends Controller
 {
@@ -12,6 +14,8 @@ class CSVUploadController extends Controller
      */
     public function uploadForm()
     {
+        abort_if(! auth()->user()->can('manage_households'), 403);
+
         try {
             return view('csv.upload');
         } catch (\Exception $e) {
@@ -21,53 +25,50 @@ class CSVUploadController extends Controller
     }
 
     /**
-     * Process CSV file upload
+     * Process CSV upload
      */
-    public function upload(Request $request)
+    public function upload(Request $request, HouseholdCsvImportService $service)
     {
+        abort_if(! auth()->user()->can('manage_households'), 403);
+
         try {
-            // Validate file
+            // Validate
             $validated = $request->validate([
                 'csv_file' => 'required|file|mimes:csv,txt|max:10240',
-            ], [
-                'csv_file.required' => 'Please select a CSV file to upload',
-                'csv_file.mimes' => 'File must be CSV or TXT format',
-                'csv_file.max' => 'File size cannot exceed 10MB'
             ]);
 
-            if (!$request->user()) {
+            if (!auth()->check()) {
                 return redirect()->route('login')->with('error', 'User not authenticated');
             }
 
+            // Get uploaded file directly from temp path (no storage needed)
             $file = $request->file('csv_file');
-            $filePath = $file->store('csv_uploads', 'local');
-            $fullPath = storage_path('app/' . $filePath);
-
-            // Verify file exists before importing
-            if (!file_exists($fullPath)) {
-                throw new \Exception('Uploaded file not found');
+            
+            if (!$file->isValid() || !$file->isReadable()) {
+                return back()->with('error', 'Uploaded file is not valid or readable');
             }
 
-            // Import using service
-            $service = new HouseholdCsvImportService();
-            $result = $service->import($fullPath, $request->user()->id);
+            $tempFilePath = $file->getRealPath();
+            \Log::info("Processing CSV from temp path: {$tempFilePath}");
 
-            // Safe file deletion
-            try {
-                if (file_exists($fullPath)) {
-                    unlink($fullPath);
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Failed to delete uploaded CSV file: ' . $e->getMessage());
+            if (!file_exists($tempFilePath)) {
+                return back()->with('error', 'Temporary file not accessible');
             }
 
-            return redirect()->route('households.index')->with('success', $result['message']);
+            $result = $service->import($tempFilePath, auth()->id());
+
+            return redirect()
+                ->route('households.index')
+                ->with('success', $result['message']);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::warning('CSV Upload Validation Error: ' . json_encode($e->errors()));
-            return redirect()->back()->withErrors($e->errors())->with('error', 'Validation failed');
+            \Log::warning('CSV Validation Error: ' . json_encode($e->errors()));
+            return back()->withErrors($e->errors())
+                ->with('error', 'Validation failed');
+
         } catch (\Exception $e) {
             \Log::error('CSV Upload Error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Import failed: ' . $e->getMessage());
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 }

@@ -28,11 +28,15 @@
                 <td>{{ $household->members->count() }}</td>
                 <td>
                     <a href="{{ route('households.show', $household) }}" class="btn btn-sm btn-info">View</a>
+                    @if($household->user && $household->user->must_change_password)
+                        <span class="badge bg-warning">Password Change Required</span>
+                    @endif
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
+
     {{ $households->links() }}
 </div>
 @endsection

@@ -150,49 +150,30 @@
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="membersBody">
-                            <tr class="member-row">
-                                <td><input type="text" name="members[0][first_name]" class="form-control form-control-sm" required></td>
-                                <td><input type="text" name="members[0][middle_name]" class="form-control form-control-sm"></td>
-                                <td><input type="text" name="members[0][last_name]" class="form-control form-control-sm" required></td>
-                                <td><input type="date" name="members[0][birth_date]" class="form-control form-control-sm" required></td>
-                                <td>
-                                    <select name="members[0][sex]" class="form-control form-control-sm" required>
-                                        <option value="">Select</option>
-                                        <option value="M">M</option>
-                                        <option value="F">F</option>
-                                    </select>
-                                </td>
-                                <td><input type="text" name="members[0][civil_status]" class="form-control form-control-sm"></td>
-                                <td><input type="text" name="members[0][education_level]" class="form-control form-control-sm"></td>
-                                <td><input type="text" name="members[0][profession]" class="form-control form-control-sm"></td>
-                                <td>
-                                    <input type="checkbox" name="members[0][is_pwd]" class="form-check-input" value="1">
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="removeMemberRow(this)">Remove</button>
-                                </td>
-                            </tr>
+                        <tbody id="membersTableBody">
+                            <!-- Members will be added here -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">Create Household</button>
-            <a href="{{ route('households.index') }}" class="btn btn-secondary">Cancel</a>
+        <!-- Form Actions -->
+        <div class="row">
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary btn-lg">Create Household</button>
+                <a href="{{ route('households.index') }}" class="btn btn-secondary btn-lg">Cancel</a>
+            </div>
         </div>
     </form>
 </div>
 
 <script>
-let memberCount = 1;
+let memberCount = 0;
 
 function addMemberRow() {
-    const tbody = document.getElementById('membersBody');
+    const tbody = document.getElementById('membersTableBody');
     const row = document.createElement('tr');
-    row.className = 'member-row';
     row.innerHTML = `
         <td><input type="text" name="members[${memberCount}][first_name]" class="form-control form-control-sm" required></td>
         <td><input type="text" name="members[${memberCount}][middle_name]" class="form-control form-control-sm"></td>
@@ -223,7 +204,6 @@ function removeMemberRow(btn) {
     btn.closest('tr').remove();
 }
 
-// Load location hierarchy
 document.addEventListener('DOMContentLoaded', function() {
     fetchRegions();
 
@@ -248,15 +228,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.forEach(region => {
                     select.innerHTML += `<option value="${region.id}">${region.name}</option>`;
                 });
-            });
+            })
+            .catch(error => console.error('Error fetching regions:', error));
     }
 
     function fetchProvinces(regionId) {
         if (!regionId) {
             document.getElementById('province-select').innerHTML = '<option value="">Select Province</option>';
+            document.getElementById('city-select').innerHTML = '<option value="">Select City</option>';
+            document.getElementById('barangay-select').innerHTML = '<option value="">Select Barangay</option>';
             return;
         }
-        fetch(`/api/regions/${regionId}/provinces`)
+        
+        fetch(`/api/provinces/${regionId}`)
             .then(response => response.json())
             .then(data => {
                 const select = document.getElementById('province-select');
@@ -264,15 +248,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.forEach(province => {
                     select.innerHTML += `<option value="${province.id}">${province.name}</option>`;
                 });
-            });
+            })
+            .catch(error => console.error('Error fetching provinces:', error));
     }
 
     function fetchCities(provinceId) {
         if (!provinceId) {
             document.getElementById('city-select').innerHTML = '<option value="">Select City</option>';
+            document.getElementById('barangay-select').innerHTML = '<option value="">Select Barangay</option>';
             return;
         }
-        fetch(`/api/provinces/${provinceId}/cities`)
+        
+        fetch(`/api/cities/${provinceId}`)
             .then(response => response.json())
             .then(data => {
                 const select = document.getElementById('city-select');
@@ -280,7 +267,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.forEach(city => {
                     select.innerHTML += `<option value="${city.id}">${city.name}</option>`;
                 });
-            });
+            })
+            .catch(error => console.error('Error fetching cities:', error));
     }
 
     function fetchBarangays(cityId) {
@@ -288,7 +276,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('barangay-select').innerHTML = '<option value="">Select Barangay</option>';
             return;
         }
-        fetch(`/api/cities/${cityId}/barangays`)
+        
+        fetch(`/api/barangays/${cityId}`)
             .then(response => response.json())
             .then(data => {
                 const select = document.getElementById('barangay-select');
@@ -296,18 +285,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.forEach(barangay => {
                     select.innerHTML += `<option value="${barangay.id}">${barangay.name}</option>`;
                 });
-            });
+            })
+            .catch(error => console.error('Error fetching barangays:', error));
     }
 });
 </script>
-
-<style>
-.table-responsive {
-    font-size: 13px;
-}
-.form-control-sm {
-    height: auto;
-    padding: 4px 8px;
-}
-</style>
 @endsection

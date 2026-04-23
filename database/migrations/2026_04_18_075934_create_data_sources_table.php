@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('type', 20);
             $table->foreignId('uploaded_by')->constrained('users');
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
         });
     }
 

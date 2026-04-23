@@ -20,11 +20,13 @@ class User extends Authenticatable
         'role_id',
         'household_id',
         'must_change_password',
+        'temp_password',
         'email_verified_at',
     ];
 
     protected $hidden = [
         'password',
+        'temp_password', // Hide in JSON
         'remember_token',
     ];
 

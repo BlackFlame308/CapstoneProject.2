@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('csv_uploads', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('data_source_id')->constrained('data_sources');
+            $table->foreignId('data_source_id')->constrained('data_sources')->cascadeOnDelete();
             $table->string('file_name', 255)->nullable();
-            $table->integer('total_records')->nullable();
-            $table->integer('successful_records')->nullable();
-            $table->integer('failed_records')->nullable();
-            $table->timestamp('uploaded_at')->useCurrent();
+            $table->unsignedInteger('total_records')->nullable();
+            $table->unsignedInteger('successful_records')->nullable();
+            $table->unsignedInteger('failed_records')->nullable();
+            $table->timestamps();
         });
     }
 

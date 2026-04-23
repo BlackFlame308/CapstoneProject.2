@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('street', 255)->nullable();
             $table->string('purok', 100)->nullable();
-            $table->foreignId('barangay_id')->constrained('barangays');
+            $table->foreignId('barangay_id')->constrained('barangays')->cascadeOnDelete();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

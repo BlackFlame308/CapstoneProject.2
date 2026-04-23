@@ -227,15 +227,19 @@ class HouseholdController extends Controller
             ]);
 
             $file = $request->file('csv_file');
-            $filePath = $file->store('csv_uploads', 'local');
-            $fullPath = storage_path('app/' . $filePath);
+            
+            if (!$file->isValid() || !$file->isReadable()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Uploaded file is not valid or readable',
+                ], 400);
+            }
+
+            $tempFilePath = $file->getRealPath();
+            \Log::info("API: Processing CSV from temp path: {$tempFilePath}");
 
             $service = new HouseholdCsvImportService();
-            $result = $service->import($fullPath, $request->user()->id);
-
-            if (file_exists($fullPath)) {
-                unlink($fullPath);
-            }
+            $result = $service->import($tempFilePath, $request->user()->id);
 
             return response()->json([
                 'status' => 'success',
@@ -251,7 +255,7 @@ class HouseholdController extends Controller
             \Log::error('API CSV upload error: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'CSV upload failed',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

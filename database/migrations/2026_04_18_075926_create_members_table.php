@@ -13,17 +13,18 @@ return new class extends Migration
     {
         Schema::create('members', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('household_id')->constrained('households');
+            $table->foreignId('household_id')->constrained('households')->cascadeOnDelete();
             $table->string('first_name', 100);
             $table->string('middle_name', 100)->nullable();
             $table->string('last_name', 100);
-            $table->date('birth_date');
-            $table->string('sex', 10);
+            $table->date('birth_date')->index();
+            $table->enum('sex', ['M', 'F']);
             $table->string('civil_status', 50)->nullable();
             $table->string('education_level', 100)->nullable();
             $table->string('profession', 100)->nullable();
             $table->boolean('is_pwd')->default(false);
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
