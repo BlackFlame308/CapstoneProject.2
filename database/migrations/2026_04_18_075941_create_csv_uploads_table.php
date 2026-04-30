@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('csv_uploads', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('data_source_id')->constrained('data_sources')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('data_source_id')->constrained('data_sources')->cascadeOnDelete();
             $table->string('file_name', 255)->nullable();
             $table->unsignedInteger('total_records')->nullable();
             $table->unsignedInteger('successful_records')->nullable();

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('data_sources', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('type', 20);
-            $table->foreignId('uploaded_by')->constrained('users');
+            $table->foreignUuid('uploaded_by')->constrained('users');
             $table->timestamps();
         });
     }

@@ -11,35 +11,44 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(Request $request): JsonResponse
+public function register(Request $request): JsonResponse
     {
+        // Only Captain may create accounts (Super Admin check covers Captain role too)
+        if (!auth()->check() || !auth()->user()->isCaptain()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Forbidden: only Captain can create accounts.',
+            ], 403);
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
+            'role_id'  => 'required|exists:roles,id',
         ]);
 
-        $role = Role::firstOrCreate(['name' => 'Encoder']);
-
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role_id' => $role->id,
+            'name'                 => $validated['name'],
+            'email'                => $validated['email'],
+            'password'             => Hash::make($validated['password']),
+            'role_id'              => $validated['role_id'],
             'must_change_password' => false,
         ]);
 
+        $user->load('role');
+
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'User registered successfully',
-            'data' => $user,
+            'data'    => $user,
         ], 201);
     }
 
     public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => 'required|string|email',
+            'email'    => 'required|string|email',
             'password' => 'required|string',
         ]);
 
@@ -47,18 +56,20 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
+        $user->load('role');
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Login successful',
-            'data' => [
-                'user' => $user,
+            'data'    => [
+                'user'  => $user,
                 'token' => $token,
             ],
         ], 200);
@@ -68,12 +79,12 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if ($user && $request->user()->currentAccessToken()) {
-            $request->user()->currentAccessToken()->delete();
+        if ($user?->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
         }
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Logged out successfully',
         ], 200);
     }
@@ -82,25 +93,25 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'new_password'     => 'required|string|min:8|confirmed',
         ]);
 
         $user = $request->user();
 
-        if (!$user || !Hash::check($validated['current_password'], $user->password)) {
+        if (!Hash::check($validated['current_password'], $user->password)) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Current password is incorrect',
-            ], 422);
+            ], 403);
         }
 
         $user->update([
-            'password' => Hash::make($validated['password']),
+            'password'             => Hash::make($validated['new_password']),
             'must_change_password' => false,
         ]);
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Password changed successfully',
         ], 200);
     }

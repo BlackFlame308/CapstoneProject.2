@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
-use App\Models\User;
+use App\Models\Household;
+use App\Policies\HouseholdPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,28 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::define('view_households', function (?User $user) {
-            return $user && ($user->isCaptain() || $user->isEncoder());
-        });
+        Vite::prefetch(concurrency: 3);
 
-        Gate::define('manage_households', function (?User $user) {
-            return $user && ($user->isCaptain() || $user->isEncoder());
-        });
-
-        Gate::define('view_reports', function (?User $user) {
-            return $user && ($user->isCaptain() || $user->isEncoder());
-        });
-
-        Gate::define('manage_accounts', function (?User $user) {
-            return $user && ($user->isCaptain() || $user->isEncoder());
-        });
-
-        Gate::define('register_accounts', function (?User $user) {
-            return $user && ($user->isCaptain() || $user->isEncoder());
-        });
-
-        Gate::define('delete_accounts', function (?User $user) {
-            return $user && $user->isCaptain();
-        });
+        Gate::policy(Household::class, HouseholdPolicy::class);
     }
 }

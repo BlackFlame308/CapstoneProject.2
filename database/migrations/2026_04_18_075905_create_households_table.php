@@ -11,13 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('households', function (Blueprint $table) {
-            $table->id();
-            $table->string('household_code', 100)->unique()->index();
-            $table->foreignId('address_id')->constrained('addresses')->cascadeOnDelete();
+Schema::create('households', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('household_code', 50)->unique()->index();
+            $table->string('household_name', 100);
+            $table->string('email', 150)->nullable()->unique();
+            $table->integer('member_count')->default(0);
+            $table->foreignUuid('address_id')->constrained('addresses')->cascadeOnDelete();
             $table->string('contact_number', 50)->nullable()->index();
             $table->string('emergency_contact', 50)->nullable();
-            $table->foreignId('created_by')->constrained('users');
+            $table->foreignUuid('created_by')->constrained('users');
             $table->timestamps();
             $table->softDeletes();
         });

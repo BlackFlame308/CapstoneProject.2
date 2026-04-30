@@ -11,6 +11,7 @@ use App\Models\CsvUpload;
 use App\Models\ImportLog;
 use App\Models\User;
 use App\Models\Role;
+use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
@@ -18,115 +19,109 @@ class HouseholdCsvImportService
 {
     private $dataSource;
     private $csvUpload;
-    private $totalRecords = 0;
-    private $successfulRecords = 0;
-    private $failedRecords = 0;
+    private int $totalRecords    = 0;
+    private int $successfulRecords = 0;
+    private int $failedRecords   = 0;
 
     /**
-     * Import households from CSV file within transaction
+     * Import households from CSV file.
+     * Each row is processed in its own savepoint so one failure doesn't
+     * roll back successfully imported rows.
      */
-    public function import($filePath, $uploadedBy)
+    public function import(string $filePath, string $uploadedBy): array
     {
-        return DB::transaction(function () use ($filePath, $uploadedBy) {
-            try {
-                // Validate file exists
-                if (!file_exists($filePath)) {
-                    throw new \Exception('CSV file not found at specified path');
-                }
+        if (!file_exists($filePath)) {
+            throw new \Exception('CSV file not found at specified path');
+        }
 
-                // Validate uploaded by user exists
-                if (!$uploadedBy) {
-                    throw new \Exception('Invalid user context for import');
-                }
+        DB::transaction(function () use ($filePath, $uploadedBy) {
+            $this->dataSource = DataSource::create([
+                'type'        => 'csv',
+                'uploaded_by' => $uploadedBy,
+            ]);
 
-                // Create data source
-                $this->dataSource = DataSource::create([
-                    'type' => 'csv',
-                    'uploaded_by' => $uploadedBy,
-                ]);
+            $this->csvUpload = CsvUpload::create([
+                'data_source_id' => $this->dataSource->id,
+                'file_name'      => basename($filePath),
+            ]);
 
-                // Create CSV upload record
-                $this->csvUpload = CsvUpload::create([
-                    'data_source_id' => $this->dataSource->id,
-                    'file_name' => basename($filePath),
-                ]);
+            $this->processCsv($filePath, $uploadedBy);
 
-                // Read and process CSV
-                $this->processCsv($filePath, $uploadedBy);
-
-                // Update CSV upload with stats
-                $this->csvUpload->update([
-                    'total_records' => $this->totalRecords,
-                    'successful_records' => $this->successfulRecords,
-                    'failed_records' => $this->failedRecords,
-                ]);
-
-                \Log::info("CSV Import completed: Total={$this->totalRecords}, Success={$this->successfulRecords}, Failed={$this->failedRecords}");
-
-                return [
-                    'success' => true,
-                    'message' => "Import completed. {$this->successfulRecords} successful, {$this->failedRecords} failed.",
-                    'stats' => [
-                        'total' => $this->totalRecords,
-                        'success' => $this->successfulRecords,
-                        'failed' => $this->failedRecords,
-                    ]
-                ];
-            } catch (\Exception $e) {
-                \Log::error('CSV Import Error: ' . $e->getMessage());
-                throw $e;
-            }
+            $this->csvUpload->update([
+                'total_records'      => $this->totalRecords,
+                'successful_records' => $this->successfulRecords,
+                'failed_records'     => $this->failedRecords,
+            ]);
         });
+
+        \Log::info("CSV Import done: total={$this->totalRecords} success={$this->successfulRecords} failed={$this->failedRecords}");
+
+        return [
+            'success' => true,
+            'message' => "Import completed: {$this->successfulRecords} uploaded, {$this->failedRecords} failed.",
+            'stats'   => [
+                'total'   => $this->totalRecords,
+                'success' => $this->successfulRecords,
+                'failed'  => $this->failedRecords,
+            ],
+        ];
     }
 
     /**
-     * Process CSV file line by line
+     * Read CSV header + rows, processing each independently.
      */
-    private function processCsv($filePath, $uploadedBy)
+    private function processCsv(string $filePath, string $uploadedBy): void
     {
-        if (!file_exists($filePath)) {
-            throw new \Exception("CSV file not found: {$filePath}");
-        }
-
-        \Log::info("Processing CSV file: {$filePath}, Size: " . filesize($filePath));
-
         $file = fopen($filePath, 'r');
-        
         if ($file === false) {
             throw new \Exception('Unable to open CSV file for reading');
         }
 
         try {
-            $header = fgetcsv($file); // Skip header
-            
+            // Skip BOM if present (UTF-8 with BOM)
+            $bom = fread($file, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($file);
+            }
+
+            $header = fgetcsv($file);
             if (empty($header)) {
-                throw new \Exception('CSV file is empty or invalid format');
+                throw new \Exception('CSV file is empty or has invalid format');
             }
 
             $rowNumber = 1;
 
             while (($row = fgetcsv($file)) !== false) {
                 $rowNumber++;
+
+                // Skip blank rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+
                 $this->totalRecords++;
 
+                // Each row in its own nested transaction (savepoint)
                 try {
-                    $this->processRow($row, $rowNumber, $uploadedBy);
+                    DB::transaction(function () use ($row, $rowNumber, $uploadedBy) {
+                        $this->processRow($row, $rowNumber, $uploadedBy);
+                    });
                     $this->successfulRecords++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $this->failedRecords++;
                     \Log::warning("CSV Row {$rowNumber} failed: " . $e->getMessage());
-                    
+
                     ImportLog::create([
                         'data_source_id' => $this->dataSource->id,
-                        'row_number' => $rowNumber,
-                        'status' => 'failed',
-                        'error_message' => substr($e->getMessage(), 0, 255),
+                        'row_number'     => $rowNumber,
+                        'status'         => 'failed',
+                        'error_message'  => substr($e->getMessage(), 0, 255),
                     ]);
                 }
             }
 
             if ($this->totalRecords === 0) {
-                throw new \Exception('CSV file contains no data rows (only header)');
+                throw new \Exception('CSV file contains no data rows (only a header)');
             }
         } finally {
             if (is_resource($file)) {
@@ -136,167 +131,209 @@ class HouseholdCsvImportService
     }
 
     /**
-     * Process individual CSV row
+     * Process one CSV row.
+     *
+     * Expected column layout:
+     *   0  head_first_name
+     *   1  head_middle_name
+     *   2  head_last_name
+     *   3  household_name
+     *   4  email
+     *   5  street
+     *   6  purok
+     *   7  barangay  (name or numeric ID)
+     *   8  contact_number
+     *   9  emergency_contact
+     *   --- members (one member per row; multiple rows with the same head = multiple members) ---
+     *   10 member_first_name
+     *   11 member_middle_name
+     *   12 member_last_name
+     *   13 member_birth_date   (MM/DD/YYYY or YYYY-MM-DD)
+     *   14 member_sex          (M / F)
+     *   15 member_relation
+     *   16 member_civil_status
+     *   17 member_education_level
+     *   18 member_occupation
+     *   19 member_is_pwd       (Y / N)
+     *   20 member_is_pregnant  (Y / N)
      */
-    private function processRow($row, $rowNumber, $uploadedBy)
+    private function processRow(array $row, int $rowNumber, string $uploadedBy): void
     {
-        // Expected CSV columns: 0-7 head/addr, 8-16 member
-        $headFirstName = trim($row[0] ?? '');
-        $headMiddleName = trim($row[1] ?? '');
-        $headLastName = trim($row[2] ?? '');
-        $street = trim($row[3] ?? '');
-        $purok = trim($row[4] ?? '');
-        $barangayIdOrName = trim($row[5] ?? '');
-        $contactNumber = trim($row[6] ?? '');
-        $emergencyContact = trim($row[7] ?? '');
+        $headFirstName    = trim($row[0] ?? '');
+        $headMiddleName   = trim($row[1] ?? '');
+        $headLastName     = trim($row[2] ?? '');
+        $householdName    = trim($row[3] ?? '');
+        $email            = trim($row[4] ?? '');
+        $street           = trim($row[5] ?? '');
+        $purokSitio       = trim($row[6] ?? '');
+        $barangayValue    = trim($row[7] ?? '');
+        $contactNumber    = trim($row[8] ?? '');
+        $emergencyContact = trim($row[9] ?? '');
 
-        $memberFirstName = trim($row[8] ?? '');
-        $memberMiddleName = trim($row[9] ?? '');
-        $memberLastName = trim($row[10] ?? '');
-        $memberBirthDate = trim($row[11] ?? '');
-        $memberSex = strtoupper(trim($row[12] ?? 'M'));
-        $memberCivilStatus = trim($row[13] ?? '');
-        $memberEducation = trim($row[14] ?? '');
-        $memberProfession = trim($row[15] ?? '');
-        $memberIsPwd = strtoupper(trim($row[16] ?? 'N')) === 'Y';
+        $memberFirstName   = trim($row[10] ?? '');
+        $memberMiddleName  = trim($row[11] ?? '');
+        $memberLastName    = trim($row[12] ?? '');
+        $memberBirthDate   = trim($row[13] ?? '');
+        $memberSexRaw      = strtoupper(trim($row[14] ?? 'M'));
+        $memberRelation    = trim($row[15] ?? '');
+        $memberCivilStatus = trim($row[16] ?? '');
+        $memberEducation   = trim($row[17] ?? '');
+        $memberOccupation  = trim($row[18] ?? '');
+        $memberIsPwd       = strtoupper(trim($row[19] ?? 'N')) === 'Y';
+        $memberIsPregnant  = strtoupper(trim($row[20] ?? 'N')) === 'Y';
 
         if (empty($headFirstName) || empty($headLastName)) {
-            throw new \Exception('Missing head name in row ' . $rowNumber);
+            throw new \Exception("Row {$rowNumber}: missing household head first/last name");
         }
 
-        $resolvedBarangayId = $this->resolveBarangay($barangayIdOrName);
-        if (!$resolvedBarangayId) {
-            throw new \Exception("Barangay '{$barangayIdOrName}' not found in row " . $rowNumber);
-        }
+        // --- Resolve barangay ---
+        $barangayId = $this->resolveBarangay($barangayValue);
 
+        // --- Address ---
         $address = Address::create([
-            'street' => $street ?: null,
-            'purok' => $purok ?: null,
-            'barangay_id' => $resolvedBarangayId,
+            'street'        => $street  ?: null,
+            'purok_sitio'   => $purokSitio ?: null,
+            'barangay_id'   => $barangayId,
+            'barangay_name' => !$barangayId && $barangayValue ? $barangayValue : null,
         ]);
 
+        // --- Household ---
         $householdCode = 'HH-' . strtoupper(Str::random(8));
         $household = Household::create([
-            'household_code' => $householdCode,
-            'address_id' => $address->id,
-            'contact_number' => $contactNumber ?: null,
+            'household_code'    => $householdCode,
+            'household_name'    => $householdName ?: 'Unnamed Household',
+            'email'             => $email ?: null,
+            'member_count'      => 0, // CSV import handles members sequentially, so wait or let model count it dynamically
+            'address_id'        => $address->id,
+            'contact_number'    => $contactNumber    ?: null,
             'emergency_contact' => $emergencyContact ?: null,
-            'created_by' => $uploadedBy,
+            'created_by'        => $uploadedBy,
         ]);
 
+        // --- Household user account ---
         $householdRole = Role::where('name', 'Household')->first();
         if (!$householdRole) {
-            throw new \Exception('Run seeder for Household role');
+            throw new \Exception('Household role not found — run the role seeder first');
         }
 
-        $tempPassword = Str::password(12);
-        $user = User::create([
-            'name' => trim("{$headFirstName} " . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName),
-            'email' => strtolower("{$householdCode}@capstone.local"),
-            'password' => bcrypt($tempPassword),
-            'role_id' => $householdRole->id,
-            'household_id' => $household->id,
+        $tempPassword = Str::random(12);
+        $headFullName = trim($headFirstName . ' ' . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName);
+        $userEmail    = !empty($email) ? $email : strtolower("{$householdCode}@capstone.local");
+
+        User::create([
+            'name'                 => $headFullName,
+            'email'                => $userEmail,
+            'password'             => bcrypt($tempPassword),
+            'role_id'              => $householdRole->id,
+            'household_id'         => $household->id,
             'must_change_password' => true,
-            'temp_password' => $tempPassword,
+            'temp_password'        => $tempPassword,
         ]);
 
-        \Log::info("Row {$rowNumber}: Created HH {$householdCode}, temp pass {$tempPassword}");
+        // --- Member (from this row) ---
+        $hasMemberData = !empty($memberFirstName) && !empty($memberLastName) && !empty($memberBirthDate);
 
-        // Always try to create member if data present (even if first column empty but others have data)
-        if ($memberLastName || $memberBirthDate) {
-            if (empty($memberFirstName) || empty($memberLastName) || empty($memberBirthDate)) {
-                \Log::warning("Row {$rowNumber}: Skipping incomplete member");
-            } else {
-                $formattedBirthDate = $this->parseAndFormatDate($memberBirthDate);
-                if (!$formattedBirthDate) {
-                    throw new \Exception("Row {$rowNumber}: Invalid member birth date '{$memberBirthDate}'");
-                }
-
-                Member::create([
-                    'household_id' => $household->id,
-                    'first_name' => $memberFirstName,
-                    'middle_name' => $memberMiddleName,
-                    'last_name' => $memberLastName,
-                    'birth_date' => $formattedBirthDate,
-                    'sex' => $memberSex,
-                    'civil_status' => $memberCivilStatus,
-                    'education_level' => $memberEducation,
-                    'profession' => $memberProfession,
-                    'is_pwd' => $memberIsPwd,
-                ]);
-                \Log::info("Row {$rowNumber}: Added member {$memberFirstName} {$memberLastName}");
+        if ($hasMemberData) {
+            $parsedDate = $this->parseBirthDate($memberBirthDate);
+            if (!$parsedDate) {
+                throw new \Exception("Row {$rowNumber}: invalid birth_date '{$memberBirthDate}'");
             }
+
+            $sexMap = ['M' => 'male', 'F' => 'female'];
+            $sex    = $sexMap[$memberSexRaw] ?? 'male';
+            $age    = (int) Carbon::parse($parsedDate)->diffInYears(now());
+
+            $specialNeeds = $memberIsPwd ? 'pwd'
+                : ($age >= 60 ? 'senior' : ($age < 18 ? 'child' : 'adult'));
+
+            $memberFullName = trim(
+                $memberFirstName . ' ' .
+                ($memberMiddleName ? $memberMiddleName . ' ' : '') .
+                $memberLastName
+            );
+
+            Member::create([
+                'household_id'    => $household->id,
+                'name'            => $memberFullName,
+                'gender'          => $sex,
+                'sex'             => $sex,
+                'age'             => $age,
+                'relation'        => $memberRelation ?: null,
+                'special_needs'   => $specialNeeds,
+                'first_name'      => $memberFirstName,
+                'middle_name'     => $memberMiddleName ?: null,
+                'last_name'       => $memberLastName,
+                'birth_date'      => $parsedDate,
+                'civil_status'    => $memberCivilStatus ?: null,
+                'education_level' => $memberEducation   ?: null,
+                'occupation'      => $memberOccupation  ?: null,
+                'is_pwd'          => $memberIsPwd,
+                'is_pregnant'     => $memberIsPregnant,
+                'is_graduate'     => false,
+            ]);
+
+            \Log::info("Row {$rowNumber}: member {$memberFullName} added to {$householdCode}");
         }
 
         ImportLog::create([
             'data_source_id' => $this->dataSource->id,
-            'row_number' => $rowNumber,
-            'status' => 'success',
+            'row_number'     => $rowNumber,
+            'status'         => 'success',
         ]);
+
+        \Log::info("Row {$rowNumber}: household {$householdCode} created successfully");
     }
 
     /**
-     * Resolve barangay ID from numeric ID or exact name
+     * Resolve barangay by numeric ID or case-insensitive name.
      */
-    private function resolveBarangay($value)
+    private function resolveBarangay(string $value): ?string
     {
         if (empty($value)) {
             return null;
         }
 
-        if (is_numeric($value)) {
-            $barangay = Barangay::find((int)$value);
-            return $barangay ? (int)$value : null;
+        if (Str::isUuid($value)) {
+            return Barangay::where('id', $value)->exists() ? $value : null;
         }
 
-        // Exact match name
-        $barangay = Barangay::where('name', trim($value))->first();
-        return $barangay ? $barangay->id : null;
+        return Barangay::whereRaw('LOWER(name) = ?', [strtolower($value)])->value('id');
     }
 
     /**
-     * Parse and format date to Y-m-d format
-     * Supports DD/MM/YYYY and YYYY-MM-DD formats
+     * Parse various birth date formats into Y-m-d.
      */
-    private function parseAndFormatDate($date)
+    private function parseBirthDate(string $raw): ?string
     {
-        $date = trim($date);
-        
-        if (empty($date)) {
+        $raw = trim($raw);
+        if (empty($raw)) {
             return null;
         }
 
-        // Try DD/MM/YYYY format first
-        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $date, $matches)) {
-            $day = (int)$matches[1];
-            $month = (int)$matches[2];
-            $year = (int)$matches[3];
-            
-            if ($day >= 1 && $day <= 31 && $month >= 1 && $month <= 12 && $year >= 1900 && $year <= 2100) {
-                try {
-                    $dateObj = \DateTime::createFromFormat('d/m/Y', $date);
-                    return $dateObj ? $dateObj->format('Y-m-d') : null;
-                } catch (\Exception $e) {
-                    return null;
-                }
+        // MM/DD/YYYY
+        if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $raw, $m)) {
+            if (checkdate((int)$m[1], (int)$m[2], (int)$m[3]) && (int)$m[3] >= 1900) {
+                return \DateTime::createFromFormat('m/d/Y', $raw)?->format('Y-m-d');
             }
         }
 
-        // Try YYYY-MM-DD format
-        if ($this->isValidDate($date, 'Y-m-d')) {
-            return $date;
+        // YYYY-MM-DD
+        if (preg_match('#^\d{4}-\d{2}-\d{2}$#', $raw)) {
+            $date = \DateTime::createFromFormat('Y-m-d', $raw);
+            return ($date && $date->format('Y-m-d') === $raw) ? $raw : null;
         }
 
-        return null;
-    }
+        // DD/MM/YYYY fallback
+        if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $raw, $m)) {
+            if (checkdate((int)$m[2], (int)$m[1], (int)$m[3])) {
+                return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+            }
+        }
 
-    /**
-     * Validate date format (YYYY-MM-DD)
-     */
-    private function isValidDate($date, $format = 'Y-m-d')
-    {
-        $d = \DateTime::createFromFormat($format, $date);
-        return $d && $d->format($format) === $date;
+        try {
+            return Carbon::parse($raw)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }
-

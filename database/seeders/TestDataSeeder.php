@@ -11,7 +11,7 @@ class TestDataSeeder extends Seeder
     public function run(): void
     {
         // Create roles
-        Role::firstOrCreate(['name' => 'Captain']);
+        $captainRole = Role::firstOrCreate(['name' => 'Captain']);
         Role::firstOrCreate(['name' => 'Encoder']);
         Role::firstOrCreate(['name' => 'Household']);
 
@@ -21,7 +21,7 @@ class TestDataSeeder extends Seeder
             [
                 'name' => 'Captain Test',
                 'password' => bcrypt('password'),
-                'role_id' => 1,
+                'role_id' => $captainRole->id,
                 'must_change_password' => false
             ]
         );

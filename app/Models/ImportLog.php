@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class ImportLog extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'data_source_id',
         'row_number',
@@ -13,8 +16,52 @@ class ImportLog extends Model
         'error_message',
     ];
 
-    public function dataSource()
+    protected $casts = [
+        'data_source_id' => 'integer',
+        'row_number'     => 'integer',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (ImportLog $log) {
+            $allowed = ['success', 'failed'];
+            if (!in_array($log->status, $allowed, true)) {
+                throw new \InvalidArgumentException(
+                    "Invalid ImportLog status '{$log->status}'. Allowed: "
+                    . implode(', ', $allowed)
+                );
+            }
+        });
+    }
+
+    // ── Relationships ─────────────────────────────────────────────────────────
+
+    public function dataSource(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(DataSource::class);
+    }
+
+    // ── Scopes ────────────────────────────────────────────────────────────────
+
+    public function scopeFailed($query)
+    {
+        return $query->where('status', 'failed');
+    }
+
+    public function scopeSuccessful($query)
+    {
+        return $query->where('status', 'success');
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    public function isSuccess(): bool
+    {
+        return $this->status === 'success';
+    }
+
+    public function isFailure(): bool
+    {
+        return $this->status === 'failed';
     }
 }

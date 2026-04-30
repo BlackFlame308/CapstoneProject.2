@@ -5,15 +5,10 @@ use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CSVUploadController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-
-// 🔽 Models for API dropdowns
-use App\Models\Region;
-use App\Models\Province;
-use App\Models\City;
-use App\Models\Barangay;
-use App\Models\Sitio;
+use App\Http\Controllers\Auth\PasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,62 +39,68 @@ Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
 
 /*
 |--------------------------------------------------------------------------
-| AUTHENTICATED ROUTES
+| Password Change (must be accessible before full auth)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-
-    // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::post('/analytics/update', [DashboardController::class, 'updateAnalytics'])->name('analytics.update');
-
-    // Household CRUD
-    Route::resource('households', HouseholdController::class);
-
-    // CSV Upload
-    Route::get('csv/upload', [CSVUploadController::class, 'uploadForm'])->name('csv.upload');
-    Route::post('csv/upload', [CSVUploadController::class, 'upload'])->name('csv.upload.process');
-
-    // Account management
-    Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index');
-
-    /*
-    |--------------------------------------------------------------------------
-    | 🌍 LOCATION API (FOR DROPDOWNS)
-    |--------------------------------------------------------------------------
-    */
-
-    // Get all regions
-    Route::get('/api/regions', function () {
-        return Region::all();
-    });
-
-    // Get provinces by region
-    Route::get('/api/provinces/{region_id}', function ($region_id) {
-        return Province::where('region_id', $region_id)->get();
-    });
-
-    // Get cities by province
-    Route::get('/api/cities/{province_id}', function ($province_id) {
-        return City::where('province_id', $province_id)->get();
-    });
-
-    // Get barangays by city
-    Route::get('/api/barangays/{city_id}', function ($city_id) {
-        return Barangay::where('city_id', $city_id)->get();
-    });
-
-    // Get sitios by barangay
-    Route::get('/api/sitios/{barangay_id}', function ($barangay_id) {
-        return Sitio::where('barangay_id', $barangay_id)->get();
-    });
+    Route::get('password/change', [PasswordController::class, 'create'])->name('password.change')
+        ->middleware('auth'); // Additional check for must_change_password could be added here
+    Route::post('password/change', [PasswordController::class, 'update'])->name('password.update')
+        ->middleware('auth');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Default Route
+| AUTHENTICATED ROUTES (Inertia + React)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+
+    // Dashboard - Captain can view, Encoder can view
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')
+        ->middleware('role:Captain|Encoder|Household');
+    Route::post('/analytics/update', [DashboardController::class, 'updateAnalytics'])->name('analytics.update')
+        ->middleware('role:Captain');
+
+    // Household CRUD - Captain full access, Encoder can create/view, Household can view own
+    Route::resource('households', HouseholdController::class)
+        ->middleware('role:Captain|Encoder');
+
+    // CSV Upload - Captain only
+    Route::get('csv/upload', [CSVUploadController::class, 'uploadForm'])->name('csv.upload')
+        ->middleware('role:Captain');
+    Route::post('csv/upload', [CSVUploadController::class, 'upload'])->name('csv.upload.process')
+        ->middleware('role:Captain');
+
+    // Account management - Captain only
+    Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index')
+        ->middleware('role:Captain');
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOCATION DROPDOWN ROUTES (internal — no public API)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/locations/regions', [LocationController::class, 'regions'])->name('locations.regions')
+        ->middleware('role:Captain|Encoder|Household');
+    Route::get('/locations/provinces/{regionId}', [LocationController::class, 'provinces'])->name('locations.provinces')
+        ->middleware('role:Captain|Encoder|Household');
+    Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities'])->name('locations.cities')
+        ->middleware('role:Captain|Encoder|Household');
+    Route::get('/locations/barangays/{cityId}', [LocationController::class, 'barangays'])->name('locations.barangays')
+        ->middleware('role:Captain|Encoder|Household');
+    Route::get('/locations/sitios/{barangayId}', [LocationController::class, 'sitios'])->name('locations.sitios')
+        ->middleware('role:Captain|Encoder|Household');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Default Route — redirect to dashboard if authenticated
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
 });
+

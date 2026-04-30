@@ -4,15 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class AccountController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        abort_if(! auth()->user()->can('manage_accounts'), 403);
+        $this->authorize('manage_accounts', User::class);
 
-        $users = User::with('role')->orderBy('created_at', 'desc')->paginate(15);
+        $users = User::with('role')
+            ->when($request->search, fn($q, $search) =>
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+            )
+            ->orderBy('created_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('accounts.index', compact('users'));
+        return Inertia::render('Account/Index', [
+            'users' => $users,
+            'filters' => $request->only('search'),
+        ]);
     }
 }

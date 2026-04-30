@@ -11,10 +11,38 @@ class CheckRole
     /**
      * Handle an incoming request.
      *
-     * @param  Closure(Request): (Response)  $next
+     * Supports single or pipe-separated roles:
+     *   middleware('role:Captain')
+     *   middleware('role:Captain|Encoder')
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
+        if (!auth()->check()) {
+            return $request->expectsJson()
+                ? response()->json(['status' => 'error', 'message' => 'Unauthenticated.'], 401)
+                : redirect()->route('login');
+        }
+
+        $user = auth()->user();
+
+        if (!$user->role) {
+            return $request->expectsJson()
+                ? response()->json(['status' => 'error', 'message' => 'No role assigned.'], 403)
+                : abort(403, 'No role assigned to this account.');
+        }
+
+        // Flatten pipe-separated roles passed as a single string e.g. 'Captain|Encoder'
+        $allowed = collect($roles)
+            ->flatMap(fn($r) => explode('|', $r))
+            ->map('trim')
+            ->all();
+
+        if (!in_array($user->role->name, $allowed, true)) {
+            return $request->expectsJson()
+                ? response()->json(['status' => 'error', 'message' => 'Forbidden: insufficient role.'], 403)
+                : abort(403, 'You do not have permission to access this page.');
+        }
+
         return $next($request);
     }
 }

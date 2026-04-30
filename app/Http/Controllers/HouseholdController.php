@@ -2,174 +2,146 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreHouseholdRequest;
+use App\Http\Requests\UpdateHouseholdRequest;
 use App\Models\Household;
-use App\Models\Address;
-use App\Models\User;
+use App\Models\Region;
 use App\Models\Member;
 use App\Models\Role;
-use App\Models\Region;
-use App\Models\Province;
-use App\Models\City;
-use App\Models\Barangay;
+use App\Models\User;
+use App\Services\HouseholdService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class HouseholdController extends Controller
 {
-    public function index()
+    public function __construct(
+        private readonly HouseholdService $householdService
+    ) {}
+
+    public function index(Request $request)
     {
-        abort_if(! auth()->user()->can('view_households'), 403);
+        $this->authorize('view', Household::class);
 
-        try {
-            $households = Household::with([
-                'address.barangay.city.province.region',
-                'members'
-            ])->paginate(10);
+        $query = Household::with([
+            'address.barangay.city.province.region',
+            'members',
+        ]);
 
-            return view('households.index', compact('households'));
-
-        } catch (\Exception $e) {
-            \Log::error('Error fetching households: ' . $e->getMessage());
-            return back()->with('error', 'Failed to fetch households');
+        if ($request->filled('purok_sitio')) {
+            $query->whereHas('address', function ($q) use ($request) {
+                $q->where('purok_sitio', 'like', '%' . $request->purok_sitio . '%');
+            });
         }
+
+        if ($request->filled('barangay_id')) {
+            $query->whereHas('address', function ($q) use ($request) {
+                $q->where('barangay_id', $request->barangay_id);
+            });
+        }
+
+if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('household_code', 'like', "%{$search}%")
+                      ->orWhere('household_name', 'like', "%{$search}%")
+                      ->orWhereHas('user', function($userQ) use ($search) {
+                          $userQ->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+        $households = $query->latest()->paginate(10)->withQueryString();
+
+        return Inertia::render('Household/Index', [
+            'households' => $households,
+            'filters'    => $request->only(['search', 'purok_sitio', 'barangay_id']),
+        ]);
     }
 
     public function create(Request $request)
     {
-        abort_if(! auth()->user()->can('manage_households'), 403);
+        $this->authorize('create', Household::class);
 
-        try {
-            $regions = Region::all();
-            $selectedRegion = $request->region_id;
-            $selectedProvince = $request->province_id;
-            $selectedCity = $request->city_id;
-            $selectedBarangay = $request->barangay_id;
-
-            $provinces = $selectedRegion ? Province::where('region_id', $selectedRegion)->get() : collect();
-            $cities = $selectedProvince ? City::where('province_id', $selectedProvince)->get() : collect();
-            $barangays = $selectedCity ? Barangay::where('city_id', $selectedCity)->get() : collect();
-
-            return view('households.create', compact(
-                'regions', 'provinces', 'cities', 'barangays',
-                'selectedRegion', 'selectedProvince', 'selectedCity', 'selectedBarangay'
-            ));
-
-        } catch (\Exception $e) {
-            \Log::error('Error loading create form: ' . $e->getMessage());
-            return back()->with('error', 'Failed to load form');
-        }
+        return Inertia::render('Household/Create');
     }
 
-    public function store(Request $request)
+    public function store(StoreHouseholdRequest $request)
     {
-        abort_if(! auth()->user()->isAdmin() && ! auth()->user()->isCaptain(), 403);
+        $validated = $request->validated();
 
         try {
-            $validated = $request->validate([
-                'street' => 'nullable|string|max:255',
-                'purok' => 'nullable|string|max:100',
-                'barangay_id' => 'required|exists:barangays,id',
-                'contact_number' => 'nullable|string|max:20',
-                'emergency_contact' => 'nullable|string|max:20',
-                'head_first_name' => 'required|string|max:100',
-                'head_middle_name' => 'nullable|string|max:100',
-                'head_last_name' => 'required|string|max:100',
-            ]);
+            $household = $this->householdService->create(
+                $validated,
+                auth()->id()
+            );
 
-            return DB::transaction(function () use ($validated, $request) {
-                $role = Role::where('name', 'Household')->first();
-                if (!$role) {
-                    throw new \Exception('Household role not found - run php artisan db:seed --class=RoleSeeder');
-                }
-
-                $address = Address::create([
-                    'street' => $validated['street'],
-                    'purok' => $validated['purok'],
-                    'barangay_id' => $validated['barangay_id'],
-                ]);
-
-                $householdCode = 'HH-' . strtoupper(Str::random(8));
-                $household = Household::create([
-                    'household_code' => $householdCode,
-                    'address_id' => $address->id,
-                    'contact_number' => $validated['contact_number'] ?? null,
-                    'emergency_contact' => $validated['emergency_contact'] ?? null,
-                    'created_by' => auth()->id(),
-                ]);
-
-                $tempPassword = Str::password(12);
-                User::create([
-                    'name' => trim($validated['head_first_name'] . ' ' . ($validated['head_middle_name'] ?? '') . ' ' . $validated['head_last_name']),
-                    'email' => $householdCode . '@households.capstone.local',
-                    'password' => bcrypt($tempPassword),
-                    'role_id' => $role->id,
-                    'household_id' => $household->id,
-                    'must_change_password' => true,
-                    'temp_password' => $tempPassword,
-                ]);
-
-                if ($request->filled('members') && is_array($request->members)) {
-                    foreach ($request->members as $member) {
-                        if (!empty($member['first_name']) && !empty($member['last_name']) && !empty($member['birth_date'])) {
-                            Member::create([
-                                'household_id' => $household->id,
-                                'first_name' => $member['first_name'],
-                                'middle_name' => $member['middle_name'] ?? null,
-                                'last_name' => $member['last_name'],
-                                'birth_date' => $member['birth_date'],
-                                'sex' => $member['sex'],
-                                'civil_status' => $member['civil_status'] ?? null,
-                                'education_level' => $member['education_level'] ?? null,
-                                'profession' => $member['profession'] ?? null,
-                                'is_pwd' => $member['is_pwd'] ?? false,
-                            ]);
-                        }
-                    }
-                }
-
-                return redirect()->route('households.index')
-                    ->with('success', "Household '{$householdCode}' created successfully. Login: {$householdCode}@households.capstone.local");
-            });
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return back()->withErrors($e->errors())->withInput();
+            return redirect()->route('households.index')
+                ->with('success', "Household '{$household->household_code}' created successfully.");
         } catch (\Exception $e) {
-            \Log::error('Household creation error: ' . $e->getMessage());
-            return back()->with('error', $e->getMessage())->withInput();
+            report($e);
+            return back()->with('error', 'Failed to create household. Please try again.')->withInput();
         }
     }
 
     public function show(string $id)
     {
+        $this->authorize('view', Household::class);
+
         $household = Household::with([
             'address.barangay.city.province.region',
-            'members'
+            'members',
         ])->findOrFail($id);
 
-        return view('households.show', compact('household'));
+        return Inertia::render('Household/Show', [
+            'household' => $household,
+        ]);
     }
 
     public function edit(string $id)
     {
-        $household = Household::findOrFail($id);
-        return view('households.edit', compact('household'));
+        $this->authorize('update', Household::class);
+
+        $household = Household::with(['address.barangay.city.province.region'])->findOrFail($id);
+
+        return Inertia::render('Household/Edit', [
+            'household' => $household,
+        ]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(UpdateHouseholdRequest $request, string $id)
     {
-        $household = Household::findOrFail($id);
-        $household->update($request->validated());
-        return back()->with('success', 'Updated successfully');
+        $validated = $request->validated();
+
+        try {
+            $household = $this->householdService->update(
+                Household::with(['address', 'members'])->findOrFail($id),
+                $validated
+            );
+
+            return redirect()->route('households.show', $household)
+                ->with('success', 'Household updated successfully.');
+        } catch (\Exception $e) {
+            report($e);
+            return back()->with('error', 'Failed to update household.')->withInput();
+        }
     }
 
     public function destroy(string $id)
     {
-        $household = Household::findOrFail($id);
-        $household->members()->delete();
-        $household->user()->delete();
-        $household->address()->delete();
-        $household->delete();
-        return back()->with('success', 'Deleted successfully');
+        $this->authorize('delete', Household::class);
+
+        try {
+            $household = Household::with('address')->findOrFail($id);
+            $this->householdService->delete($household);
+
+            return back()->with('success', 'Household deleted successfully.');
+        } catch (\Exception $e) {
+            report($e);
+            return back()->with('error', 'Failed to delete household.');
+        }
     }
 }
 

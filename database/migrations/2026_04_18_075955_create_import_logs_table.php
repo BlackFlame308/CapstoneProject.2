@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('import_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('data_source_id')->constrained('data_sources')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('data_source_id')->constrained('data_sources')->cascadeOnDelete();
             $table->unsignedInteger('row_number')->nullable();
             $table->string('status', 20)->nullable();
             $table->text('error_message')->nullable();

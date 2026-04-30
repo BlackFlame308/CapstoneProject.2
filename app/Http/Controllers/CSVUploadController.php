@@ -4,56 +4,45 @@ namespace App\Http\Controllers;
 
 use App\Services\HouseholdCsvImportService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class CSVUploadController extends Controller
 {
     /**
-     * Show CSV upload form
+     * Show CSV upload form.
      */
     public function uploadForm()
     {
-        abort_if(! auth()->user()->can('manage_households'), 403);
+        $this->authorize('create', \App\Models\Household::class);
 
-        try {
-            return view('csv.upload');
-        } catch (\Exception $e) {
-            \Log::error('Error showing CSV upload form: ' . $e->getMessage());
-            return back()->with('error', 'Failed to load upload form');
-        }
+        return Inertia::render('CSV/Upload');
     }
 
     /**
-     * Process CSV upload
+     * Process CSV upload.
      */
     public function upload(Request $request, HouseholdCsvImportService $service)
     {
-        abort_if(! auth()->user()->can('manage_households'), 403);
+        $this->authorize('create', \App\Models\Household::class);
 
         try {
-            // Validate
-            $validated = $request->validate([
+            $request->validate([
                 'csv_file' => 'required|file|mimes:csv,txt|max:10240',
             ]);
 
-            if (!auth()->check()) {
-                return redirect()->route('login')->with('error', 'User not authenticated');
-            }
-
-            // Get uploaded file directly from temp path (no storage needed)
             $file = $request->file('csv_file');
-            
+
             if (!$file->isValid() || !$file->isReadable()) {
-                return back()->with('error', 'Uploaded file is not valid or readable');
+                return back()->with('error', 'Uploaded file is not valid or readable.');
             }
 
             $tempFilePath = $file->getRealPath();
-            \Log::info("Processing CSV from temp path: {$tempFilePath}");
 
             if (!file_exists($tempFilePath)) {
-                return back()->with('error', 'Temporary file not accessible');
+                return back()->with('error', 'Temporary file could not be accessed. Please try again.');
             }
+
+            \Log::info("Processing CSV from temp path: {$tempFilePath}");
 
             $result = $service->import($tempFilePath, auth()->id());
 
@@ -62,13 +51,13 @@ class CSVUploadController extends Controller
                 ->with('success', $result['message']);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::warning('CSV Validation Error: ' . json_encode($e->errors()));
-            return back()->withErrors($e->errors())
-                ->with('error', 'Validation failed');
+            return back()
+                ->withErrors($e->errors())
+                ->with('error', 'Please fix the validation errors and try again.');
 
         } catch (\Exception $e) {
             \Log::error('CSV Upload Error: ' . $e->getMessage());
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+            return back()->with('error', 'Import failed. Please check your file format and try again.');
         }
     }
 }
