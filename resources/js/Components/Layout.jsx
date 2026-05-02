@@ -8,25 +8,25 @@ export default function Layout({ children, title }) {
 
     const navLink = (href, label) => (
         <li className="mb-2">
-            <Link href={href} className="nav-link block px-3 py-2 rounded hover:bg-gray-100 transition">
+            <Link href={href} className="nav-link block px-3 py-2 rounded hover:sidebar-active transition">
                 {label}
             </Link>
         </li>
     );
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#F7F9FB]">
             {/* Navbar */}
-            <nav className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow">
+            <nav className="bg-navbar text-white shadow">
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <Link href="/dashboard" className="text-xl font-bold">SafeTrack</Link>
                     <div className="flex items-center gap-4">
                         {user && (
                             <>
-                                <span className="text-sm opacity-90">{user.name}</span>
+                                <span className="text-white font-medium mr-2">{user.name}</span>
                                 <Link
                                     href="/password/change"
-                                    className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded transition"
+                                    className="text-white border border-white/60 bg-transparent rounded-[6px] px-[14px] py-[6px] text-sm transition hover:border-[#3B82F6] hover:text-[#3B82F6]"
                                 >
                                     Change Password
                                 </Link>
@@ -34,7 +34,7 @@ export default function Layout({ children, title }) {
                                     href="/logout"
                                     method="post"
                                     as="button"
-                                    className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded transition"
+                                    className="text-white bg-[#EF4444] rounded-[6px] px-[14px] py-[6px] text-sm font-medium transition hover:bg-[#DC2626]"
                                 >
                                     Logout
                                 </Link>
@@ -47,7 +47,7 @@ export default function Layout({ children, title }) {
             <div className="flex">
                 {/* Sidebar */}
                 {user && (
-                    <aside className="w-64 bg-white min-h-screen shadow-sm p-4">
+                    <aside className="w-64 bg-sidebar text-white min-h-screen shadow-sm p-4">
                         <ul>
                             {navLink('/dashboard', '🏠 Dashboard')}
                             {permissions.view_households && (
@@ -60,7 +60,7 @@ export default function Layout({ children, title }) {
                             {permissions.manage_accounts && navLink('/accounts', '👤 Accounts')}
                             {permissions.register_accounts && navLink('/register', '📝 Register Account')}
                             {permissions.view_reports && navLink('/dashboard', '📊 System Reports')}
-                            <li className="mt-4 border-t pt-4">
+                            <li className="mt-4 border-t pt-4 border-white/20">
                                 {navLink('/password/change', '🔑 Change Password')}
                             </li>
                         </ul>

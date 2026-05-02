@@ -2,7 +2,7 @@ import Layout from '@/Components/Layout';
 import { usePage, Link } from '@inertiajs/react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const COLORS = ['#FF6384', '#36A2EB', '#FFCE56'];
+const COLORS = ['#3B82F6', '#EF4444', '#93C5FD'];
 
 export default function Dashboard() {
     const { stats, barangayStats, recentHouseholds, membersByBarangay, ageDistribution, flash } = usePage().props;
@@ -19,10 +19,10 @@ export default function Dashboard() {
 
     const barangayData = membersByBarangay?.map(b => ({ name: b.name, population: b.count })) ?? [];
 
-    const StatCard = ({ label, value, color = 'from-indigo-600 to-purple-600' }) => (
-        <div className={`bg-gradient-to-r ${color} text-white rounded-lg p-5 shadow`}>
-            <div className="text-3xl font-bold">{value ?? 0}</div>
-            <div className="text-sm opacity-90 mt-1">{label}</div>
+    const StatCard = ({ label, value, color = 'bg-gradient-brand' }) => (
+        <div className="stat-card rounded-lg p-5">
+            <div className="stat-card-number text-3xl">{value ?? 0}</div>
+            <div className="stat-card-label text-sm mt-1">{label}</div>
         </div>
     );
 
@@ -34,6 +34,12 @@ export default function Dashboard() {
             {flash?.error && (
                 <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">{flash.error}</div>
             )}
+
+            {/* Hero Section */}
+            <div className="bg-hero text-white rounded-lg p-6 mb-8">
+                <h2 className="text-3xl font-bold mb-2">Welcome to SafeTrack Dashboard</h2>
+                <p className="text-lg opacity-90">Monitor and manage household data across barangays</p>
+            </div>
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -52,7 +58,7 @@ export default function Dashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="chart-card rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Population Distribution by Age</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
@@ -67,7 +73,7 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="chart-card rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Population by Barangay</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={barangayData}>
@@ -75,28 +81,28 @@ export default function Dashboard() {
                             <XAxis dataKey="name" />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="population" fill="#667eea" />
+                            <Bar dataKey="population" fill="#3B82F6" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Refresh Analytics */}
-            <div className="bg-white rounded-lg shadow p-4 mb-8">
+            <div className="chart-card rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-semibold mb-2">Update Analytics</h3>
                 <p className="text-gray-600 text-sm mb-3">Refresh analytics data for all barangays based on current household and member data.</p>
                 <Link
                     href="/analytics/update"
                     method="post"
                     as="button"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition"
+                    className="btn-primary px-4 py-2 rounded transition"
                 >
                     Refresh Analytics
                 </Link>
             </div>
 
             {/* Barangay Stats Table */}
-            <div className="bg-white rounded-lg shadow p-4 mb-8">
+            <div className="chart-card rounded-lg p-4 mb-8">
                 <h3 className="text-lg font-semibold mb-4">Statistics by Barangay</h3>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">

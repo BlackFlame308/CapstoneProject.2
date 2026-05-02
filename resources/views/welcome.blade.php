@@ -7,7 +7,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -16,16 +16,35 @@
         }
         .card {
             border: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
             border-radius: 10px;
+            background-color: #F7F9FB;
         }
         .welcome-container {
             max-width: 600px;
         }
         .hero-text {
             text-align: center;
-            color: white;
+            color: #000000;
             margin-bottom: 40px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
+            border: none;
+            color: #F7F9FB;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #EF4444 0%, #3B82F6 100%);
+            color: #F7F9FB;
+        }
+        .btn-outline-light {
+            color: #3B82F6;
+            border-color: #3B82F6;
+            background: linear-gradient(135deg, #F7F9FB 0%, #3B82F6 50%);
+        }
+        .btn-outline-light:hover {
+            background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
+            color: #F7F9FB;
         }
         .hero-text h1 {
             font-size: 48px;
