@@ -266,7 +266,7 @@
 
 @layer utilities {
     .bg-gradient-brand {
-        background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
+        background: linear-gradient(135deg, #3B82F6 0%, #EF4444 50%, #3B82F6 100%);
     }
 
     .bg-gradient-brand-reverse {
@@ -299,12 +299,12 @@
 
     /* Navbar gradient */
     .bg-navbar {
-        background: linear-gradient(135deg, #000000 0%, #1a1a2e 100%);
+        background: linear-gradient(135deg, #000000 0%, #1e293b 100%);
     }
 
     /* Sidebar gradient */
     .bg-sidebar {
-        background: linear-gradient(180deg, #0a0a0a 0%, #111827 100%);
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
     }
 
     /* Sidebar active item */
@@ -315,7 +315,7 @@
 
     /* Stat card styles */
     .stat-card {
-        background: linear-gradient(135deg, #F7F9FB 0%, #EFF6FF 100%);
+        background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
         border-top: 3px solid #3B82F6;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.08);
     }
@@ -331,19 +331,19 @@
 
     /* Chart card styles */
     .chart-card {
-        background: linear-gradient(160deg, #ffffff 0%, #F7F9FB 100%);
-        box-shadow: 0 4px 20px rgba(59,130,246,0.08);
+        background: linear-gradient(160deg, #ffffff 0%, #F0F9FF 100%);
+        box-shadow: 0 4px 20px rgba(59,130,246,0.12);
     }
 
     /* Button styles */
     .btn-primary {
-        background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+        background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
         color: #F7F9FB;
         border: none;
     }
 
     .btn-primary:hover {
-        background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+        background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%);
     }
 
     .btn-danger {
@@ -358,7 +358,7 @@
 
     /* Hero banner */
     .bg-hero {
-        background: linear-gradient(135deg, #1E3A5F 0%, #3B82F6 100%);
+        background: linear-gradient(135deg, #3B82F6 0%, #1E3A5F 100%);
     }
 }
 
