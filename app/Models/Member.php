@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Member extends Model
 {
-    use HasUuids;
+    use HasUuids, SoftDeletes;
 
     protected $fillable = [
         'household_id',
@@ -35,6 +36,11 @@ class Member extends Model
         'is_pregnant'  => 'boolean',
         'is_graduate'  => 'boolean',
         'age'          => 'integer',
+    ];
+
+    protected $appends = [
+        'full_name',
+        'vulnerability',
     ];
 
     public $timestamps = true;

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('contact_number', 50)->nullable();
             $table->boolean('is_active')->default(true);
             $table->foreignUuid('role_id')->constrained('roles');
-            $table->foreignUuid('household_id')->nullable()->unique();
+            $table->string('household_id', 20)->nullable()->unique();
             $table->boolean('must_change_password')->default(true);
             $table->string('temp_password')->nullable();
             $table->timestamps();

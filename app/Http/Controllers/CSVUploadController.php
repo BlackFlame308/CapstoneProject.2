@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\HouseholdCsvImportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CSVUploadController extends Controller
@@ -42,7 +43,7 @@ class CSVUploadController extends Controller
                 return back()->with('error', 'Temporary file could not be accessed. Please try again.');
             }
 
-            \Log::info("Processing CSV from temp path: {$tempFilePath}");
+            Log::info("Processing CSV from temp path: {$tempFilePath}");
 
             $result = $service->import($tempFilePath, auth()->id());
 
@@ -56,8 +57,8 @@ class CSVUploadController extends Controller
                 ->with('error', 'Please fix the validation errors and try again.');
 
         } catch (\Exception $e) {
-            \Log::error('CSV Upload Error: ' . $e->getMessage());
-            return back()->with('error', 'Import failed. Please check your file format and try again.');
+            Log::error('CSV Upload Error: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 }

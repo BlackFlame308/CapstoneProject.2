@@ -11,7 +11,7 @@ function FormInput({ label, name, type = 'text', value, onChange, error, ...prop
             <input
                 id={`field-${name}`}
                 type={type}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3B82F6]"
                 value={value}
                 onChange={e => onChange(name, e.target.value)}
                 {...props}
@@ -21,8 +21,23 @@ function FormInput({ label, name, type = 'text', value, onChange, error, ...prop
     );
 }
 
+// Empty member template
+const emptyMember = () => ({
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    birth_date: '',
+    sex: 'M',
+    relation: '',
+    civil_status: '',
+    education_level: '',
+    occupation: '',
+    is_pwd: false,
+    is_pregnant: false,
+});
+
 export default function HouseholdEdit({ household }) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, put, processing, errors, transform } = useForm({
         household_name: household?.household_name || '',
         email: household?.email || '',
         street: household?.address?.street || '',
@@ -31,22 +46,147 @@ export default function HouseholdEdit({ household }) {
         barangay_id: household?.address?.barangay_id || '',
         contact_number: household?.contact_number || '',
         emergency_contact: household?.emergency_contact || '',
-        members: household?.members || [],
     });
 
-    const [memberList, setMemberList] = useState(household?.members || []);
+    const [memberList, setMemberList] = useState(
+        household?.members?.length > 0
+            ? household.members.map(member => ({
+                ...member,
+                birth_date: member.birth_date ? String(member.birth_date).slice(0, 10) : '',
+            }))
+            : []
+    );
+    const [newMembers, setNewMembers] = useState([]);
 
-    const updateMember = (index, field, value) => {
-        const updated = [...memberList];
+    const updateMember = (listName, index, field, value) => {
+        const updated = [...(listName === 'existing' ? memberList : newMembers)];
         updated[index][field] = value;
-        setMemberList(updated);
-        setData('members', updated);
+        if (listName === 'existing') {
+            setMemberList(updated);
+        } else {
+            setNewMembers(updated);
+        }
+    };
+
+    const addMember = () => {
+        const updated = [...newMembers, emptyMember()];
+        setNewMembers(updated);
+    };
+
+    const removeNewMember = (index) => {
+        const updated = newMembers.filter((_, i) => i !== index);
+        setNewMembers(updated);
     };
 
     const submit = (e) => {
         e.preventDefault();
-        put(`/households/${household.id}`);
+        
+        const allMembers = [...memberList, ...newMembers];
+
+        transform(() => ({ ...data, members: allMembers }));
+        put(`/households/${household.id}`, {
+            preserveScroll: true,
+        });
     };
+
+    const renderMemberFields = (members, listName) => (
+        members.map((member, idx) => (
+            <div key={`${listName}-${idx}`} className="border rounded p-3 mb-3 bg-gray-50">
+                <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-sm text-gray-600">
+                        {listName === 'existing' ? `Member ${idx + 1}` : `New Member ${idx + 1}`}
+                    </span>
+                    {listName === 'new' && (
+                        <button
+                            type="button"
+                            onClick={() => removeNewMember(idx)}
+                            className="text-red-500 text-sm hover:underline"
+                        >
+                            Remove
+                        </button>
+                    )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="First Name *"
+                        value={member.first_name}
+                        onChange={e => updateMember(listName, idx, 'first_name', e.target.value)}
+                    />
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="Middle Name"
+                        value={member.middle_name || ''}
+                        onChange={e => updateMember(listName, idx, 'middle_name', e.target.value)}
+                    />
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="Last Name *"
+                        value={member.last_name}
+                        onChange={e => updateMember(listName, idx, 'last_name', e.target.value)}
+                    />
+                    <input
+                        type="date"
+                        className="border rounded px-2 py-1"
+                        value={member.birth_date}
+                        onChange={e => updateMember(listName, idx, 'birth_date', e.target.value)}
+                    />
+                    <select
+                        className="border rounded px-2 py-1"
+                        value={member.sex || 'M'}
+                        onChange={e => updateMember(listName, idx, 'sex', e.target.value)}
+                    >
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="Relation to Head"
+                        value={member.relation || ''}
+                        onChange={e => updateMember(listName, idx, 'relation', e.target.value)}
+                    />
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="Civil Status"
+                        value={member.civil_status || ''}
+                        onChange={e => updateMember(listName, idx, 'civil_status', e.target.value)}
+                    />
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="Education"
+                        value={member.education_level || ''}
+                        onChange={e => updateMember(listName, idx, 'education_level', e.target.value)}
+                    />
+                    <input
+                        className="border rounded px-2 py-1"
+                        placeholder="Occupation"
+                        value={member.occupation || ''}
+                        onChange={e => updateMember(listName, idx, 'occupation', e.target.value)}
+                    />
+                    <div className="flex gap-4 items-center pl-2">
+                        <label className="flex items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={member.is_pwd || false}
+                                onChange={e => updateMember(listName, idx, 'is_pwd', e.target.checked)}
+                            />
+                            PWD
+                        </label>
+                        {(member.sex === 'F' || member.sex === 'female') && (
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={member.is_pregnant || false}
+                                    onChange={e => updateMember(listName, idx, 'is_pregnant', e.target.checked)}
+                                />
+                                Pregnant
+                            </label>
+                        )}
+                    </div>
+                </div>
+            </div>
+        ))
+    );
 
     return (
         <Layout title={`Edit Household ${household?.household_code}`}>
@@ -75,95 +215,26 @@ export default function HouseholdEdit({ household }) {
                     {errors.barangay_id && <p className="text-red-500 text-xs mt-1">{errors.barangay_id}</p>}
                 </div>
 
-                <h2 className="text-lg font-semibold mt-8 mb-4">Members</h2>
-                {memberList.map((member, idx) => (
-                    <div key={idx} className="border rounded p-3 mb-3 bg-gray-50">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="First Name"
-                                value={member.first_name}
-                                onChange={e => updateMember(idx, 'first_name', e.target.value)}
-                            />
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="Middle Name"
-                                value={member.middle_name || ''}
-                                onChange={e => updateMember(idx, 'middle_name', e.target.value)}
-                            />
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="Last Name"
-                                value={member.last_name}
-                                onChange={e => updateMember(idx, 'last_name', e.target.value)}
-                            />
-                            <input
-                                type="date"
-                                className="border rounded px-2 py-1"
-                                value={member.birth_date}
-                                onChange={e => updateMember(idx, 'birth_date', e.target.value)}
-                            />
-                            <select
-                                className="border rounded px-2 py-1"
-                                value={member.sex}
-                                onChange={e => updateMember(idx, 'sex', e.target.value)}
-                            >
-                                <option value="M">Male</option>
-                                <option value="F">Female</option>
-                            </select>
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="Relation to Head"
-                                value={member.relation || ''}
-                                onChange={e => updateMember(idx, 'relation', e.target.value)}
-                            />
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="Civil Status"
-                                value={member.civil_status || ''}
-                                onChange={e => updateMember(idx, 'civil_status', e.target.value)}
-                            />
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="Education"
-                                value={member.education_level || ''}
-                                onChange={e => updateMember(idx, 'education_level', e.target.value)}
-                            />
-                            <input
-                                className="border rounded px-2 py-1"
-                                placeholder="Occupation"
-                                value={member.occupation || ''}
-                                onChange={e => updateMember(idx, 'occupation', e.target.value)}
-                            />
-                            <div className="flex gap-4 items-center pl-2">
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={member.is_pwd}
-                                        onChange={e => updateMember(idx, 'is_pwd', e.target.checked)}
-                                    />
-                                    PWD
-                                </label>
-                                {member.sex === 'F' && (
-                                    <label className="flex items-center gap-2 text-sm">
-                                        <input
-                                            type="checkbox"
-                                            checked={member.is_pregnant}
-                                            onChange={e => updateMember(idx, 'is_pregnant', e.target.checked)}
-                                        />
-                                        Pregnant
-                                    </label>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                <h2 className="text-lg font-semibold mt-8 mb-4">Members ({memberList.length + newMembers.length})</h2>
+                
+                {renderMemberFields(memberList, 'existing')}
+                {renderMemberFields(newMembers, 'new')}
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3 mt-4 mb-6">
+                    <button
+                        type="button"
+                        onClick={addMember}
+                        className="bg-[#3B82F6] hover:bg-[#000000] text-white px-4 py-2 rounded transition"
+                    >
+                        + Add Member
+                    </button>
+                </div>
+
+                <div className="flex gap-3 mt-6 border-t pt-4">
                     <button
                         type="submit"
                         disabled={processing}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded transition disabled:opacity-50"
+                        className="bg-primary hover:bg-gray-800 text-white px-6 py-2 rounded transition disabled:opacity-50"
                     >
                         {processing ? 'Saving...' : 'Update Household'}
                     </button>
@@ -175,4 +246,3 @@ export default function HouseholdEdit({ household }) {
         </Layout>
     );
 }
-

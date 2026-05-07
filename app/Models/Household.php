@@ -3,16 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Household extends Model
 {
-    use HasUuids;
+    use SoftDeletes;
 
-protected $fillable = [
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'id',
         'household_code',
         'household_name',
         'email',
@@ -23,7 +28,7 @@ protected $fillable = [
         'created_by',
     ];
 
-protected $casts = [
+    protected $casts = [
         'address_id' => 'string',
         'created_by' => 'string',
     ];
@@ -34,6 +39,23 @@ protected $casts = [
         'vulnerability_score',
         'vulnerability_badge',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Household $household) {
+            $household->id ??= $household->household_code ?: static::generateHouseholdId();
+            $household->household_code ??= $household->id;
+        });
+    }
+
+    public static function generateHouseholdId(): string
+    {
+        do {
+            $id = 'HH' . random_int(100000, 999999);
+        } while (static::whereKey($id)->orWhere('household_code', $id)->exists());
+
+        return $id;
+    }
 
     // ── Relationships ─────────────────────────────────────────────────────────
 
@@ -61,12 +83,14 @@ protected $casts = [
 
     public function getPopulationAttribute(): int
     {
-        return $this->member_count > 0 ? $this->member_count : $this->members->count();
+        return $this->member_count > 0 ? $this->member_count : $this->members()->count();
     }
 
     public function getVulnerableCountAttribute(): int
     {
-        return $this->members->filter(function ($member) {
+        $members = $this->relationLoaded('members') ? $this->members : $this->members()->get();
+
+        return $members->filter(function ($member) {
             return $member->is_pwd
                 || $member->age < 18
                 || $member->age >= 60;
@@ -75,7 +99,9 @@ protected $casts = [
 
     public function getVulnerabilityScoreAttribute(): int
     {
-        return $this->members->reduce(function ($score, $member) {
+        $members = $this->relationLoaded('members') ? $this->members : $this->members()->get();
+
+        return $members->reduce(function ($score, $member) {
             if ($member->is_pwd)    $score += 4;
             if ($member->age >= 60) $score += 2;
             if ($member->age < 18)  $score += 1;
@@ -91,4 +117,3 @@ protected $casts = [
         return 'Moderate';
     }
 }
-

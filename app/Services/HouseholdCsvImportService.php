@@ -25,8 +25,6 @@ class HouseholdCsvImportService
 
     /**
      * Import households from CSV file.
-     * Each row is processed in its own savepoint so one failure doesn't
-     * roll back successfully imported rows.
      */
     public function import(string $filePath, string $uploadedBy): array
     {
@@ -67,9 +65,6 @@ class HouseholdCsvImportService
         ];
     }
 
-    /**
-     * Read CSV header + rows, processing each independently.
-     */
     private function processCsv(string $filePath, string $uploadedBy): void
     {
         $file = fopen($filePath, 'r');
@@ -78,7 +73,7 @@ class HouseholdCsvImportService
         }
 
         try {
-            // Skip BOM if present (UTF-8 with BOM)
+            // Skip BOM if present
             $bom = fread($file, 3);
             if ($bom !== "\xEF\xBB\xBF") {
                 rewind($file);
@@ -89,22 +84,23 @@ class HouseholdCsvImportService
                 throw new \Exception('CSV file is empty or has invalid format');
             }
 
+            // Normalize header keys (trim whitespace, lowercase)
+            $header = array_map(fn($h) => strtolower(trim($h)), $header);
+
             $rowNumber = 1;
 
             while (($row = fgetcsv($file)) !== false) {
                 $rowNumber++;
 
-                // Skip blank rows
                 if (empty(array_filter($row))) {
                     continue;
                 }
 
                 $this->totalRecords++;
 
-                // Each row in its own nested transaction (savepoint)
                 try {
-                    DB::transaction(function () use ($row, $rowNumber, $uploadedBy) {
-                        $this->processRow($row, $rowNumber, $uploadedBy);
+                    DB::transaction(function () use ($row, $header, $rowNumber, $uploadedBy) {
+                        $this->processRow($row, $header, $rowNumber, $uploadedBy);
                     });
                     $this->successfulRecords++;
                 } catch (\Throwable $e) {
@@ -132,91 +128,104 @@ class HouseholdCsvImportService
 
     /**
      * Process one CSV row.
+     * Supports both positional (index) and named column access.
      *
-     * Expected column layout:
-     *   0  head_first_name
-     *   1  head_middle_name
-     *   2  head_last_name
-     *   3  household_name
-     *   4  email
-     *   5  street
-     *   6  purok
-     *   7  barangay  (name or numeric ID)
-     *   8  contact_number
-     *   9  emergency_contact
-     *   --- members (one member per row; multiple rows with the same head = multiple members) ---
-     *   10 member_first_name
-     *   11 member_middle_name
-     *   12 member_last_name
-     *   13 member_birth_date   (MM/DD/YYYY or YYYY-MM-DD)
-     *   14 member_sex          (M / F)
-     *   15 member_relation
-     *   16 member_civil_status
-     *   17 member_education_level
-     *   18 member_occupation
-     *   19 member_is_pwd       (Y / N)
-     *   20 member_is_pregnant  (Y / N)
+     * Expected columns (can be named or positional):
+     *  0/head_first_name, 1/head_middle_name, 2/head_last_name,
+     *  3/household_name,  4/email,            5/street,
+     *  6/purok,           7/barangay,         8/contact_number,
+     *  9/emergency_contact,
+     * 10/member_first_name, 11/member_middle_name, 12/member_last_name,
+     * 13/member_birth_date, 14/member_sex (M/F),
+     * 15/member_relation,   16/member_civil_status,
+     * 17/member_education_level, 18/member_occupation,
+     * 19/member_is_pwd (Y/N/1/0), 20/member_is_pregnant (Y/N/1/0)
      */
-    private function processRow(array $row, int $rowNumber, string $uploadedBy): void
+    private function processRow(array $row, array $header, int $rowNumber, string $uploadedBy): void
     {
-        $headFirstName    = trim($row[0] ?? '');
-        $headMiddleName   = trim($row[1] ?? '');
-        $headLastName     = trim($row[2] ?? '');
-        $householdName    = trim($row[3] ?? '');
-        $email            = trim($row[4] ?? '');
-        $street           = trim($row[5] ?? '');
-        $purokSitio       = trim($row[6] ?? '');
-        $barangayValue    = trim($row[7] ?? '');
-        $contactNumber    = trim($row[8] ?? '');
-        $emergencyContact = trim($row[9] ?? '');
+        // Helper to get value by name or index
+        $get = function (array $names, int $fallbackIndex) use ($row, $header): string {
+            foreach ($names as $name) {
+                $idx = array_search($name, $header, true);
+                if ($idx !== false && isset($row[$idx])) {
+                    return trim($row[$idx]);
+                }
+            }
+            return isset($row[$fallbackIndex]) ? trim($row[$fallbackIndex]) : '';
+        };
 
-        $memberFirstName   = trim($row[10] ?? '');
-        $memberMiddleName  = trim($row[11] ?? '');
-        $memberLastName    = trim($row[12] ?? '');
-        $memberBirthDate   = trim($row[13] ?? '');
-        $memberSexRaw      = strtoupper(trim($row[14] ?? 'M'));
-        $memberRelation    = trim($row[15] ?? '');
-        $memberCivilStatus = trim($row[16] ?? '');
-        $memberEducation   = trim($row[17] ?? '');
-        $memberOccupation  = trim($row[18] ?? '');
-        $memberIsPwd       = strtoupper(trim($row[19] ?? 'N')) === 'Y';
-        $memberIsPregnant  = strtoupper(trim($row[20] ?? 'N')) === 'Y';
+        $boolVal = fn(string $v): bool => in_array(strtoupper(trim($v)), ['Y', '1', 'YES', 'TRUE', 'PWD'], true);
+
+        $headFirstName    = $get(['head_first_name', 'first_name'],   0);
+        $headMiddleName   = $get(['head_middle_name', 'middle_name'],  1);
+        $headLastName     = $get(['head_last_name', 'last_name'],      2);
+        $headBirthDate    = $get(['head_birth_date', 'birth_date'],   13);
+        $headSexRaw       = strtoupper($get(['head_sex', 'sex'],      14) ?: 'M');
+        $headIsPwdRaw     = $get(['head_is_pwd', 'head_pwd'],         19);
+        $headIsPregnantRaw = $get(['head_is_pregnant'],               20);
+        $householdName    = $get(['household_name'],                   3);
+        $email            = $get(['email'],                            4);
+        $street           = $get(['street'],                           5);
+        $purokSitio       = $get(['purok', 'purok_sitio'],             6);
+        $barangayValue    = $get(['barangay', 'barangay_id', 'barangay_name', 'barangay_id_or_name'], 7);
+        $contactNumber    = $get(['contact_number'],                   8);
+        $emergencyContact = $get(['emergency_contact'],                9);
+
+        $memberFirstName   = $get(['member_first_name'],               10) ?: $headFirstName;
+        $memberMiddleName  = $get(['member_middle_name'],              11) ?: $headMiddleName;
+        $memberLastName    = $get(['member_last_name'],                12) ?: $headLastName;
+        $memberBirthDate   = $get(['member_birth_date'],               13) ?: $headBirthDate;
+        $memberSexRaw      = strtoupper($get(['member_sex'],           14) ?: $headSexRaw);
+        $memberRelation    = $get(['member_relation'],                 15) ?: 'Head';
+        $memberCivilStatus = $get(['member_civil_status'],             16);
+        $memberEducation   = $get(['member_education_level'],          17);
+        $memberOccupation  = $get(['member_occupation', 'member_profession'], 18);
+        $memberIsPwdRaw    = $get(['member_is_pwd', 'is_pwd', 'pwd', 'person_with_disability'], 19) ?: $headIsPwdRaw;
+        $memberIsPregnantRaw = $get(['member_is_pregnant', 'is_pregnant', 'pregnant'], 20) ?: $headIsPregnantRaw;
+
+        $memberIsPwd      = $boolVal($memberIsPwdRaw);
+        $memberIsPregnant = $boolVal($memberIsPregnantRaw);
 
         if (empty($headFirstName) || empty($headLastName)) {
             throw new \Exception("Row {$rowNumber}: missing household head first/last name");
         }
 
-        // --- Resolve barangay ---
+        // Normalize sex: must be M or F for the enum column
+        $memberSex = in_array($memberSexRaw, ['M', 'F']) ? $memberSexRaw
+            : (str_starts_with($memberSexRaw, 'M') ? 'M' : 'F');
+
+        // Resolve barangay
         $barangayId = $this->resolveBarangay($barangayValue);
 
-        // --- Address ---
+        // Address
         $address = Address::create([
-            'street'        => $street  ?: null,
-            'purok_sitio'   => $purokSitio ?: null,
+            'street'        => $street      ?: null,
+            'purok_sitio'   => $purokSitio  ?: null,
             'barangay_id'   => $barangayId,
-            'barangay_name' => !$barangayId && $barangayValue ? $barangayValue : null,
+            'barangay_name' => (!$barangayId && $barangayValue) ? $barangayValue : null,
         ]);
 
-        // --- Household ---
-        $householdCode = 'HH-' . strtoupper(Str::random(8));
+        // Household
+        $householdCode = Household::generateHouseholdId();
         $household = Household::create([
+            'id'                => $householdCode,
             'household_code'    => $householdCode,
             'household_name'    => $householdName ?: 'Unnamed Household',
             'email'             => $email ?: null,
-            'member_count'      => 0, // CSV import handles members sequentially, so wait or let model count it dynamically
+            'member_count'      => 0,
             'address_id'        => $address->id,
             'contact_number'    => $contactNumber    ?: null,
             'emergency_contact' => $emergencyContact ?: null,
             'created_by'        => $uploadedBy,
         ]);
 
-        // --- Household user account ---
+        // Household user account
         $householdRole = Role::where('name', 'Household')->first();
         if (!$householdRole) {
             throw new \Exception('Household role not found — run the role seeder first');
         }
 
-        $tempPassword = Str::random(12);
+        $tempPassword = Str::random(10);
         $headFullName = trim($headFirstName . ' ' . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName);
         $userEmail    = !empty($email) ? $email : strtolower("{$householdCode}@capstone.local");
 
@@ -230,7 +239,7 @@ class HouseholdCsvImportService
             'temp_password'        => $tempPassword,
         ]);
 
-        // --- Member (from this row) ---
+        // Member (from this row)
         $hasMemberData = !empty($memberFirstName) && !empty($memberLastName) && !empty($memberBirthDate);
 
         if ($hasMemberData) {
@@ -239,10 +248,8 @@ class HouseholdCsvImportService
                 throw new \Exception("Row {$rowNumber}: invalid birth_date '{$memberBirthDate}'");
             }
 
-            $sexMap = ['M' => 'male', 'F' => 'female'];
-            $sex    = $sexMap[$memberSexRaw] ?? 'male';
-            $age    = (int) Carbon::parse($parsedDate)->diffInYears(now());
-
+            $age          = (int) Carbon::parse($parsedDate)->diffInYears(now());
+            $gender       = $memberSex === 'M' ? 'male' : 'female';
             $specialNeeds = $memberIsPwd ? 'pwd'
                 : ($age >= 60 ? 'senior' : ($age < 18 ? 'child' : 'adult'));
 
@@ -255,13 +262,13 @@ class HouseholdCsvImportService
             Member::create([
                 'household_id'    => $household->id,
                 'name'            => $memberFullName,
-                'gender'          => $sex,
-                'sex'             => $sex,
+                'gender'          => $gender,
+                'sex'             => $memberSex,   // M or F (matches enum)
                 'age'             => $age,
-                'relation'        => $memberRelation ?: null,
+                'relation'        => $memberRelation    ?: null,
                 'special_needs'   => $specialNeeds,
                 'first_name'      => $memberFirstName,
-                'middle_name'     => $memberMiddleName ?: null,
+                'middle_name'     => $memberMiddleName  ?: null,
                 'last_name'       => $memberLastName,
                 'birth_date'      => $parsedDate,
                 'civil_status'    => $memberCivilStatus ?: null,
@@ -271,6 +278,9 @@ class HouseholdCsvImportService
                 'is_pregnant'     => $memberIsPregnant,
                 'is_graduate'     => false,
             ]);
+
+            // Update member count
+            $household->increment('member_count');
 
             \Log::info("Row {$rowNumber}: member {$memberFullName} added to {$householdCode}");
         }
@@ -285,7 +295,7 @@ class HouseholdCsvImportService
     }
 
     /**
-     * Resolve barangay by numeric ID or case-insensitive name.
+     * Resolve barangay by UUID or case-insensitive name.
      */
     private function resolveBarangay(string $value): ?string
     {
