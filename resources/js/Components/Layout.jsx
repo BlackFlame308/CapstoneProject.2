@@ -50,9 +50,9 @@ export default function Layout({ children, title }) {
                             {navLink('/dashboard', '🏠 Dashboard')}
                             {permissions.view_households && (
                                 <>
-                                    {navLink('/households', 'Households')}
-                                    {permissions.manage_households && navLink('/households/create', 'Add Household')}
-                                    {permissions.upload_csv && navLink('/csv/upload', 'Upload CSV')}
+                                    {navLink('/households', '👥 Households')}
+                                    {permissions.manage_households && navLink('/households/create', '➕ Add Household')}
+                                    {permissions.upload_csv && navLink('/csv/upload', '📁 Upload CSV')}
                                 </>
                             )}
                             {permissions.manage_accounts && navLink('/accounts', '👤 Accounts')}
