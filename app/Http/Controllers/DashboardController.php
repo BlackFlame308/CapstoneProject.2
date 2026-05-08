@@ -15,8 +15,6 @@ class DashboardController extends Controller
 
     public function index()
     {
-        $this->authorize('view', \App\Models\Household::class);
-
         return Inertia::render('Dashboard/Index', [
             'stats'            => $this->dashboardService->getStats(),
             'barangayStats'    => $this->dashboardService->getBarangayStats(),
@@ -35,4 +33,3 @@ class DashboardController extends Controller
         return back()->with('success', "Analytics updated for {$updatedCount} locations.");
     }
 }
-

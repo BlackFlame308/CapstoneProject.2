@@ -2,7 +2,6 @@ import { Link, usePage } from '@inertiajs/react';
 
 export default function Layout({ children, title }) {
     const { auth } = usePage().props;
-    // Safely access user with fallback to null if any property is undefined
     const user = auth?.user ?? null;
     const permissions = user?.permissions ?? {};
 
@@ -20,7 +19,7 @@ export default function Layout({ children, title }) {
             <nav className="bg-navbar text-white shadow">
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <Link href="/dashboard" className="text-xl font-bold">SafeTrack</Link>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                         {user && (
                             <>
                                 <span className="text-white font-medium mr-2">{user.name}</span>
@@ -44,17 +43,16 @@ export default function Layout({ children, title }) {
                 </div>
             </nav>
 
-            <div className="flex">
-                {/* Sidebar */}
+            <div className="flex flex-col md:flex-row">
                 {user && (
                     <aside className="w-64 bg-sidebar text-white min-h-screen shadow-sm p-4">
                         <ul>
                             {navLink('/dashboard', '🏠 Dashboard')}
                             {permissions.view_households && (
                                 <>
-                                    {navLink('/households', '👨‍👩‍👧 Households')}
-                                    {permissions.manage_households && navLink('/households/create', '➕ Add Household')}
-                                    {navLink('/csv/upload', '📂 Upload CSV')}
+                                    {navLink('/households', 'Households')}
+                                    {permissions.manage_households && navLink('/households/create', 'Add Household')}
+                                    {permissions.upload_csv && navLink('/csv/upload', 'Upload CSV')}
                                 </>
                             )}
                             {permissions.manage_accounts && navLink('/accounts', '👤 Accounts')}
@@ -67,13 +65,11 @@ export default function Layout({ children, title }) {
                     </aside>
                 )}
 
-                {/* Main Content */}
-                <main className="flex-1 p-6">
-                    {title && <h1 className="text-2xl font-bold mb-6">{title}</h1>}
+                <main className="flex-1 min-w-0 p-4 sm:p-6">
+                    {title && <h1 className="text-2xl font-bold mb-6 break-words">{title}</h1>}
                     {children}
                 </main>
             </div>
         </div>
     );
 }
-

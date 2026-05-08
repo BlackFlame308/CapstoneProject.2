@@ -1,0 +1,6 @@
+head_first_name,head_middle_name,head_last_name,household_name,email,street,purok,barangay,contact_number,emergency_contact,member_first_name,member_middle_name,member_last_name,member_birth_date,member_sex,member_relation,member_civil_status,member_education_level,member_occupation,member_is_pwd,member_is_pregnant
+Juan,Dela,Cruz,Juan Dela Cruz,juan.delacruz@email.com,123 Main Street,Purok 1,Barangay 1,09123456789,09987654321,Juan,Dela,Cruz,01/15/1990,M,Head,Married,College,Farmer,N,N
+Maria,Santos,Reyes,Maria Santos,maria.santos@email.com,456 Oak Avenue,Purok 2,Barangay 2,09123456790,09987654320,Maria,Santos,Reyes,03/22/1988,F,Head,Single,College,Teacher,N,N
+Pedro,Garcia,Padilla,Pedro Padilla,,789 Pine Street,Purok 3,Barangay 1,09123456791,,Pedro,Garcia,Padilla,05/10/1985,M,Head,Married,High School,Driver,N,N
+Ana,Bautista,Cruz,Ana Cruz,ana.cruz@email.com,321 Elm Street,Purok 1,Barangay 2,09123456792,09987654319,Ana,Bautista,Cruz,08/15/1995,F,Head,Single,College,Business,N,N
+Jose,Rizal,Mercado,Jose Rizal,,654 Maple Street,Purok 2,Barangay 1,09123456793,,Jose,Rizal,Mercado,12/25/1982,M,Head,Married,College,Engineer,N,N

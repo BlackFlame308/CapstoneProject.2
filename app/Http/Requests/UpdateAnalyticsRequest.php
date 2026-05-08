@@ -8,15 +8,15 @@ class UpdateAnalyticsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->user()?->isSuperAdmin() ?? false;
+        // Allow Captain (and Super Admin) to refresh analytics
+        return auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin() ? true : false;
     }
 
     public function rules(): array
     {
         return [
-            'location_ids' => 'sometimes|array',
-            'location_ids.*' => 'exists:locations,id',
+            'location_ids'   => 'sometimes|array',
+            'location_ids.*' => 'string|exists:barangays,id',
         ];
     }
 }
-

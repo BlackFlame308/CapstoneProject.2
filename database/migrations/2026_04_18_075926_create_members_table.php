@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('members', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('household_id')->constrained('households')->cascadeOnDelete();
+            $table->string('household_id', 20);
+            $table->foreign('household_id')->references('id')->on('households')->cascadeOnDelete();
             $table->string('name', 255)->nullable();            // Computed full name
             $table->string('first_name', 100);
             $table->string('middle_name', 100)->nullable();

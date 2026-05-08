@@ -3,228 +3,272 @@
 namespace App\Services;
 
 use App\Models\Analytic;
-use App\Models\Household;
 use App\Models\Barangay;
+use App\Models\Household;
 use App\Models\Member;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
-    /**
-     * Aggregate key metrics for the dashboard.
-     */
     public function getStats(): array
     {
+        $cutoffs = $this->ageCutoffs();
+
         return [
             'totalHouseholds' => Household::count(),
             'totalMembers'    => Member::count(),
             'totalPWD'        => Member::where('is_pwd', true)->count(),
-            'totalSeniors'    => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) >= 60')->count(),
+            'totalSeniors'    => Member::whereDate('birth_date', '<=', $cutoffs['senior'])->count(),
+            'totalAdults'     => Member::whereDate('birth_date', '<=', $cutoffs['adult'])
+                ->whereDate('birth_date', '>', $cutoffs['senior'])
+                ->count(),
+            'totalChildren'   => Member::whereDate('birth_date', '>', $cutoffs['adult'])->count(),
             'totalUsers'      => User::count(),
-            'totalCaptains'   => User::whereHas('role', fn($q) => $q->where('name', 'Captain'))->count(),
+            'totalCaptains'   => User::whereHas('role', fn ($q) => $q->where('name', 'Captain'))->count(),
         ];
     }
 
-    /**
-     * Get age distribution breakdown.
-     */
     public function getAgeDistribution(): array
     {
+        $cutoffs = $this->ageCutoffs();
+
         return [
-            'children' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) < 18')->count(),
-            'adults'   => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 18 AND 59')->count(),
-            'seniors'  => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) >= 60')->count(),
+            'children' => Member::whereDate('birth_date', '>', $cutoffs['adult'])->count(),
+            'adults'  => Member::whereDate('birth_date', '<=', $cutoffs['adult'])
+                ->whereDate('birth_date', '>', $cutoffs['senior'])
+                ->count(),
+            'seniors' => Member::whereDate('birth_date', '<=', $cutoffs['senior'])->count(),
         ];
     }
 
-    /**
-     * Get barangay-level statistics with pre-computed analytics.
-     */
     public function getBarangayStats(): array
     {
-        $barangays = Barangay::with(['analytics' => function($q) {
-                $q->whereNull('purok_sitio')->orderBy('record_period', 'desc');
-            }])
-            ->withCount(['addresses as households_count' => fn($q) => $q->whereHas('household')])
-            ->get();
+        $cutoffs = $this->ageCutoffs();
+        $barangays = Barangay::with(['city.province.region'])->orderBy('name')->get();
 
-        return $barangays->map(fn ($b) => [
-            'id'                => $b->id,
-            'name'              => $b->name,
-            'households_count'  => $b->households_count,
-            'analytics'         => $b->analytics->first(),
-        ])->all();
+        $householdCounts = DB::table('households')
+            ->join('addresses', 'households.address_id', '=', 'addresses.id')
+            ->whereNotNull('addresses.barangay_id')
+            ->whereNull('households.deleted_at')
+            ->groupBy('addresses.barangay_id')
+            ->select('addresses.barangay_id')
+            ->selectRaw('COUNT(households.id) as count')
+            ->pluck('count', 'barangay_id')
+            ->toArray();
+
+        $memberCounts = DB::table('members')
+            ->join('households', 'members.household_id', '=', 'households.id')
+            ->join('addresses', 'households.address_id', '=', 'addresses.id')
+            ->whereNotNull('addresses.barangay_id')
+            ->whereNull('households.deleted_at')
+            ->whereNull('members.deleted_at')
+            ->groupBy('addresses.barangay_id')
+            ->select('addresses.barangay_id')
+            ->selectRaw('COUNT(members.id) as total_population')
+            ->selectRaw("SUM(CASE WHEN UPPER(members.sex) = 'M' THEN 1 ELSE 0 END) as total_males")
+            ->selectRaw("SUM(CASE WHEN UPPER(members.sex) = 'F' THEN 1 ELSE 0 END) as total_females")
+            ->selectRaw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd')
+            ->selectRaw('SUM(CASE WHEN members.is_pregnant = 1 THEN 1 ELSE 0 END) as total_pregnant')
+            ->selectRaw('SUM(CASE WHEN members.birth_date <= ? THEN 1 ELSE 0 END) as total_seniors', [$cutoffs['senior']])
+            ->selectRaw('SUM(CASE WHEN members.birth_date > ? THEN 1 ELSE 0 END) as total_children', [$cutoffs['adult']])
+            ->selectRaw(
+                'SUM(CASE WHEN members.birth_date <= ? AND members.birth_date > ? THEN 1 ELSE 0 END) as total_adults',
+                [$cutoffs['adult'], $cutoffs['senior']]
+            )
+            ->get()
+            ->keyBy('barangay_id');
+
+        return $barangays->map(function ($barangay) use ($householdCounts, $memberCounts) {
+            $stats = $memberCounts->get($barangay->id);
+
+            return [
+                'id'                => $barangay->id,
+                'name'              => $barangay->name,
+                'city_name'         => $barangay->city?->name ?? '',
+                'province_name'     => $barangay->city?->province?->name ?? '',
+                'region_name'       => $barangay->city?->province?->region?->name ?? '',
+                'households_count'  => (int) ($householdCounts[$barangay->id] ?? 0),
+                'total_population'  => (int) ($stats->total_population ?? 0),
+                'total_males'       => (int) ($stats->total_males ?? 0),
+                'total_females'     => (int) ($stats->total_females ?? 0),
+                'total_pwd'         => (int) ($stats->total_pwd ?? 0),
+                'total_pregnant'    => (int) ($stats->total_pregnant ?? 0),
+                'total_seniors'     => (int) ($stats->total_seniors ?? 0),
+                'total_children'    => (int) ($stats->total_children ?? 0),
+                'total_adults'      => (int) ($stats->total_adults ?? 0),
+            ];
+        })->all();
     }
 
-    /**
-     * Get member counts grouped by barangay for charting.
-     */
     public function getMembersByBarangay(): array
     {
         return DB::table('members')
             ->join('households', 'members.household_id', '=', 'households.id')
             ->join('addresses', 'households.address_id', '=', 'addresses.id')
             ->join('barangays', 'addresses.barangay_id', '=', 'barangays.id')
+            ->whereNull('households.deleted_at')
+            ->whereNull('members.deleted_at')
             ->groupBy('barangays.id', 'barangays.name')
-            ->select('barangays.name', DB::raw('COUNT(members.id) as count'))
+            ->select('barangays.name')
+            ->selectRaw('COUNT(members.id) as count')
             ->orderBy('barangays.name')
             ->get()
             ->all();
     }
 
-    /**
-     * Get recently added households.
-     */
     public function getRecentHouseholds(int $limit = 5): array
     {
-        return Household::with([
-                'address.barangay.city.province.region',
-                'members',
-            ])
+        return Household::with(['address.barangay.city.province.region'])
             ->latest()
             ->take($limit)
             ->get()
+            ->map(fn ($household) => [
+                'id'             => $household->id,
+                'household_code' => $household->household_code,
+                'household_name' => $household->household_name,
+                'address'        => [
+                    'street'      => $household->address?->street,
+                    'purok_sitio' => $household->address?->purok_sitio,
+                    'barangay'    => $household->address?->barangay ? [
+                        'name' => $household->address->barangay->name,
+                    ] : null,
+                ],
+                'contact_number' => $household->contact_number,
+                'member_count'   => $household->member_count,
+                'population'     => $household->member_count,
+                'created_at'     => $household->created_at?->toDateTimeString(),
+            ])
             ->all();
     }
 
-    /**
-     * Refresh analytics using bulk SQL aggregation.
-     * Takes a snapshot of demographics per barangay and sitio for the current month.
-     */
-    public function refreshAnalytics(): int
+    public function refreshAnalytics(?array $locationIds = null): int
     {
         $period = now()->startOfMonth()->toDateString();
+        $cutoffs = $this->ageCutoffs();
         $updatedCount = 0;
 
-        DB::transaction(function () use ($period, &$updatedCount) {
-            // 1. Calculate household counts grouped by barangay and sitio
+        DB::transaction(function () use ($period, $cutoffs, &$updatedCount, $locationIds) {
             $householdCounts = DB::table('households')
                 ->join('addresses', 'households.address_id', '=', 'addresses.id')
-                ->select(
-                    'addresses.barangay_id',
-                    'addresses.purok_sitio',
-                    DB::raw('COUNT(households.id) as total_households')
-                )
                 ->whereNotNull('addresses.barangay_id')
+                ->whereNull('households.deleted_at')
+                ->when($locationIds, fn ($query) => $query->whereIn('addresses.barangay_id', $locationIds))
                 ->groupBy('addresses.barangay_id', 'addresses.purok_sitio')
-                ->get();
+                ->select('addresses.barangay_id', 'addresses.purok_sitio')
+                ->selectRaw('COUNT(households.id) as total_households')
+                ->get()
+                ->keyBy(fn ($row) => $this->analyticsKey($row->barangay_id, $row->purok_sitio));
 
-            // 2. Calculate member demographics grouped by barangay and sitio
             $memberStats = DB::table('members')
                 ->join('households', 'members.household_id', '=', 'households.id')
                 ->join('addresses', 'households.address_id', '=', 'addresses.id')
-                ->select(
-                    'addresses.barangay_id',
-                    'addresses.purok_sitio',
-                    DB::raw('COUNT(members.id) as total_population'),
-                    DB::raw('SUM(CASE WHEN members.sex = "male" THEN 1 ELSE 0 END) as total_males'),
-                    DB::raw('SUM(CASE WHEN members.sex = "female" THEN 1 ELSE 0 END) as total_females'),
-                    DB::raw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd'),
-                    DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) >= 60 THEN 1 ELSE 0 END) as total_seniors'),
-                    DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) < 18 THEN 1 ELSE 0 END) as total_children'),
-                    DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) BETWEEN 18 AND 59 THEN 1 ELSE 0 END) as total_adults')
-                )
                 ->whereNotNull('addresses.barangay_id')
+                ->whereNull('households.deleted_at')
+                ->whereNull('members.deleted_at')
+                ->when($locationIds, fn ($query) => $query->whereIn('addresses.barangay_id', $locationIds))
                 ->groupBy('addresses.barangay_id', 'addresses.purok_sitio')
-                ->get();
+                ->select('addresses.barangay_id', 'addresses.purok_sitio')
+                ->selectRaw('COUNT(members.id) as total_population')
+                ->selectRaw("SUM(CASE WHEN UPPER(members.sex) = 'M' THEN 1 ELSE 0 END) as total_males")
+                ->selectRaw("SUM(CASE WHEN UPPER(members.sex) = 'F' THEN 1 ELSE 0 END) as total_females")
+                ->selectRaw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd')
+                ->selectRaw('SUM(CASE WHEN members.is_pregnant = 1 THEN 1 ELSE 0 END) as total_pregnant')
+                ->selectRaw('SUM(CASE WHEN members.birth_date <= ? THEN 1 ELSE 0 END) as total_seniors', [$cutoffs['senior']])
+                ->selectRaw('SUM(CASE WHEN members.birth_date > ? THEN 1 ELSE 0 END) as total_children', [$cutoffs['adult']])
+                ->selectRaw(
+                    'SUM(CASE WHEN members.birth_date <= ? AND members.birth_date > ? THEN 1 ELSE 0 END) as total_adults',
+                    [$cutoffs['adult'], $cutoffs['senior']]
+                )
+                ->get()
+                ->keyBy(fn ($row) => $this->analyticsKey($row->barangay_id, $row->purok_sitio));
 
-            $dataMap = [];
-            
-            foreach ($householdCounts as $hc) {
-                $key = $hc->barangay_id . '-' . ($hc->purok_sitio ?: 'null');
-                $dataMap[$key] = [
-                    'barangay_id'      => $hc->barangay_id,
-                    'purok_sitio'      => $hc->purok_sitio,
-                    'total_households' => $hc->total_households,
-                    'total_population' => 0,
-                    'total_males'      => 0,
-                    'total_females'    => 0,
-                    'total_pwd'        => 0,
-                    'total_seniors'    => 0,
-                    'total_children'   => 0,
-                    'total_adults'     => 0,
-                ];
-            }
+            $householdCounts->keys()->merge($memberStats->keys())->unique()->each(function ($key) use (
+                $householdCounts,
+                $memberStats,
+                $period,
+                &$updatedCount
+            ) {
+                $householdRow = $householdCounts->get($key);
+                $memberRow = $memberStats->get($key);
+                $barangayId = $householdRow?->barangay_id ?? $memberRow?->barangay_id;
 
-            foreach ($memberStats as $ms) {
-                $key = $ms->barangay_id . '-' . ($ms->purok_sitio ?: 'null');
-                if (!isset($dataMap[$key])) {
-                    $dataMap[$key] = [
-                        'barangay_id'      => $ms->barangay_id,
-                        'purok_sitio'      => $ms->purok_sitio,
-                        'total_households' => 0,
-                    ];
+                if (!$barangayId) {
+                    return;
                 }
-                
-                $dataMap[$key]['total_population'] = $ms->total_population;
-                $dataMap[$key]['total_males']      = $ms->total_males;
-                $dataMap[$key]['total_females']    = $ms->total_females;
-                $dataMap[$key]['total_pwd']        = $ms->total_pwd;
-                $dataMap[$key]['total_seniors']    = $ms->total_seniors;
-                $dataMap[$key]['total_children']   = $ms->total_children;
-                $dataMap[$key]['total_adults']     = $ms->total_adults;
-            }
 
-            foreach ($dataMap as $data) {
                 Analytic::updateOrCreate(
                     [
-                        'barangay_id'   => $data['barangay_id'],
-                        'purok_sitio'   => $data['purok_sitio'],
+                        'barangay_id'   => $barangayId,
+                        'purok_sitio'   => $householdRow?->purok_sitio ?? $memberRow?->purok_sitio,
                         'record_period' => $period,
                     ],
                     [
-                        'total_households' => $data['total_households'] ?? 0,
-                        'total_population' => $data['total_population'] ?? 0,
-                        'total_males'      => $data['total_males'] ?? 0,
-                        'total_females'    => $data['total_females'] ?? 0,
-                        'total_pwd'        => $data['total_pwd'] ?? 0,
-                        'total_seniors'    => $data['total_seniors'] ?? 0,
-                        'total_children'   => $data['total_children'] ?? 0,
-                        'total_adults'     => $data['total_adults'] ?? 0,
+                        'total_households' => (int) ($householdRow->total_households ?? 0),
+                        'total_population' => (int) ($memberRow->total_population ?? 0),
+                        'total_males'      => (int) ($memberRow->total_males ?? 0),
+                        'total_females'    => (int) ($memberRow->total_females ?? 0),
+                        'total_pwd'        => (int) ($memberRow->total_pwd ?? 0),
+                        'total_seniors'    => (int) ($memberRow->total_seniors ?? 0),
+                        'total_children'   => (int) ($memberRow->total_children ?? 0),
+                        'total_adults'     => (int) ($memberRow->total_adults ?? 0),
+                        'total_pregnant'   => (int) ($memberRow->total_pregnant ?? 0),
                     ]
                 );
+
                 $updatedCount++;
-            }
+            });
         });
 
         return $updatedCount;
     }
-    /**
-     * Get sitio vulnerability ranking.
-     * Vulnerability score is based on the percentage of vulnerable individuals 
-     * (PWDs + Seniors + Children) out of the total population.
-     */
+
     public function getSitioVulnerabilityRanking(int $limit = 10): array
     {
-        $vulnerabilities = DB::table('members')
+        $cutoffs = $this->ageCutoffs();
+
+        return DB::table('members')
             ->join('households', 'members.household_id', '=', 'households.id')
             ->join('addresses', 'households.address_id', '=', 'addresses.id')
-            ->select(
-                DB::raw('COALESCE(addresses.purok_sitio, "Unassigned Sitio") as sitio_name'),
-                DB::raw('COUNT(members.id) as total_population'),
-                DB::raw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd'),
-                DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) >= 60 THEN 1 ELSE 0 END) as total_seniors'),
-                DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) < 18 THEN 1 ELSE 0 END) as total_children')
-            )
-            ->groupBy(DB::raw('COALESCE(addresses.purok_sitio, "Unassigned Sitio")'))
-            ->get();
+            ->whereNull('households.deleted_at')
+            ->whereNull('members.deleted_at')
+            ->groupBy(DB::raw("COALESCE(addresses.purok_sitio, 'Unassigned Sitio')"))
+            ->selectRaw("COALESCE(addresses.purok_sitio, 'Unassigned Sitio') as sitio_name")
+            ->selectRaw('COUNT(members.id) as total_population')
+            ->selectRaw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd')
+            ->selectRaw('SUM(CASE WHEN members.birth_date <= ? THEN 1 ELSE 0 END) as total_seniors', [$cutoffs['senior']])
+            ->selectRaw('SUM(CASE WHEN members.birth_date > ? THEN 1 ELSE 0 END) as total_children', [$cutoffs['adult']])
+            ->get()
+            ->map(function ($item) {
+                $vulnerableCount = (int) $item->total_pwd + (int) $item->total_seniors + (int) $item->total_children;
+                $total = (int) $item->total_population;
 
-        return $vulnerabilities->map(function ($item) {
-            $vulnerableCount = $item->total_pwd + $item->total_seniors + $item->total_children;
-            $vulnerabilityScore = $item->total_population > 0 
-                ? ($vulnerableCount / $item->total_population) * 100 
-                : 0;
+                return [
+                    'sitio'                => $item->sitio_name,
+                    'total_population'     => $total,
+                    'vulnerable_count'     => $vulnerableCount,
+                    'vulnerability_score'  => $total > 0 ? round(($vulnerableCount / $total) * 100, 2) : 0,
+                    'pwd_count'            => (int) $item->total_pwd,
+                    'senior_count'         => (int) $item->total_seniors,
+                    'child_count'          => (int) $item->total_children,
+                ];
+            })
+            ->sortByDesc('vulnerability_score')
+            ->take($limit)
+            ->values()
+            ->all();
+    }
 
-            return [
-                'sitio'               => $item->sitio_name,
-                'total_population'    => $item->total_population,
-                'vulnerable_count'    => $vulnerableCount,
-                'vulnerability_score' => round($vulnerabilityScore, 2),
-                'pwd_count'           => $item->total_pwd,
-                'senior_count'        => $item->total_seniors,
-                'child_count'         => $item->total_children,
-            ];
-        })->sortByDesc('vulnerability_score')->take($limit)->values()->all();
+    private function ageCutoffs(): array
+    {
+        return [
+            'adult'  => now()->subYears(18)->toDateString(),
+            'senior' => now()->subYears(60)->toDateString(),
+        ];
+    }
+
+    private function analyticsKey(string $barangayId, ?string $purokSitio): string
+    {
+        return $barangayId . '|' . ($purokSitio ?? '');
     }
 }

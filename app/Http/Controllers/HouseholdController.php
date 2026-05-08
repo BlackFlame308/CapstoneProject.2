@@ -42,16 +42,16 @@ class HouseholdController extends Controller
             });
         }
 
-if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('household_code', 'like', "%{$search}%")
-                      ->orWhere('household_name', 'like', "%{$search}%")
-                      ->orWhereHas('user', function($userQ) use ($search) {
-                          $userQ->where('name', 'like', "%{$search}%");
-                      });
-                });
-            }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('household_code', 'like', "%{$search}%")
+                  ->orWhere('household_name', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQ) use ($search) {
+                      $userQ->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
         $households = $query->latest()->paginate(10)->withQueryString();
 
@@ -93,18 +93,23 @@ if ($request->filled('search')) {
         $household = Household::with([
             'address.barangay.city.province.region',
             'members',
+            'user',
         ])->findOrFail($id);
 
         return Inertia::render('Household/Show', [
             'household' => $household,
+            'householdAccount' => $household->user ? [
+                'email' => $household->user->email,
+                'temp_password' => $household->user->temp_password,
+                'must_change_password' => $household->user->must_change_password,
+            ] : null,
         ]);
     }
 
     public function edit(string $id)
     {
-        $this->authorize('update', Household::class);
-
-        $household = Household::with(['address.barangay.city.province.region'])->findOrFail($id);
+        $household = Household::with(['address.barangay.city.province.region', 'members'])->findOrFail($id);
+        $this->authorize('update', $household);
 
         return Inertia::render('Household/Edit', [
             'household' => $household,
@@ -129,19 +134,32 @@ if ($request->filled('search')) {
         }
     }
 
-    public function destroy(string $id)
+public function destroy(string $id)
     {
-        $this->authorize('delete', Household::class);
-
         try {
-            $household = Household::with('address')->findOrFail($id);
+            // First check if household exists
+            $household = Household::with('address')
+                ->findOrFail($id);
+
+            // Check authorization
+            $this->authorize('delete', $household);
+
+            // Delete the household
             $this->householdService->delete($household);
 
-            return back()->with('success', 'Household deleted successfully.');
+            // Redirect to index with success message
+            return redirect()->route('households.index')
+                ->with('success', 'Household deleted successfully.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Household not found - redirect with error
+            return redirect()->route('households.index')
+                ->with('error', 'Household not found.');
         } catch (\Exception $e) {
+            // Log the error for debugging
             report($e);
-            return back()->with('error', 'Failed to delete household.');
+
+            return redirect()->route('households.index')
+                ->with('error', 'Failed to delete household: ' . $e->getMessage());
         }
     }
 }
-

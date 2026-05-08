@@ -113,9 +113,10 @@ class HouseholdController extends Controller
                     'barangay_name' => $validated['barangay_name'] ?? null,
                 ]);
 
-                $householdCode = 'HH-' . strtoupper(Str::random(8));
+                $householdCode = Household::generateHouseholdId();
 
                 $household = Household::create([
+                    'id'                => $householdCode,
                     'household_code'    => $householdCode,
                     'household_name'    => $validated['household_name'],
                     'email'             => $validated['email'] ?? null,
@@ -141,11 +142,13 @@ class HouseholdController extends Controller
                     'role_id'              => $householdRole->id,
                     'household_id'         => $household->id,
                     'must_change_password' => true,
+                    'temp_password'        => $tempPassword,
                 ]);
 
                 foreach ($validated['members'] ?? [] as $memberData) {
                     $age  = (int) Carbon::parse($memberData['birth_date'])->diffInYears(now());
-                    $sex  = $memberData['sex'] === 'M' ? 'male' : 'female';
+                    $sex  = $memberData['sex'];
+                    $gender = $sex === 'M' ? 'male' : 'female';
                     $isPwd = $memberData['is_pwd'] ?? false;
 
                     $specialNeeds = $isPwd ? 'pwd'
@@ -161,7 +164,7 @@ class HouseholdController extends Controller
                     Member::create([
                         'household_id'    => $household->id,
                         'name'            => $fullName,
-                        'gender'          => $sex,
+                        'gender'          => $gender,
                         'sex'             => $sex,
                         'age'             => $age,
                         'special_needs'   => $specialNeeds,

@@ -13,10 +13,14 @@ export default function HouseholdIndex() {
         router.get('/households', { search, purok_sitio: purokSitio }, { preserveState: true, replace: true });
     };
 
+    const paginationLabel = (label) => label
+        .replace('&laquo; Previous', 'Previous')
+        .replace('Next &raquo;', 'Next');
+
     return (
         <Layout title="Households">
             {flash?.success && (
-                <div className="mb-4 p-3 bg-green-100 text-green-800 rounded">{flash.success}</div>
+                <div className="mb-4 p-3 bg-[#3B82F6] text-white rounded">{flash.success}</div>
             )}
             {flash?.error && (
                 <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">{flash.error}</div>
@@ -31,21 +35,21 @@ export default function HouseholdIndex() {
                         placeholder="Search code or head name..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        className="border-gray-300 focus:border-[#3B82F6] focus:ring-[#3B82F6] rounded-md shadow-sm"
                     />
                     <input
                         type="text"
                         placeholder="Filter by Sitio/Purok..."
                         value={purokSitio}
                         onChange={(e) => setPurokSitio(e.target.value)}
-                        className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        className="border-gray-300 focus:border-[#3B82F6] focus:ring-[#3B82F6] rounded-md shadow-sm"
                     />
                     <button type="submit" className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded transition">
                         Filter
                     </button>
                     <Link
                         href="/households/create"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition text-center"
+                        className="bg-[#3B82F6] hover:bg-[#000000] text-white px-4 py-2 rounded transition text-center"
                     >
                         + Add Household
                     </Link>
@@ -86,7 +90,7 @@ export default function HouseholdIndex() {
                                         <div className="flex gap-2">
                                             <Link
                                                 href={`/households/${hh.id}`}
-                                                className="text-indigo-600 hover:underline text-xs"
+                                                className="text-[#3B82F6] hover:underline text-xs"
                                             >
                                                 View
                                             </Link>
@@ -116,17 +120,24 @@ export default function HouseholdIndex() {
             {households?.links && (
                 <div className="mt-4 flex flex-wrap gap-2">
                     {households.links.map((link, i) => (
-                        <Link
-                            key={i}
-                            href={link.url || '#'}
-                            className={`px-3 py-1 rounded text-sm ${
-                                link.active
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                            } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            dangerouslySetInnerHTML={{ __html: link.label }}
-                            preserveState
-                        />
+                        link.url ? (
+                            <Link
+                                key={i}
+                                href={link.url}
+                                className={`px-3 py-1 rounded text-sm ${
+                                    link.active
+                                        ? 'bg-[#3B82F6] text-white'
+                                        : 'bg-white text-gray-700 hover:bg-[#F7F9FB] border border-gray-300'
+                                }`}
+                                preserveScroll
+                            >
+                                {paginationLabel(link.label)}
+                            </Link>
+                        ) : (
+                            <span key={i} className="px-3 py-1 rounded text-sm bg-white text-gray-400 border border-gray-200 cursor-not-allowed">
+                                {paginationLabel(link.label)}
+                            </span>
+                        )
                     ))}
                 </div>
             )}
