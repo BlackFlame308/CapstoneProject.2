@@ -12,21 +12,17 @@ class Household extends Model
 {
     use SoftDeletes;
 
+    protected $primaryKey = 'household_id';
     public $incrementing = false;
-
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id',
+        'household_id',
         'household_code',
-        'household_number',
         'household_name',
-        'email',
-        'member_count',
         'address_id',
         'contact_number',
         'emergency_contact',
-        'created_by',
     ];
 
     protected $casts = [

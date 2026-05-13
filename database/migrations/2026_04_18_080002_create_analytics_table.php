@@ -9,33 +9,32 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Analytics now reference the unified locations table.
-     * location_id can point to barangay or sitio for granular reporting.
+     * Analytics now reference the location hierarchy with proper foreign keys.
      */
     public function up(): void
     {
         Schema::create('analytics', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('barangay_id')
-                  ->nullable()
-                  ->constrained()
-                  ->cascadeOnDelete();
-            $table->string('purok_sitio', 150)->nullable();
-            $table->date('record_period')->comment('First day of the month for monthly snapshots');
-            $table->unsignedInteger('total_households')->default(0);
+            $table->string('analytic_id', 255)->primary();
+            $table->unsignedInteger('barangay_id')->nullable();
+            $table->unsignedInteger('purok_id')->nullable();
+            $table->unsignedInteger('sitio_id')->nullable();
             $table->unsignedInteger('total_population')->default(0);
-            $table->unsignedInteger('total_males')->default(0);
-            $table->unsignedInteger('total_females')->default(0);
-            $table->unsignedInteger('total_pwd')->default(0);
-            $table->unsignedInteger('total_seniors')->default(0);
-            $table->unsignedInteger('total_children')->default(0);
-            $table->unsignedInteger('total_adults')->default(0);
-            $table->unsignedInteger('total_pregnant')->default(0);
-            $table->unsignedInteger('total_evacuees')->default(0);
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->unsignedInteger('total_household')->default(0);
+            $table->unsignedInteger('children_count')->default(0);
+            $table->unsignedInteger('adult_count')->default(0);
+            $table->unsignedInteger('elderly_count')->default(0);
+            $table->unsignedInteger('pwd_count')->default(0);
+            $table->unsignedInteger('pregnant_count')->default(0);
+            $table->unsignedInteger('male_count')->default(0);
+            $table->unsignedInteger('female_count')->default(0);
+            $table->dateTime('recorded_at');
+            $table->timestamps();
 
-            $table->index(['barangay_id', 'purok_sitio', 'record_period'], 'analytics_location_period_index');
+            $table->foreign('barangay_id')->references('barangay_id')->on('barangays')->nullOnDelete();
+            $table->foreign('purok_id')->references('purok_id')->on('puroks')->nullOnDelete();
+            $table->foreign('sitio_id')->references('sitio_id')->on('sitios')->nullOnDelete();
+
+            $table->index(['barangay_id', 'purok_id', 'sitio_id', 'recorded_at']);
             $table->index(['barangay_id', 'created_at']);
         });
     }

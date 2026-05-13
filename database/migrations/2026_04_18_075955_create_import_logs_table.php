@@ -12,12 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('import_logs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('data_source_id')->constrained('data_sources')->cascadeOnDelete();
-            $table->unsignedInteger('row_number')->nullable();
+            $table->unsignedBigInteger('id')->primary();
+            $table->unsignedBigInteger('data_source_id');
+            $table->unsignedInteger('row_num')->nullable();
             $table->string('status', 20)->nullable();
             $table->text('error_message')->nullable();
             $table->timestamps();
+
+            $table->foreign('data_source_id')->references('id')->on('data_sources')->cascadeOnDelete();
         });
     }
 

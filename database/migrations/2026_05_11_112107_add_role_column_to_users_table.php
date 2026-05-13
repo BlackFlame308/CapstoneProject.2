@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['head', 'encoder', 'household'])->nullable()->after('role_id');
-        });
+        // Role column is now handled by role_id foreign key in the base users table
+        // This migration is kept for historical reference but is now a no-op
     }
 
     /**
@@ -21,8 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role');
-        });
+        // No-op
     }
 };

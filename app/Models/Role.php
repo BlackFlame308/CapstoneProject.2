@@ -3,18 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Role extends Model
 {
-    use HasUuids;
-
-    protected $fillable = ['name'];
-
+    protected $primaryKey = 'role_id';
+    protected $keyType = 'int';
+    public $incrementing = true;
     public $timestamps = false;
+
+    protected $fillable = ['role_key', 'role_name'];
 
     public function users()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'role_id', 'role_id');
     }
 }

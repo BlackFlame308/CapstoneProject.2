@@ -12,17 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('households', function (Blueprint $table) {
-            $table->string('id', 20)->primary();
-            $table->string('household_code', 50)->unique()->index();
+            $table->string('household_id', 255)->primary();
+            $table->string('household_code', 255)->unique();
             $table->string('household_name', 100);
-            $table->string('email', 150)->nullable()->unique();
-            $table->integer('member_count')->default(0);
-            $table->foreignUuid('address_id')->constrained('addresses')->cascadeOnDelete();
-            $table->string('contact_number', 50)->nullable()->index();
+            $table->unsignedInteger('address_id')->nullable();
+            $table->string('contact_number', 50)->nullable();
             $table->string('emergency_contact', 50)->nullable();
-            $table->foreignUuid('created_by')->constrained('users');
             $table->timestamps();
             $table->softDeletes();
+
+            $table->foreign('address_id')->references('address_id')->on('addresses')->cascadeOnDelete();
+            $table->index('household_code');
+            $table->index('contact_number');
         });
     }
 

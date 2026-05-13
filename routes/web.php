@@ -155,6 +155,20 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/reports/evacuation', [App\Http\Controllers\Admin\ReportAdminController::class, 'evacuation'])->name('reports.evacuation');
     Route::get('/reports/rescue', [App\Http\Controllers\Admin\ReportAdminController::class, 'rescue'])->name('reports.rescue');
     Route::get('/reports/logistics', [App\Http\Controllers\Admin\ReportAdminController::class, 'logistics'])->name('reports.logistics');
+    
+    // Vulnerable Groups Management
+    Route::get('/vulnerable-groups', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'index'])->name('vulnerable-groups.index');
+    Route::get('/vulnerable-groups/create', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'create'])->name('vulnerable-groups.create');
+    Route::post('/vulnerable-groups', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'store'])->name('vulnerable-groups.store');
+    Route::get('/vulnerable-groups/{vulnerableGroup}/edit', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'edit'])->name('vulnerable-groups.edit');
+    Route::put('/vulnerable-groups/{vulnerableGroup}', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'update'])->name('vulnerable-groups.update');
+    Route::delete('/vulnerable-groups/{vulnerableGroup}', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'destroy'])->name('vulnerable-groups.destroy');
+    
+    // Device Token Tracking
+    Route::get('/device-tokens', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'index'])->name('device-tokens.index');
+    Route::get('/device-tokens/{deviceToken}', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'show'])->name('device-tokens.show');
+    Route::delete('/device-tokens/{deviceToken}', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'destroy'])->name('device-tokens.destroy');
+    Route::get('/device-tokens/export/data', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'export'])->name('device-tokens.export');
 });
 
 /*

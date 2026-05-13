@@ -95,8 +95,8 @@ class AccountAdminController extends Controller
             'username' => 'required|string|unique:users|max:100',
             'email' => 'required|email|unique:users',
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|uuid|exists:roles,id',
-            'household_id' => 'nullable|uuid|exists:households,id',
+            'role_id' => 'required|integer|exists:roles,role_id',
+            'household_id' => 'nullable|string|exists:households,household_id',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
@@ -165,11 +165,11 @@ class AccountAdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|max:100|unique:users,username,' . $user->id,
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'username' => 'required|string|max:100|unique:users,username,' . $user->user_id,
+            'email' => 'required|email|unique:users,email,' . $user->user_id,
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|uuid|exists:roles,id',
-            'household_id' => 'nullable|uuid|exists:households,id',
+            'role_id' => 'required|integer|exists:roles,role_id',
+            'household_id' => 'nullable|string|exists:households,household_id',
             'is_active' => 'boolean',
             'password' => 'nullable|string|min:6|confirmed',
         ]);

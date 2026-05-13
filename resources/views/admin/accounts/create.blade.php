@@ -93,9 +93,9 @@
                                 id="role_id" name="role_id" required>
                             <option value="">-- Select Role --</option>
                             @foreach($roles as $role)
-                                <option value="{{ $role->id }}"
-                                    @if(old('role_id') == $role->id) selected @endif>
-                                    {{ ucfirst($role->name) }}
+                                <option value="{{ $role->role_id }}"
+                                    @if(old('role_id') == $role->role_id) selected @endif>
+                                    {{ ucfirst($role->role_name) }}
                                 </option>
                             @endforeach
                         </select>
@@ -116,8 +116,8 @@
                                 id="household_id" name="household_id">
                             <option value="">-- None (For Admin Users) --</option>
                             @foreach($households as $household)
-                                <option value="{{ $household->id }}"
-                                    @if(old('household_id') == $household->id) selected @endif>
+                                <option value="{{ $household->household_id }}"
+                                    @if(old('household_id') == $household->household_id) selected @endif>
                                     {{ $household->household_code }} - {{ $household->household_name }}
                                 </option>
                             @endforeach

@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('members', function (Blueprint $table) {
-            $table->boolean('is_senior')->default(false)->after('is_pwd');
+        Schema::table('household_members', function (Blueprint $table) {
+            $table->boolean('is_senior')->default(false)->after('is_graduate');
         });
     }
 
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('members', function (Blueprint $table) {
+        Schema::table('household_members', function (Blueprint $table) {
             $table->dropColumn('is_senior');
         });
     }
