@@ -37,7 +37,7 @@ class CheckRole
             ->map('trim')
             ->all();
 
-        if (!in_array($user->role->name, $allowed, true)) {
+        if (!in_array(strtolower($user->role), array_map('strtolower', $allowed), true)) {
             return $request->expectsJson()
                 ? response()->json(['status' => 'error', 'message' => 'Forbidden: insufficient role.'], 403)
                 : abort(403, 'You do not have permission to access this page.');

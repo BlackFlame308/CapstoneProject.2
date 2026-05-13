@@ -33,3 +33,4 @@ class DashboardController extends Controller
         return back()->with('success', "Analytics updated for {$updatedCount} locations.");
     }
 }
+

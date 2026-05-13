@@ -2,7 +2,7 @@ import Layout from '@/Components/Layout';
 import { usePage, Link } from '@inertiajs/react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const COLORS = ['#3B82F6', '#000000', '#EF4444'];
+const COLORS = ['#3B82F6', '#EF4444', '#93C5FD'];
 
 export default function Dashboard() {
     const {
@@ -28,11 +28,10 @@ export default function Dashboard() {
     // Members by barangay for chart
     const barangayData = membersByBarangay.map(b => ({ name: b.name, population: b.count }));
 
-    // Comprehensive stats cards
-    const StatCard = ({ label, value, color = 'bg-[#3B82F6]' }) => (
-        <div className={`${color} text-white rounded-lg p-5 shadow min-w-0`}>
-            <div className="text-2xl md:text-3xl font-bold tabular-nums break-words">{Intl.NumberFormat().format(value ?? 0)}</div>
-            <div className="text-sm opacity-90 mt-1 leading-snug">{label}</div>
+    const StatCard = ({ label, value, color = 'bg-gradient-brand' }) => (
+        <div className="stat-card rounded-lg p-5">
+            <div className="stat-card-number text-3xl">{value ?? 0}</div>
+            <div className="stat-card-label text-sm mt-1">{label}</div>
         </div>
     );
 
@@ -45,7 +44,13 @@ export default function Dashboard() {
                 <div className="mb-4 p-3 bg-red-100 text-red-800 rounded">{flash.error}</div>
             )}
 
-            {/* Main Stats */}
+            {/* Hero Section */}
+            <div className="bg-hero text-white rounded-lg p-6 mb-8">
+                <h2 className="text-3xl font-bold mb-2">Welcome to SafeTrack Dashboard</h2>
+                <p className="text-lg opacity-90">Monitor and manage household data across barangays</p>
+            </div>
+
+            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <StatCard label="Total Households" value={stats?.totalHouseholds} color="bg-primary" />
                 <StatCard label="Total Population" value={stats?.totalMembers} color="bg-[#3B82F6]" />
@@ -67,7 +72,7 @@ export default function Dashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="chart-card rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Population Distribution by Age</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
@@ -89,47 +94,37 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="chart-card rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Population by Barangay</h3>
-                    {barangayData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={Math.max(300, barangayData.length * 34)}>
-                            <BarChart data={barangayData} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12 }} />
-                                <Tooltip />
-                                <Bar dataKey="population" fill="#3B82F6" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="h-[300px] flex items-center justify-center text-gray-500">
-                            No population data available
-                        </div>
-                    )}
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={barangayData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Bar dataKey="population" fill="#3B82F6" />
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Refresh Analytics */}
-            <div className="bg-white rounded-lg shadow p-4 mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h3 className="text-lg font-semibold">Update Analytics</h3>
-                        <p className="text-gray-600 text-sm">Refresh analytics data for all barangays based on current household and member data.</p>
-                    </div>
-                    <Link
-                        href="/analytics/update"
-                        method="post"
-                        as="button"
-                        className="bg-[#3B82F6] hover:bg-[#000000] text-white px-4 py-2 rounded transition whitespace-nowrap"
-                    >
-                        Refresh Analytics
-                    </Link>
-                </div>
+            <div className="chart-card rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-semibold mb-2">Update Analytics</h3>
+                <p className="text-gray-600 text-sm mb-3">Refresh analytics data for all barangays based on current household and member data.</p>
+                <Link
+                    href="/analytics/update"
+                    method="post"
+                    as="button"
+                    className="btn-primary px-4 py-2 rounded transition"
+                >
+                    Refresh Analytics
+                </Link>
             </div>
 
-            {/* Comprehensive Barangay Stats Table */}
-            <div className="bg-white rounded-lg shadow p-4 mb-8">
-                <h3 className="text-lg font-semibold mb-4">Statistics by Barangay (Live Data)</h3>
+            {/* Barangay Stats Table */}
+            <div className="chart-card rounded-lg p-4 mb-8">
+                <h3 className="text-lg font-semibold mb-4">Statistics by Barangay</h3>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                         <thead className="bg-gray-100">

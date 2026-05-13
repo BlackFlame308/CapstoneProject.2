@@ -47,7 +47,7 @@ class AuthenticatedSessionController extends Controller
                 ->with('warning', 'You must change your password before continuing.');
         }
 
-        return redirect()->intended(route('dashboard'));
+       return redirect()->route('admin.dashboard');
     }
 
     public function destroy(Request $request)

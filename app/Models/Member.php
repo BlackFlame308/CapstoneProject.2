@@ -25,6 +25,7 @@ class Member extends Model
         'education_level',
         'occupation',
         'is_pwd',
+        'is_senior',
         'is_pregnant',
         'special_needs',
         'is_graduate',
@@ -33,6 +34,7 @@ class Member extends Model
     protected $casts = [
         'birth_date'   => 'date',
         'is_pwd'       => 'boolean',
+        'is_senior'    => 'boolean',
         'is_pregnant'  => 'boolean',
         'is_graduate'  => 'boolean',
         'age'          => 'integer',

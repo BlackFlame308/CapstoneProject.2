@@ -26,7 +26,7 @@ class HandleInertiaRequests extends Middleware
                     'id'          => $user->id,
                     'name'        => $user->name,
                     'email'       => $user->email,
-                    'role'        => $user->role?->name,
+                    'role'        => $user->role,
                     'must_change_password' => $user->must_change_password ?? false,
                     'permissions' => [
                         'view_households'   => method_exists($user, 'canViewHouseholds') ? $user->canViewHouseholds() : false,
@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
                     'id'          => $user->id,
                     'name'        => $user->name,
                     'email'       => $user->email,
-                    'role'        => $user->role?->name ?? 'Household',
+                    'role'        => $user->role ?? 'Household',
                     'must_change_password' => $user->must_change_password ?? false,
                     'permissions' => [
                         'view_households'   => false,

@@ -7,24 +7,25 @@ export default function Layout({ children, title }) {
 
     const navLink = (href, label) => (
         <li className="mb-2">
-            <Link href={href} className="nav-link block px-3 py-2 rounded hover:bg-gray-100 transition leading-snug break-words">
+            <Link href={href} className="nav-link block px-3 py-2 rounded hover:sidebar-active transition">
                 {label}
             </Link>
         </li>
     );
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <nav className="bg-[#000000] text-white shadow">
-                <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-h-screen bg-[#F7F9FB]">
+            {/* Navbar */}
+            <nav className="bg-navbar text-white shadow">
+                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <Link href="/dashboard" className="text-xl font-bold">SafeTrack</Link>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                         {user && (
                             <>
-                                <span className="text-sm opacity-90 max-w-56 truncate">{user.name}</span>
+                                <span className="text-white font-medium mr-2">{user.name}</span>
                                 <Link
                                     href="/password/change"
-                                    className="text-sm bg-white/15 hover:bg-white/25 px-3 py-1 rounded transition"
+                                    className="text-white border border-white/60 bg-transparent rounded-[6px] px-[14px] py-[6px] text-sm transition hover:border-[#3B82F6] hover:text-[#3B82F6]"
                                 >
                                     Change Password
                                 </Link>
@@ -32,7 +33,7 @@ export default function Layout({ children, title }) {
                                     href="/logout"
                                     method="post"
                                     as="button"
-                                    className="text-sm bg-white/15 hover:bg-white/25 px-3 py-1 rounded transition"
+                                    className="text-white bg-[#EF4444] rounded-[6px] px-[14px] py-[6px] text-sm font-medium transition hover:bg-[#DC2626]"
                                 >
                                     Logout
                                 </Link>
@@ -44,21 +45,21 @@ export default function Layout({ children, title }) {
 
             <div className="flex flex-col md:flex-row">
                 {user && (
-                    <aside className="w-full md:w-64 bg-white md:min-h-screen shadow-sm p-4 shrink-0">
-                        <ul className="grid grid-cols-2 sm:grid-cols-3 md:block gap-x-2">
-                            {navLink('/dashboard', 'Dashboard')}
+                    <aside className="w-64 bg-sidebar text-white min-h-screen shadow-sm p-4">
+                        <ul>
+                            {navLink('/dashboard', '🏠 Dashboard')}
                             {permissions.view_households && (
                                 <>
-                                    {navLink('/households', 'Households')}
-                                    {permissions.manage_households && navLink('/households/create', 'Add Household')}
-                                    {permissions.upload_csv && navLink('/csv/upload', 'Upload CSV')}
+                                    {navLink('/households', '👥 Households')}
+                                    {permissions.manage_households && navLink('/households/create', '➕ Add Household')}
+                                    {permissions.upload_csv && navLink('/csv/upload', '📁 Upload CSV')}
                                 </>
                             )}
-                            {permissions.manage_accounts && navLink('/accounts', 'Accounts')}
-                            {permissions.register_accounts && navLink('/register', 'Register Account')}
-                            {permissions.view_reports && navLink('/dashboard', 'System Reports')}
-                            <li className="mt-0 md:mt-4 md:border-t md:pt-4">
-                                {navLink('/password/change', 'Change Password')}
+                            {permissions.manage_accounts && navLink('/accounts', '👤 Accounts')}
+                            {permissions.register_accounts && navLink('/register', '📝 Register Account')}
+                            {permissions.view_reports && navLink('/dashboard', '📊 System Reports')}
+                            <li className="mt-4 border-t pt-4 border-white/20">
+                                {navLink('/password/change', '🔑 Change Password')}
                             </li>
                         </ul>
                     </aside>
