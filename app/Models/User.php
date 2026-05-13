@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
+        'role',
         'household_id',
         'must_change_password',
         'temp_password',
@@ -44,7 +45,7 @@ class User extends Authenticatable
 
     public function role()
     {
-        return $this->belongsTo(Role::class);
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
     public function household()
@@ -52,42 +53,47 @@ class User extends Authenticatable
         return $this->belongsTo(Household::class);
     }
 
+    protected function normalizedRole(): ?string
+    {
+        return strtolower($this->role?->name ?? '');
+    }
+
     public function isAdmin(): bool
     {
-        return $this->role && $this->role->name === 'Admin';
+        return $this->normalizedRole() === 'admin';
     }
 
     public function isCaptain(): bool
     {
-        return $this->role && $this->role->name === 'Captain';
+        return $this->normalizedRole() === 'captain';
     }
 
     public function isEncoder(): bool
     {
-        return $this->role && $this->role->name === 'Encoder';
+        return $this->normalizedRole() === 'encoder';
     }
 
     public function isSuperAdmin(): bool
     {
-        return $this->role && in_array($this->role->name, ['Super Admin', 'Admin'], true);
+        return in_array($this->normalizedRole(), ['super admin', 'admin'], true);
     }
 
     public function hasPermission(string $permission): bool
     {
         // Extend with a real permission system if needed
         $perms = [
-            'manage_households' => ['Admin', 'Captain', 'Encoder'],
-            'view_households'     => ['Admin', 'Captain', 'Encoder'],
-            'manage_accounts'     => ['Admin', 'Super Admin'],
-            'view_reports'        => ['Admin', 'Captain', 'Super Admin'],
-            'register_accounts'   => ['Admin', 'Super Admin'],
+            'manage_households' => ['admin', 'captain', 'encoder'],
+            'view_households'   => ['admin', 'captain', 'encoder'],
+            'manage_accounts'  => ['admin', 'super admin'],
+            'view_reports'     => ['admin', 'captain', 'super admin'],
+            'register_accounts'=> ['admin', 'super admin'],
         ];
 
         if (!isset($perms[$permission])) {
             return false;
         }
 
-        return in_array($this->role?->name, $perms[$permission], true);
+        return in_array($this->normalizedRole(), $perms[$permission], true);
     }
 
     /**
