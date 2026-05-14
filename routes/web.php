@@ -1,167 +1,83 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HouseholdController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\CSVUploadController;
-use App\Http\Controllers\AccountController;
-use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\PasswordController;
 
-/*
-|--------------------------------------------------------------------------
-| Guest Routes
-|--------------------------------------------------------------------------
-*/
+// Guest routes
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Registration
-|--------------------------------------------------------------------------
-*/
-Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
-Route::post('register', [RegisteredUserController::class, 'store']);
-
-/*
-|--------------------------------------------------------------------------
-| Logout
-|--------------------------------------------------------------------------
-*/
+// Logout
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-/*
-|--------------------------------------------------------------------------
-| Password Change (must be accessible before full auth)
-|--------------------------------------------------------------------------
-*/
+// Password Change
 Route::middleware('auth')->group(function () {
-    Route::get('password/change', [PasswordController::class, 'create'])->name('password.change')
-        ->middleware('auth'); // Additional check for must_change_password could be added here
-    Route::post('password/change', [PasswordController::class, 'update'])->name('password.update')
-        ->middleware('auth');
+    Route::get('password/change', [PasswordController::class, 'create'])->name('password.change');
+    Route::post('password/change', [PasswordController::class, 'update'])->name('password.update');
 });
 
-/*
-|--------------------------------------------------------------------------
-| AUTHENTICATED ROUTES (Inertia + React)
-|--------------------------------------------------------------------------
-*/
-Route::middleware('auth')->group(function () {
+// Dashboard redirect
+Route::get('/dashboard', function () {
+    return redirect()->route('admin.dashboard');
+})->middleware('auth')->name('dashboard');
 
-    // Dashboard - Captain can view, Encoder can view
-    Route::get('/dashboard', function () {
-         return redirect()->route('admin.dashboard');
-    })->middleware('auth')->name('dashboard');
+// Admin Routes
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
 
-    Route::post('/analytics/update', [DashboardController::class, 'updateAnalytics'])
-        ->name('analytics.update')
-        ->middleware('role:Captain');
+    Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])
+        ->name('dashboard');
 
-
-    // Household CRUD - Captain full access, Encoder can create/view, Household can view own
-    Route::resource('households', HouseholdController::class)
-        ->middleware('role:Captain|Encoder');
-
-
-    // CSV Upload - Captain only
-    Route::get('csv/upload', [CSVUploadController::class, 'uploadForm'])
-        ->name('csv.upload');
-
-    Route::post('csv/upload', [CSVUploadController::class, 'upload'])
-        ->name('csv.upload.process');
-
-
-    // Account management - Captain only
-    Route::get('accounts', [AccountController::class, 'index'])
-        ->name('accounts.index')
-        ->middleware('role:Captain');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOCATION DROPDOWN ROUTES (internal — no public API)
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/locations/regions', [LocationController::class, 'regions'])->name('locations.regions')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/provinces/{regionId}', [LocationController::class, 'provinces'])->name('locations.provinces')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities'])->name('locations.cities')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/barangays/{cityId}', [LocationController::class, 'barangays'])->name('locations.barangays')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/sitios/{barangayId}', [LocationController::class, 'sitios'])->name('locations.sitios')
-        ->middleware('role:Captain|Encoder|Household');
-});
-
-/*
-|--------------------------------------------------------------------------
-| ADMIN DASHBOARD ROUTES (Blade Views with Bootstrap)
-|--------------------------------------------------------------------------
-| All routes under /admin prefix
-| Access: Barangay Head (role='head') or Encoder (role='encoder')
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    
-    // Dashboard
-    Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
-
-    
-    // Household Management
+    // Households
     Route::get('/households', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'index'])->name('households.index');
     Route::get('/households/create', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'create'])->name('households.create');
     Route::post('/households', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'store'])->name('households.store');
     Route::get('/households/{household}', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'show'])->name('households.show');
     Route::get('/households/{household}/edit', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'edit'])->name('households.edit');
     Route::put('/households/{household}', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'update'])->name('households.update');
-    Route::delete('/households/{household}', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'destroy'])
-        ->middleware('can:delete,household')->name('households.destroy');
-    Route::post('/households/{household}/csv-upload', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'uploadCsv'])->name('households.csv-upload');
-    
-    // Resident/Member Management
+    Route::delete('/households/{household}', [App\Http\Controllers\Admin\HouseholdAdminController::class, 'destroy'])->name('households.destroy');
+
+    // Residents
     Route::get('/residents', [App\Http\Controllers\Admin\ResidentAdminController::class, 'index'])->name('residents.index');
     Route::get('/residents/{household}/create', [App\Http\Controllers\Admin\ResidentAdminController::class, 'create'])->name('residents.create');
     Route::post('/residents/{household}', [App\Http\Controllers\Admin\ResidentAdminController::class, 'store'])->name('residents.store');
     Route::get('/residents/{member}/edit', [App\Http\Controllers\Admin\ResidentAdminController::class, 'edit'])->name('residents.edit');
     Route::put('/residents/{member}', [App\Http\Controllers\Admin\ResidentAdminController::class, 'update'])->name('residents.update');
-    Route::delete('/residents/{member}', [App\Http\Controllers\Admin\ResidentAdminController::class, 'destroy'])
-        ->middleware('can:delete,member')->name('residents.destroy');
-    
-    // Account Management
+    Route::delete('/residents/{member}', [App\Http\Controllers\Admin\ResidentAdminController::class, 'destroy'])->name('residents.destroy');
+
+    // Accounts
     Route::get('/accounts', [App\Http\Controllers\Admin\AccountAdminController::class, 'index'])->name('accounts.index');
     Route::get('/accounts/create', [App\Http\Controllers\Admin\AccountAdminController::class, 'create'])->name('accounts.create');
     Route::post('/accounts', [App\Http\Controllers\Admin\AccountAdminController::class, 'store'])->name('accounts.store');
     Route::get('/accounts/{user}/edit', [App\Http\Controllers\Admin\AccountAdminController::class, 'edit'])->name('accounts.edit');
     Route::put('/accounts/{user}', [App\Http\Controllers\Admin\AccountAdminController::class, 'update'])->name('accounts.update');
     Route::delete('/accounts/{user}', [App\Http\Controllers\Admin\AccountAdminController::class, 'destroy'])->name('accounts.destroy');
-    
+
     // Analytics
     Route::get('/analytics', [App\Http\Controllers\Admin\AnalyticsAdminController::class, 'index'])->name('analytics.index');
-    
+
     // Reports
     Route::get('/reports', [App\Http\Controllers\Admin\ReportAdminController::class, 'index'])->name('reports.index');
-    
-    // API Tokens
-    Route::get('/tokens', [App\Http\Controllers\TokenController::class, 'index'])->name('tokens.index');
     Route::get('/reports/evacuation', [App\Http\Controllers\Admin\ReportAdminController::class, 'evacuation'])->name('reports.evacuation');
     Route::get('/reports/rescue', [App\Http\Controllers\Admin\ReportAdminController::class, 'rescue'])->name('reports.rescue');
     Route::get('/reports/logistics', [App\Http\Controllers\Admin\ReportAdminController::class, 'logistics'])->name('reports.logistics');
+
+    // Tokens
+    Route::get('/tokens', [App\Http\Controllers\TokenController::class, 'index'])->name('tokens.index');
+
+    // CSV Upload
+    Route::get('/csv/upload', [App\Http\Controllers\CSVUploadController::class, 'uploadForm'])->name('csv.upload');
+    Route::post('/csv/upload', [App\Http\Controllers\CSVUploadController::class, 'upload'])->name('csv.upload.process');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Default Route — redirect to dashboard if authenticated
-|--------------------------------------------------------------------------
-*/
+// Default
 Route::get('/', function () {
     return redirect()->route('login');
 });

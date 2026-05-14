@@ -477,8 +477,6 @@
                 </a>
             </li>
 
-            @if(strtolower(auth()->user()->role?->name ?? '') === 'captain' 
-|| strtolower(auth()->user()->role?->name ?? '') === 'head')
             <li>
                 <a href="/admin/analytics"
                    class="@if(Request::is('admin/analytics*')) active @endif">
@@ -502,7 +500,6 @@
                     <span>API Token Management</span>
                 </a>
             </li>
-            @endif
 
             <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
 
