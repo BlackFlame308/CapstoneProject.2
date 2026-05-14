@@ -27,7 +27,7 @@ class RegisteredUserController extends Controller
             $roles = Role::whereIn('name', ['Encoder', 'Household'])->get();
         }
 
-        return Inertia::render('Auth/Register', [
+        return view('auth.register', [
             'roles'       => $roles,
             'isFirstUser' => $isFirstUser,
         ]);
@@ -65,7 +65,7 @@ class RegisteredUserController extends Controller
                 ? ['Captain', 'Encoder', 'Household']
                 : ['Encoder', 'Household'];
 
-            if (!in_array($role->name, $allowedRoles)) {
+            if (!in_array($role->role_name, $allowedRoles)) {
                 abort(403, 'You are not authorized to assign this role.');
             }
         }
@@ -74,7 +74,7 @@ class RegisteredUserController extends Controller
             'name'                 => $validated['name'],
             'email'                => $validated['email'],
             'password'             => Hash::make($validated['password']),
-            'role_id'              => $role->id,
+            'role_id'              => $role->role_id,
             'must_change_password' => false,
         ]);
 

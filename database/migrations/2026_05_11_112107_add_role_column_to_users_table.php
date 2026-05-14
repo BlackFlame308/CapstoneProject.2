@@ -11,8 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Role column is now handled by role_id foreign key in the base users table
-        // This migration is kept for historical reference but is now a no-op
+        Schema::table('users', function (Blueprint $table) {
+            if (!Schema::hasColumn('users', 'email_verified_at')) {
+                $table->timestamp('email_verified_at')->nullable()->after('email');
+            }
+
+            if (!Schema::hasColumn('users', 'must_change_password')) {
+                $table->boolean('must_change_password')->default(false)->after('is_active');
+            }
+
+            if (!Schema::hasColumn('users', 'temp_password')) {
+                $table->string('temp_password')->nullable()->after('must_change_password');
+            }
+
+            if (!Schema::hasColumn('users', 'remember_token')) {
+                $table->rememberToken()->after('temp_password');
+            }
+        });
     }
 
     /**
@@ -20,6 +35,22 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // No-op
+        Schema::table('users', function (Blueprint $table) {
+            if (Schema::hasColumn('users', 'remember_token')) {
+                $table->dropRememberToken();
+            }
+
+            if (Schema::hasColumn('users', 'temp_password')) {
+                $table->dropColumn('temp_password');
+            }
+
+            if (Schema::hasColumn('users', 'must_change_password')) {
+                $table->dropColumn('must_change_password');
+            }
+
+            if (Schema::hasColumn('users', 'email_verified_at')) {
+                $table->dropColumn('email_verified_at');
+            }
+        });
     }
 };

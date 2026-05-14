@@ -18,7 +18,7 @@ class CsvUpload extends Model
     ];
 
     protected $casts = [
-        'data_source_id'     => 'integer',
+        'data_source_id'     => 'string',
         'total_records'      => 'integer',
         'successful_records' => 'integer',
         'failed_records'     => 'integer',

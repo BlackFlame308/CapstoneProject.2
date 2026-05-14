@@ -1,0 +1,183 @@
+/* Admin Dashboard Stat Cards */
+.stat-card {
+    background: #ffffff;
+    color: #333333;
+    border-radius: 8px;
+    padding: 25px;
+    border: none;
+    border-top: 4px solid #3B82F6;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+    min-width: 0;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #3B82F6;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #333333;
+    overflow-wrap: anywhere;
+}
+
+.stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6B7280;
+}
+
+/* Admin Sidebar Styling */
+.admin-sidebar {
+    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+}
+
+.admin-sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    color: #ecf0f1;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.admin-sidebar a:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-color: #3498db;
+    color: #fff;
+}
+
+.admin-sidebar a.active {
+    background-color: rgba(52, 152, 219, 0.15);
+    border-left-color: #3498db;
+    color: #3498db;
+    font-weight: 600;
+}
+
+.admin-sidebar span:first-child {
+    font-size: 18px;
+    min-width: 25px;
+}
+
+/* Form Styling */
+.form-label {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Badge Styling */
+.badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table Styling */
+.table {
+    font-size: 13px;
+}
+
+.table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table th,
+.table td {
+    overflow-wrap: anywhere;
+}
+
+.table thead th {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+}
+
+/* Button Styling */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #6a3f91 100%);
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+.btn-success {
+    background: #27ae60;
+    border: none;
+}
+
+.btn-warning {
+    background: #f39c12;
+    border: none;
+}
+
+.btn-danger {
+    background: #e74c3c;
+    border: none;
+}
+
+/* Card Styling */
+.card {
+    transition: all 0.3s ease;
+    min-width: 0;
+}
+
+.card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .stat-icon {
+        font-size: 32px;
+    }
+
+    .card-header,
+    .card-body {
+        min-width: 0;
+    }
+
+    .btn {
+        white-space: normal;
+    }
+}

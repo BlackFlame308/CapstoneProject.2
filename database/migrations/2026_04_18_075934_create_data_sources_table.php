@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('data_sources', function (Blueprint $table) {
-            $table->unsignedBigInteger('id')->primary();
+            $table->uuid('id')->primary();
             $table->string('type', 20);
-            $table->string('uploaded_by', 255);
+            $table->uuid('uploaded_by')->nullable();
             $table->timestamps();
 
-            $table->foreign('uploaded_by')->references('user_id')->on('users')->nullOnDelete();
+            $table->foreign('uploaded_by')->references('id')->on('users')->nullOnDelete();
         });
     }
 

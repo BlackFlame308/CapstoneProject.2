@@ -14,10 +14,10 @@ return new class extends Migration
         // Member vulnerable groups (many-to-many relationship)
         Schema::create('member_vulnerable_groups', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('member_id', 255);
+            $table->uuid('member_id');
             $table->unsignedInteger('vulnerable_group_id');
 
-            $table->foreign('member_id')->references('member_id')->on('household_members')->cascadeOnDelete();
+            $table->foreign('member_id')->references('id')->on('members')->cascadeOnDelete();
             $table->foreign('vulnerable_group_id')->references('vulnerable_group_id')->on('vulnerable_groups')->cascadeOnDelete();
 
             $table->unique(['member_id', 'vulnerable_group_id']);
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->dateTime('logged_at')->nullable();
             $table->timestamps();
 
-            $table->foreign('household_id')->references('household_id')->on('households')->cascadeOnDelete();
+            $table->foreign('household_id')->references('id')->on('households')->cascadeOnDelete();
         });
     }
 

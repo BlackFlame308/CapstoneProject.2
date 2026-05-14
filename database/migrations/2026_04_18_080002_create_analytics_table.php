@@ -14,27 +14,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('analytics', function (Blueprint $table) {
-            $table->string('analytic_id', 255)->primary();
-            $table->unsignedInteger('barangay_id')->nullable();
-            $table->unsignedInteger('purok_id')->nullable();
-            $table->unsignedInteger('sitio_id')->nullable();
+            $table->uuid('id')->primary();
+            $table->uuid('barangay_id')->nullable();
+            $table->string('purok_sitio', 150)->nullable();
+            $table->date('record_period')->nullable();
+            $table->unsignedInteger('total_households')->default(0);
             $table->unsignedInteger('total_population')->default(0);
-            $table->unsignedInteger('total_household')->default(0);
-            $table->unsignedInteger('children_count')->default(0);
-            $table->unsignedInteger('adult_count')->default(0);
-            $table->unsignedInteger('elderly_count')->default(0);
-            $table->unsignedInteger('pwd_count')->default(0);
-            $table->unsignedInteger('pregnant_count')->default(0);
-            $table->unsignedInteger('male_count')->default(0);
-            $table->unsignedInteger('female_count')->default(0);
-            $table->dateTime('recorded_at');
+            $table->unsignedInteger('total_males')->default(0);
+            $table->unsignedInteger('total_females')->default(0);
+            $table->unsignedInteger('total_pwd')->default(0);
+            $table->unsignedInteger('total_seniors')->default(0);
+            $table->unsignedInteger('total_children')->default(0);
+            $table->unsignedInteger('total_adults')->default(0);
+            $table->unsignedInteger('total_pregnant')->default(0);
+            $table->unsignedInteger('total_evacuees')->default(0);
             $table->timestamps();
 
-            $table->foreign('barangay_id')->references('barangay_id')->on('barangays')->nullOnDelete();
-            $table->foreign('purok_id')->references('purok_id')->on('puroks')->nullOnDelete();
-            $table->foreign('sitio_id')->references('sitio_id')->on('sitios')->nullOnDelete();
+            $table->foreign('barangay_id')->references('id')->on('barangays')->nullOnDelete();
 
-            $table->index(['barangay_id', 'purok_id', 'sitio_id', 'recorded_at']);
+            $table->index(['barangay_id', 'record_period']);
             $table->index(['barangay_id', 'created_at']);
         });
     }
@@ -47,4 +45,3 @@ return new class extends Migration
         Schema::dropIfExists('analytics');
     }
 };
-

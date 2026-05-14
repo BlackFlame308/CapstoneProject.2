@@ -28,17 +28,25 @@ class AdminDashboardController extends Controller
         // Get statistics
         $totalHouseholds = Household::count();
         $totalPopulation = Member::count();
+        $adultCutoff = now()->subYears(18)->toDateString();
+        $seniorCutoff = now()->subYears(60)->toDateString();
         
-       // Get demographics
-$childrenCount = Member::whereNotNull('birth_date')
-    ->whereRaw('YEAR(CURDATE()) - YEAR(birth_date) < 18')
-    ->count();
+        // Get demographics
+        $childrenCount = Member::where(function ($query) use ($adultCutoff) {
+            $query->whereDate('birth_date', '>', $adultCutoff)
+                ->orWhere(function ($fallback) {
+                    $fallback->whereNull('birth_date')->where('age', '<', 18);
+                });
+        })->count();
 
-$seniorsCount = Member::whereNotNull('birth_date')
-    ->whereRaw('YEAR(CURDATE()) - YEAR(birth_date) >= 60')
-    ->count();
+        $seniorsCount = Member::where(function ($query) use ($seniorCutoff) {
+            $query->whereDate('birth_date', '<=', $seniorCutoff)
+                ->orWhere(function ($fallback) {
+                    $fallback->whereNull('birth_date')->where('age', '>=', 60);
+                });
+        })->count();
 
-$pwdCount = Member::where('is_pwd', true)->count();
+        $pwdCount = Member::where('is_pwd', true)->count();
         
         // Get sitio rankings (most vulnerable areas)
         $sitioRankings = collect([]);

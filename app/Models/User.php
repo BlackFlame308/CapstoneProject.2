@@ -15,6 +15,10 @@ class User extends Authenticatable
 
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $primaryKey = 'id';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
     protected $fillable = [
         'name',
         'username',
@@ -43,9 +47,24 @@ class User extends Authenticatable
         'is_active' => 'boolean',
     ];
 
+    public function getIdAttribute(): ?string
+    {
+        return $this->attributes['id'] ?? null;
+    }
+
+    public function getUserIdAttribute(): ?string
+    {
+        return $this->attributes['id'] ?? null;
+    }
+
+    public function setUserIdAttribute(?string $value): void
+    {
+        $this->attributes['id'] = $value;
+    }
+
     public function role()
     {
-        return $this->belongsTo(Role::class, 'role_id');
+        return $this->belongsTo(Role::class, 'role_id', 'id');
     }
 
     public function household()
@@ -112,4 +131,3 @@ class User extends Authenticatable
         return $this->hasPermission('view_households') || $this->isSuperAdmin();
     }
 }
-

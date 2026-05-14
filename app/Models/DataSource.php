@@ -15,7 +15,7 @@ class DataSource extends Model
     ];
 
     protected $casts = [
-        'uploaded_by' => 'integer',
+        'uploaded_by' => 'string',
     ];
 
     protected $with = ['uploader'];
@@ -44,6 +44,6 @@ class DataSource extends Model
 
     public function uploader(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(User::class, 'uploaded_by');
+        return $this->belongsTo(User::class, 'uploaded_by', 'id');
     }
 }

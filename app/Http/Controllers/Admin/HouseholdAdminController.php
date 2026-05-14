@@ -119,14 +119,14 @@ class HouseholdAdminController extends Controller
         try {
             // Create address if location data provided
             $address = null;
-            if ($validated['barangay_id']) {
+            if (!empty($validated['barangay_id'])) {
                 $address = Address::create([
-                    'region_id' => $validated['region_id'],
-                    'province_id' => $validated['province_id'],
-                    'city_id' => $validated['city_id'],
+                    'region_id' => $validated['region_id'] ?? null,
+                    'province_id' => $validated['province_id'] ?? null,
+                    'city_id' => $validated['city_id'] ?? null,
                     'barangay_id' => $validated['barangay_id'],
-                    'purok_sitio' => $validated['purok_sitio'],
-                    'street_address' => $validated['street_address'],
+                    'purok_sitio' => $validated['purok_sitio'] ?? null,
+                    'street_address' => $validated['street_address'] ?? null,
                 ]);
             }
 
@@ -134,9 +134,9 @@ class HouseholdAdminController extends Controller
             $household = Household::create([
                 'household_code' => $validated['household_code'],
                 'household_name' => $validated['household_name'] ?? $validated['household_code'],
-                'contact_number' => $validated['contact_number'],
-                'email' => $validated['email'],
-                'emergency_contact' => $validated['emergency_contact'],
+                'contact_number' => $validated['contact_number'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'emergency_contact' => $validated['emergency_contact'] ?? null,
                 'address_id' => $address?->id,
                 'created_by' => auth()->id(),
             ]);
@@ -200,30 +200,30 @@ class HouseholdAdminController extends Controller
             // Update household
             $household->update([
                 'household_name' => $validated['household_name'] ?? $household->household_name,
-                'contact_number' => $validated['contact_number'],
-                'email' => $validated['email'],
-                'emergency_contact' => $validated['emergency_contact'],
+                'contact_number' => $validated['contact_number'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'emergency_contact' => $validated['emergency_contact'] ?? null,
             ]);
 
             // Update or create address
-            if ($validated['barangay_id']) {
+            if (!empty($validated['barangay_id'])) {
                 if ($household->address) {
                     $household->address->update([
-                        'region_id' => $validated['region_id'],
-                        'province_id' => $validated['province_id'],
-                        'city_id' => $validated['city_id'],
+                        'region_id' => $validated['region_id'] ?? null,
+                        'province_id' => $validated['province_id'] ?? null,
+                        'city_id' => $validated['city_id'] ?? null,
                         'barangay_id' => $validated['barangay_id'],
-                        'purok_sitio' => $validated['purok_sitio'],
-                        'street_address' => $validated['street_address'],
+                        'purok_sitio' => $validated['purok_sitio'] ?? null,
+                        'street_address' => $validated['street_address'] ?? null,
                     ]);
                 } else {
                     $address = Address::create([
-                        'region_id' => $validated['region_id'],
-                        'province_id' => $validated['province_id'],
-                        'city_id' => $validated['city_id'],
+                        'region_id' => $validated['region_id'] ?? null,
+                        'province_id' => $validated['province_id'] ?? null,
+                        'city_id' => $validated['city_id'] ?? null,
                         'barangay_id' => $validated['barangay_id'],
-                        'purok_sitio' => $validated['purok_sitio'],
-                        'street_address' => $validated['street_address'],
+                        'purok_sitio' => $validated['purok_sitio'] ?? null,
+                        'street_address' => $validated['street_address'] ?? null,
                     ]);
                     $household->update(['address_id' => $address->id]);
                 }

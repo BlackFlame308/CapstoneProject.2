@@ -33,7 +33,7 @@
                     <option value="">-- All Roles --</option>
                     @foreach($roles as $role)
                         <option value="{{ $role->name }}"
-                            @if($filters['role'] == $role->name) selected @endif>
+                            @if(($filters['role'] ?? '') == $role->name) selected @endif>
                             {{ ucfirst($role->name) }}
                         </option>
                     @endforeach

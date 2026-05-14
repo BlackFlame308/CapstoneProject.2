@@ -37,6 +37,6 @@ class Barangay extends Model
 
     public function analytics(): HasMany
     {
-        return $this->hasMany(Analytic::class);
+        return $this->hasMany(Analytics::class);
     }
 }

@@ -7,13 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
 
 class AuthenticatedSessionController extends Controller
 {
     public function create()
     {
-        return Inertia::render('Auth/Login');
+        return view('auth.login');
     }
 
     public function store(Request $request)
@@ -58,4 +57,3 @@ class AuthenticatedSessionController extends Controller
         return redirect()->route('login')->with('success', 'Logged out successfully.');
     }
 }
-

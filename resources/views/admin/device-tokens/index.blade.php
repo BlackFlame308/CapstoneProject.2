@@ -26,8 +26,8 @@
             <div class="col-md-3">
                 <select name="status" class="form-select">
                     <option value="">-- All Status --</option>
-                    <option value="active" @if($filters['status'] == 'active') selected @endif>Active (Last 1h)</option>
-                    <option value="inactive" @if($filters['status'] == 'inactive') selected @endif>Inactive</option>
+                    <option value="active" @if(($filters['status'] ?? '') == 'active') selected @endif>Active (Last 1h)</option>
+                    <option value="inactive" @if(($filters['status'] ?? '') == 'inactive') selected @endif>Inactive</option>
                 </select>
             </div>
 

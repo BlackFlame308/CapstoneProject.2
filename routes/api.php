@@ -10,7 +10,7 @@ use App\Http\Controllers\API\MemberController;
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
-// Location hierarchy now served via web routes (Inertia monolithic)
+// Location hierarchy now served via web routes.
 // Route::get('locations/regions', [...])
 // Route::get('locations/{parentId}/children', [...])
 

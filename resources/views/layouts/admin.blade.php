@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Admin CSS -->
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
     
     <style>
         * {
@@ -22,6 +24,14 @@
             min-height: 100vh;
             background-color: #f5f7fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        img,
+        svg,
+        canvas,
+        video {
+            max-width: 100%;
         }
 
         /* Sidebar */
@@ -79,6 +89,7 @@
             gap: 12px;
             transition: all 0.3s ease;
             border-left: 4px solid transparent;
+            min-width: 0;
         }
 
         .sidebar-menu a:hover {
@@ -95,9 +106,16 @@
             text-align: center;
         }
 
+        .sidebar-menu span:last-child {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
         /* Main Content */
         .main-content {
             margin-left: 280px;
+            width: calc(100% - 280px);
+            min-width: 0;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -120,12 +138,14 @@
             display: flex;
             align-items: center;
             gap: 20px;
+            min-width: 0;
         }
 
         .navbar-top-right {
             display: flex;
             align-items: center;
             gap: 20px;
+            flex-shrink: 0;
         }
 
         .user-profile {
@@ -162,12 +182,16 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            min-width: 0;
         }
 
         .page-title h4 {
             margin: 0;
             color: #333;
             font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         /* Content Area */
@@ -175,6 +199,19 @@
             padding: 30px;
             flex: 1;
             overflow-y: auto;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .content-area > .container-fluid {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .row,
+        [class^="col-"],
+        [class*=" col-"] {
+            min-width: 0;
         }
 
         /* Alert Styles */
@@ -208,6 +245,8 @@
             border: none;
             transition: all 0.3s ease;
             border-top: 4px solid #667eea;
+            height: 100%;
+            min-width: 0;
         }
 
         .stat-card:hover {
@@ -226,6 +265,7 @@
             font-weight: 700;
             color: #333;
             margin-bottom: 5px;
+            overflow-wrap: anywhere;
         }
 
         .stat-card .stat-label {
@@ -240,6 +280,60 @@
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
             border: none;
+            min-width: 0;
+        }
+
+        .table-responsive {
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table th,
+        .table td {
+            overflow-wrap: anywhere;
+        }
+
+        .card,
+        .card-header,
+        .card-body,
+        .card-footer,
+        .list-group-item {
+            min-width: 0;
+        }
+
+        .card-header > div,
+        .list-group-item {
+            gap: 12px;
+        }
+
+        .card-header[style*="display: flex"],
+        .content-area [style*="display: flex"] {
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-title {
+            margin-bottom: 0;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .card-tools,
+        .btn-toolbar,
+        .btn-group-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .btn {
+            white-space: normal;
+        }
+
+        .badge {
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
 
         .table thead {
@@ -392,6 +486,7 @@
 
             .main-content {
                 margin-left: 0;
+                width: 100%;
             }
 
             .sidebar.active {
@@ -400,11 +495,68 @@
             }
 
             .content-area {
-                padding: 20px;
+                padding: 16px;
             }
 
             .navbar-top {
                 padding: 15px 20px;
+                align-items: flex-start;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            .navbar-top-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .card-header > div,
+            .list-group-item {
+                align-items: flex-start !important;
+                flex-wrap: wrap;
+            }
+
+            .card-header {
+                padding: 16px !important;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-card .stat-value {
+                font-size: 26px;
+            }
+
+            .table {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .content-area {
+                padding: 12px;
+            }
+
+            .user-profile {
+                align-items: flex-start;
+            }
+
+            .user-info h6,
+            .user-info small {
+                overflow-wrap: anywhere;
+            }
+
+            .btn,
+            .form-control,
+            .form-select {
+                width: 100%;
+            }
+
+            .table .btn,
+            .card-header .btn,
+            .list-group-item .btn {
+                width: auto;
             }
         }
 
@@ -477,6 +629,30 @@
                 </a>
             </li>
 
+            <li>
+                <a href="/admin/vulnerable-groups"
+                   class="@if(Request::is('admin/vulnerable-groups*')) active @endif">
+                    <span>❤️</span>
+                    <span>Vulnerable Groups</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/admin/device-tokens"
+                   class="@if(Request::is('admin/device-tokens*')) active @endif">
+                    <span>📱</span>
+                    <span>Device Tracking</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/admin/search"
+                   class="@if(Request::is('admin/search*')) active @endif">
+                    <span>🔎</span>
+                    <span>Advanced Search</span>
+                </a>
+            </li>
+
             @if(strtolower(auth()->user()->role?->name ?? '') === 'captain' 
 || strtolower(auth()->user()->role?->name ?? '') === 'head')
             <li>
@@ -500,6 +676,30 @@
                    class="@if(Request::is('admin/tokens*')) active @endif">
                     <span>🔑</span>
                     <span>API Token Management</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/admin/audit-logs"
+                   class="@if(Request::is('admin/audit-logs*')) active @endif">
+                    <span>📝</span>
+                    <span>Audit Logs</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/admin/csv-import"
+                   class="@if(Request::is('admin/csv-import*')) active @endif">
+                    <span>📤</span>
+                    <span>CSV Import Dashboard</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/admin/notifications"
+                   class="@if(Request::is('admin/notifications*')) active @endif">
+                    <span>🔔</span>
+                    <span>Notifications</span>
                 </a>
             </li>
             @endif

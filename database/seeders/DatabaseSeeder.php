@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,41 +14,50 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // First, seed roles and permissions
-        $this->call(RoleSeeder::class);
+        $this->call([
+            RoleSeeder::class,
+            LocationSeeder::class,
+        ]);
 
-        // Fetch roles
-        $captainRole = Role::where('name', 'Captain')->first();
-        $encoderRole = Role::where('name', 'Encoder')->first();
+        $captainRole = $this->roleByName('Captain');
+        $encoderRole = $this->roleByName('Encoder');
 
-        // Create a Captain user
-        $captain = User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'captain@safetrack.local'],
-            [
+            $this->userAttributes([
                 'name' => 'Barangay Captain',
                 'password' => bcrypt('password'),
-                'role_id' => $captainRole->id,
-            ]
+                'role_id' => $captainRole->role_id,
+                'must_change_password' => false,
+            ])
         );
 
-        // Create an Encoder user
-        $encoder = User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'encoder@safetrack.local'],
-            [
+            $this->userAttributes([
                 'name' => 'Data Encoder',
                 'password' => bcrypt('password'),
-                'role_id' => $encoderRole->id,
-            ]
+                'role_id' => $encoderRole->role_id,
+                'must_change_password' => false,
+            ])
         );
 
-        // Optional: Ensure roles are synced with permissions again just in case
-        // $captainRole->permissions()->sync(\App\Models\Permission::all()->pluck('id'));
-        // $encoderRole->permissions()->sync(\App\Models\Permission::whereIn('name', [
-        //     'add_households',
-        //     'update_households',
-        //     'view_households',
-        //     'manage_users',
-        //     'view_analytics'
-        // ]));
+        $this->call(TestDataSeeder::class);
+    }
+
+    private function roleByName(string $name): Role
+    {
+        $nameColumn = Schema::hasColumn('roles', 'role_name') ? 'role_name' : 'name';
+
+        return Role::where($nameColumn, $name)->firstOrFail();
+    }
+
+    private function userAttributes(array $attributes): array
+    {
+        if (!Schema::hasColumn('users', 'must_change_password')) {
+            unset($attributes['must_change_password']);
+        }
+
+        return $attributes;
     }
 }

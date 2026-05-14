@@ -71,7 +71,7 @@
                         @error('password')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="text-muted d-block mt-1">Minimum 6 characters if changing</small>
+                        <small class="text-muted d-block mt-1">Minimum 8 characters if changing</small>
                     </div>
 
                     <div class="mb-3">

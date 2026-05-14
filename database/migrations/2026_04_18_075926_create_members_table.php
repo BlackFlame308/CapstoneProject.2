@@ -11,28 +11,30 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('household_members', function (Blueprint $table) {
-            $table->string('member_id', 255)->primary();
+        Schema::create('members', function (Blueprint $table) {
+            $table->uuid('id')->primary();
             $table->string('household_id', 255);
+            $table->string('name', 255)->nullable();
             $table->string('first_name', 100);
             $table->string('middle_name', 100)->nullable();
             $table->string('last_name', 100);
             $table->date('birth_date');
-            $table->unsignedInteger('gender_id')->nullable();
-            $table->unsignedInteger('relationship_id')->nullable();
-            $table->unsignedInteger('civil_status_id')->nullable();
-            $table->unsignedInteger('occupation')->nullable();
-            $table->unsignedInteger('education_level_id')->nullable();
+            $table->string('sex', 1)->nullable();
+            $table->string('gender', 20)->nullable();
+            $table->unsignedInteger('age')->nullable();
+            $table->string('relation', 50)->nullable();
+            $table->string('civil_status', 50)->nullable();
+            $table->string('occupation', 100)->nullable();
+            $table->string('education_level', 100)->nullable();
+            $table->boolean('is_pwd')->default(false);
+            $table->boolean('is_senior')->default(false);
+            $table->boolean('is_pregnant')->default(false);
+            $table->string('special_needs', 50)->nullable();
             $table->boolean('is_graduate')->default(false);
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('household_id')->references('household_id')->on('households')->cascadeOnDelete();
-            $table->foreign('gender_id')->references('gender_id')->on('genders')->nullOnDelete();
-            $table->foreign('relationship_id')->references('relationship_id')->on('relationships')->nullOnDelete();
-            $table->foreign('civil_status_id')->references('status_id')->on('civil_statuses')->nullOnDelete();
-            $table->foreign('occupation')->references('occupation_id')->on('occupations')->nullOnDelete();
-            $table->foreign('education_level_id')->references('education_level_id')->on('education_levels')->nullOnDelete();
+            $table->foreign('household_id')->references('id')->on('households')->cascadeOnDelete();
 
             $table->index('household_id');
             $table->index('birth_date');
@@ -44,6 +46,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('household_members');
+        Schema::dropIfExists('members');
     }
 };

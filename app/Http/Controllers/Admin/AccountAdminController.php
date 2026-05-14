@@ -77,7 +77,7 @@ class AccountAdminController extends Controller
     public function create()
     {
         $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['head', 'encoder', 'household'])->get();
+        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
 
         return view('admin.accounts.create', [
             'households' => $households,
@@ -95,15 +95,15 @@ class AccountAdminController extends Controller
             'username' => 'required|string|unique:users|max:100',
             'email' => 'required|email|unique:users',
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|integer|exists:roles,role_id',
+            'role_id' => 'required|string|exists:roles,id',
             'household_id' => 'nullable|string|exists:households,household_id',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         try {
             // Check if role is household and household_id is provided
             $role = Role::find($validated['role_id']);
-            if ($role->name === 'household' && !$validated['household_id']) {
+            if ($role->role_name === 'Household' && empty($validated['household_id'])) {
                 return back()->withInput()
                     ->with('error', 'Household user must be assigned to a household.');
             }
@@ -120,10 +120,10 @@ class AccountAdminController extends Controller
                 'name' => $validated['name'],
                 'username' => $validated['username'],
                 'email' => $validated['email'],
-                'contact_number' => $validated['contact_number'],
+                'contact_number' => $validated['contact_number'] ?? null,
                 'password' => Hash::make($validated['password']),
                 'role_id' => $validated['role_id'],
-                'household_id' => $validated['household_id'],
+                'household_id' => $validated['household_id'] ?? null,
                 'is_active' => true,
                 'must_change_password' => $validated['must_change_password'] ?? false,
                 'temp_password' => $tempPassword,
@@ -149,7 +149,7 @@ class AccountAdminController extends Controller
     public function edit(User $user)
     {
         $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['head', 'encoder', 'household'])->get();
+        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
 
         return view('admin.accounts.edit', [
             'user' => $user,
@@ -168,10 +168,10 @@ class AccountAdminController extends Controller
             'username' => 'required|string|max:100|unique:users,username,' . $user->user_id,
             'email' => 'required|email|unique:users,email,' . $user->user_id,
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|integer|exists:roles,role_id',
+            'role_id' => 'required|string|exists:roles,id',
             'household_id' => 'nullable|string|exists:households,household_id',
             'is_active' => 'boolean',
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         try {
@@ -180,14 +180,14 @@ class AccountAdminController extends Controller
                 'name' => $validated['name'],
                 'username' => $validated['username'],
                 'email' => $validated['email'],
-                'contact_number' => $validated['contact_number'],
+                'contact_number' => $validated['contact_number'] ?? null,
                 'role_id' => $validated['role_id'],
-                'household_id' => $validated['household_id'],
+                'household_id' => $validated['household_id'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
             ];
 
             // Update password if provided
-            if ($validated['password']) {
+            if (!empty($validated['password'])) {
                 $updateData['password'] = Hash::make($validated['password']);
                 $updateData['must_change_password'] = false;
             }

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Analytic;
+use App\Models\Analytics;
 use App\Models\Barangay;
 use App\Models\Household;
 use App\Models\Member;
@@ -197,7 +197,7 @@ class DashboardService
                     return;
                 }
 
-                Analytic::updateOrCreate(
+                Analytics::updateOrCreate(
                     [
                         'barangay_id'   => $barangayId,
                         'purok_sitio'   => $householdRow?->purok_sitio ?? $memberRow?->purok_sitio,

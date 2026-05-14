@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\CSVUploadController;
+use App\Http\Controllers\CsvUploadController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -51,7 +51,7 @@ Route::middleware('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| AUTHENTICATED ROUTES (Inertia + React)
+| AUTHENTICATED ROUTES
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
@@ -72,10 +72,10 @@ Route::middleware('auth')->group(function () {
 
 
     // CSV Upload - Captain only
-    Route::get('csv/upload', [CSVUploadController::class, 'uploadForm'])
+    Route::get('csv/upload', [CsvUploadController::class, 'uploadForm'])
         ->name('csv.upload');
 
-    Route::post('csv/upload', [CSVUploadController::class, 'upload'])
+    Route::post('csv/upload', [CsvUploadController::class, 'upload'])
         ->name('csv.upload.process');
 
 
@@ -169,6 +169,37 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/device-tokens/{deviceToken}', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'show'])->name('device-tokens.show');
     Route::delete('/device-tokens/{deviceToken}', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'destroy'])->name('device-tokens.destroy');
     Route::get('/device-tokens/export/data', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'export'])->name('device-tokens.export');
+    
+    // Advanced Search
+    Route::get('/search', [App\Http\Controllers\Admin\AdvancedSearchController::class, 'form'])->name('search.form');
+    Route::get('/search/results', [App\Http\Controllers\Admin\AdvancedSearchController::class, 'search'])->name('search.search');
+    
+    // Data Export
+    Route::get('/export/households/excel', [App\Http\Controllers\Admin\DataExportController::class, 'exportHouseholdsExcel'])->name('export.households-excel');
+    Route::get('/export/households/pdf', [App\Http\Controllers\Admin\DataExportController::class, 'exportHouseholdsPDF'])->name('export.households-pdf');
+    Route::get('/export/members/excel', [App\Http\Controllers\Admin\DataExportController::class, 'exportMembersExcel'])->name('export.members-excel');
+    Route::get('/export/members/pdf', [App\Http\Controllers\Admin\DataExportController::class, 'exportMembersPDF'])->name('export.members-pdf');
+    Route::get('/export/analytics', [App\Http\Controllers\Admin\DataExportController::class, 'exportAnalyticsReport'])->name('export.analytics-report');
+    
+    // Audit Logs
+    Route::get('/audit-logs', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'index'])->name('audit-logs.index');
+    Route::get('/audit-logs/{id}', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'show'])->name('audit-logs.show');
+    Route::post('/audit-logs/clear', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'clearOldLogs'])->name('audit-logs.clear');
+    
+    // CSV Import Dashboard
+    Route::get('/csv-import', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'index'])->name('csv-import.index');
+    Route::get('/csv-import/{csvUpload}', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'show'])->name('csv-import.show');
+    Route::post('/csv-import/{csvUpload}/retry', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'retryErrors'])->name('csv-import.retry');
+    Route::delete('/csv-import/{csvUpload}', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'destroy'])->name('csv-import.destroy');
+    
+    // Notifications Management
+    Route::get('/notifications', [App\Http\Controllers\Admin\NotificationManagementController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/create', [App\Http\Controllers\Admin\NotificationManagementController::class, 'create'])->name('notifications.create');
+    Route::post('/notifications', [App\Http\Controllers\Admin\NotificationManagementController::class, 'store'])->name('notifications.store');
+    Route::get('/notifications/{notification}', [App\Http\Controllers\Admin\NotificationManagementController::class, 'show'])->name('notifications.show');
+    Route::post('/notifications/{notification}/retry', [App\Http\Controllers\Admin\NotificationManagementController::class, 'retry'])->name('notifications.retry');
+    Route::delete('/notifications/{notification}', [App\Http\Controllers\Admin\NotificationManagementController::class, 'destroy'])->name('notifications.destroy');
+    Route::post('/notifications/test', [App\Http\Controllers\Admin\NotificationManagementController::class, 'sendTest'])->name('notifications.test');
 });
 
 /*
