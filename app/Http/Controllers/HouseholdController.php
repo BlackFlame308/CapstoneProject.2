@@ -13,7 +13,6 @@ use App\Services\HouseholdService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
 
 class HouseholdController extends Controller
 {
@@ -25,47 +24,14 @@ class HouseholdController extends Controller
     {
         $this->authorize('view', Household::class);
 
-        $query = Household::with([
-            'address.barangay.city.province.region',
-            'members',
-        ]);
-
-        if ($request->filled('purok_sitio')) {
-            $query->whereHas('address', function ($q) use ($request) {
-                $q->where('purok_sitio', 'like', '%' . $request->purok_sitio . '%');
-            });
-        }
-
-        if ($request->filled('barangay_id')) {
-            $query->whereHas('address', function ($q) use ($request) {
-                $q->where('barangay_id', $request->barangay_id);
-            });
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('household_code', 'like', "%{$search}%")
-                  ->orWhere('household_name', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($userQ) use ($search) {
-                      $userQ->where('name', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $households = $query->latest()->paginate(10)->withQueryString();
-
-        return Inertia::render('Household/Index', [
-            'households' => $households,
-            'filters'    => $request->only(['search', 'purok_sitio', 'barangay_id']),
-        ]);
+        return redirect()->route('admin.households.index', $request->query());
     }
 
     public function create(Request $request)
     {
         $this->authorize('create', Household::class);
 
-        return Inertia::render('Household/Create');
+        return redirect()->route('admin.households.create');
     }
 
     public function store(StoreHouseholdRequest $request)
@@ -78,7 +44,7 @@ class HouseholdController extends Controller
                 auth()->id()
             );
 
-            return redirect()->route('households.index')
+            return redirect()->route('admin.households.index')
                 ->with('success', "Household '{$household->household_code}' created successfully.");
         } catch (\Exception $e) {
             report($e);
@@ -96,14 +62,7 @@ class HouseholdController extends Controller
             'user',
         ])->findOrFail($id);
 
-        return Inertia::render('Household/Show', [
-            'household' => $household,
-            'householdAccount' => $household->user ? [
-                'email' => $household->user->email,
-                'temp_password' => $household->user->temp_password,
-                'must_change_password' => $household->user->must_change_password,
-            ] : null,
-        ]);
+        return redirect()->route('admin.households.show', $household);
     }
 
     public function edit(string $id)
@@ -111,9 +70,7 @@ class HouseholdController extends Controller
         $household = Household::with(['address.barangay.city.province.region', 'members'])->findOrFail($id);
         $this->authorize('update', $household);
 
-        return Inertia::render('Household/Edit', [
-            'household' => $household,
-        ]);
+        return redirect()->route('admin.households.edit', $household);
     }
 
     public function update(UpdateHouseholdRequest $request, string $id)
@@ -126,7 +83,7 @@ class HouseholdController extends Controller
                 $validated
             );
 
-            return redirect()->route('households.show', $household)
+            return redirect()->route('admin.households.show', $household)
                 ->with('success', 'Household updated successfully.');
         } catch (\Exception $e) {
             report($e);
@@ -148,17 +105,17 @@ public function destroy(string $id)
             $this->householdService->delete($household);
 
             // Redirect to index with success message
-            return redirect()->route('households.index')
+            return redirect()->route('admin.households.index')
                 ->with('success', 'Household deleted successfully.');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Household not found - redirect with error
-            return redirect()->route('households.index')
+            return redirect()->route('admin.households.index')
                 ->with('error', 'Household not found.');
         } catch (\Exception $e) {
             // Log the error for debugging
             report($e);
 
-            return redirect()->route('households.index')
+            return redirect()->route('admin.households.index')
                 ->with('error', 'Failed to delete household: ' . $e->getMessage());
         }
     }

@@ -7,13 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
 
 class AuthenticatedSessionController extends Controller
 {
     public function create()
     {
-        return Inertia::render('Auth/Login');
+        return view('auth.login');
     }
 
     public function store(Request $request)
@@ -47,7 +46,12 @@ class AuthenticatedSessionController extends Controller
                 ->with('warning', 'You must change your password before continuing.');
         }
 
-       return redirect()->route('admin.dashboard');
+        $role = auth()->user()->normalizedRole();
+        if ($role === 'household') {
+            return redirect()->route('household.dashboard');
+        }
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function destroy(Request $request)
@@ -58,4 +62,3 @@ class AuthenticatedSessionController extends Controller
         return redirect()->route('login')->with('success', 'Logged out successfully.');
     }
 }
-

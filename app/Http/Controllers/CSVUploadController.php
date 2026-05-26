@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\HouseholdCsvImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Inertia\Inertia;
 
-class CSVUploadController extends Controller
+class CsvUploadController extends Controller
 {
     /**
      * Show CSV upload form.
@@ -16,7 +15,7 @@ class CSVUploadController extends Controller
     {
         $this->authorize('create', \App\Models\Household::class);
 
-        return Inertia::render('CSV/Upload');
+        return view('admin.csv-upload');
     }
 
     /**
@@ -48,7 +47,7 @@ class CSVUploadController extends Controller
             $result = $service->import($tempFilePath, auth()->id());
 
             return redirect()
-                ->route('households.index')
+                ->route('admin.households.index')
                 ->with('success', $result['message']);
 
         } catch (\Illuminate\Validation\ValidationException $e) {

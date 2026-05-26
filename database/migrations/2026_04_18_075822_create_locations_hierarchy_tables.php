@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('regions', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 100)->index();
+            $table->string('name', 100);
             $table->string('code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
@@ -18,45 +18,79 @@ return new class extends Migration
 
         Schema::create('provinces', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('region_id')->constrained()->cascadeOnDelete();
-            $table->string('name', 100)->index();
+            $table->uuid('region_id');
+            $table->string('name', 100);
             $table->string('code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
+
+            $table->foreign('region_id')->references('id')->on('regions')->cascadeOnDelete();
+            $table->index('region_id');
         });
 
         Schema::create('cities', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('province_id')->constrained()->cascadeOnDelete();
-            $table->string('name', 100)->index();
-            $table->string('code', 50)->nullable();
+            $table->uuid('province_id');
+            $table->string('name', 100);
+            $table->string('code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
-            $table->unique(['province_id', 'name']); // unique within province
+
+            $table->foreign('province_id')->references('id')->on('provinces')->cascadeOnDelete();
+            $table->index('province_id');
         });
 
         Schema::create('barangays', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('city_id')->constrained()->cascadeOnDelete();
-            $table->string('name', 100)->index();
-            $table->string('code', 20)->nullable();
+            $table->uuid('city_id');
+            $table->string('name', 100);
+            $table->string('code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
-            $table->unique(['city_id', 'name']); // unique within city
+
+            $table->foreign('city_id')->references('id')->on('cities')->cascadeOnDelete();
+            $table->index('city_id');
         });
 
         Schema::create('sitios', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('barangay_id')->constrained()->cascadeOnDelete();
-            $table->string('name', 100)->index();
+            $table->uuid('barangay_id');
+            $table->string('name', 100);
+            $table->string('code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
-            $table->unique(['barangay_id', 'name']); // unique within barangay
+
+            $table->foreign('barangay_id')->references('id')->on('barangays')->cascadeOnDelete();
+            $table->index('barangay_id');
+        });
+
+        Schema::create('puroks', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('sitio_id');
+            $table->string('name', 100);
+            $table->string('code', 50)->nullable()->unique();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->foreign('sitio_id')->references('id')->on('sitios')->cascadeOnDelete();
+            $table->index('sitio_id');
+        });
+
+        Schema::create('zipcodes', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('city_id');
+            $table->string('zipcode', 10)->unique();
+            $table->timestamps();
+
+            $table->foreign('city_id')->references('id')->on('cities')->cascadeOnDelete();
+            $table->index('city_id');
         });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('zipcodes');
+        Schema::dropIfExists('puroks');
         Schema::dropIfExists('sitios');
         Schema::dropIfExists('barangays');
         Schema::dropIfExists('cities');

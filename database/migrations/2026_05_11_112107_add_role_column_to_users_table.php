@@ -12,7 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['head', 'encoder', 'household'])->nullable()->after('role_id');
+            if (!Schema::hasColumn('users', 'email_verified_at')) {
+                $table->timestamp('email_verified_at')->nullable()->after('email');
+            }
+
+            if (!Schema::hasColumn('users', 'must_change_password')) {
+                $table->boolean('must_change_password')->default(false)->after('is_active');
+            }
+
+            if (!Schema::hasColumn('users', 'temp_password')) {
+                $table->string('temp_password')->nullable()->after('must_change_password');
+            }
+
+            if (!Schema::hasColumn('users', 'remember_token')) {
+                $table->rememberToken()->after('temp_password');
+            }
         });
     }
 
@@ -22,7 +36,21 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role');
+            if (Schema::hasColumn('users', 'remember_token')) {
+                $table->dropRememberToken();
+            }
+
+            if (Schema::hasColumn('users', 'temp_password')) {
+                $table->dropColumn('temp_password');
+            }
+
+            if (Schema::hasColumn('users', 'must_change_password')) {
+                $table->dropColumn('must_change_password');
+            }
+
+            if (Schema::hasColumn('users', 'email_verified_at')) {
+                $table->dropColumn('email_verified_at');
+            }
         });
     }
 };

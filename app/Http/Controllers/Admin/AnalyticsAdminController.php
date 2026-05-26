@@ -37,23 +37,36 @@ class AnalyticsAdminController extends Controller
         // Population stats
         $totalMembers = Member::count();
         $totalHouseholds = \App\Models\Household::count();
+        $adultCutoff = now()->subYears(18)->toDateString();
+        $seniorCutoff = now()->subYears(60)->toDateString();
         
         // Demographics
-        $childrenCount = Member::where(function($q) {
-            $q->whereRaw('YEAR(CURDATE()) - YEAR(birth_date) < 18')
-              ->whereNotNull('birth_date')
-              ->orWhere('age', '<', 18);
+        $childrenCount = Member::where(function($q) use ($adultCutoff) {
+            $q->whereDate('birth_date', '>', $adultCutoff)
+              ->orWhere(function ($fallback) {
+                  $fallback->whereNull('birth_date')->where('age', '<', 18);
+              });
         })->count();
         
-        $seniorsCount = Member::where(function($q) {
-            $q->whereRaw('YEAR(CURDATE()) - YEAR(birth_date) >= 60')
-              ->whereNotNull('birth_date')
-              ->orWhere('age', '>=', 60);
+        $seniorsCount = Member::where(function($q) use ($seniorCutoff) {
+            $q->whereDate('birth_date', '<=', $seniorCutoff)
+              ->orWhere(function ($fallback) {
+                  $fallback->whereNull('birth_date')->where('age', '>=', 60);
+              });
         })->count();
         
         $pwdCount = Member::where('is_pwd', true)->count();
         
         $pregnantCount = Member::where('is_pregnant', true)->count();
+
+        $adultsCount = Member::where(function($q) use ($adultCutoff, $seniorCutoff) {
+            $q->where(function($sub) use ($adultCutoff, $seniorCutoff) {
+                $sub->whereDate('birth_date', '<=', $adultCutoff)
+                    ->whereDate('birth_date', '>', $seniorCutoff);
+            })->orWhere(function ($fallback) {
+                $fallback->whereNull('birth_date')->whereBetween('age', [18, 59]);
+            });
+        })->count();
         
         // Gender distribution
         $genderDistribution = Member::select(
@@ -68,11 +81,11 @@ class AnalyticsAdminController extends Controller
         
         // Age distribution
         $ageDistribution = collect([
-            ['range' => '0-5', 'count' => Member::whereRaw('age BETWEEN 0 AND 5')->count()],
-            ['range' => '6-12', 'count' => Member::whereRaw('age BETWEEN 6 AND 12')->count()],
-            ['range' => '13-17', 'count' => Member::whereRaw('age BETWEEN 13 AND 17')->count()],
-            ['range' => '18-35', 'count' => Member::whereRaw('age BETWEEN 18 AND 35')->count()],
-            ['range' => '36-59', 'count' => Member::whereRaw('age BETWEEN 36 AND 59')->count()],
+            ['range' => '0-5', 'count' => Member::whereBetween('age', [0, 5])->count()],
+            ['range' => '6-12', 'count' => Member::whereBetween('age', [6, 12])->count()],
+            ['range' => '13-17', 'count' => Member::whereBetween('age', [13, 17])->count()],
+            ['range' => '18-35', 'count' => Member::whereBetween('age', [18, 35])->count()],
+            ['range' => '36-59', 'count' => Member::whereBetween('age', [36, 59])->count()],
             ['range' => '60+', 'count' => Member::where('age', '>=', 60)->count()],
         ]);
         
@@ -105,6 +118,7 @@ class AnalyticsAdminController extends Controller
             'seniorsCount' => $seniorsCount,
             'pwdCount' => $pwdCount,
             'pregnantCount' => $pregnantCount,
+            'adultsCount' => $adultsCount,
             'genderDistribution' => $genderDistribution,
             'ageDistribution' => $ageDistribution,
             'civilStatus' => $civilStatus,

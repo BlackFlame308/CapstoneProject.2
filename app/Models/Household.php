@@ -12,14 +12,14 @@ class Household extends Model
 {
     use SoftDeletes;
 
+    protected $primaryKey = 'id';
     public $incrementing = false;
-
     protected $keyType = 'string';
 
     protected $fillable = [
         'id',
+        'household_id',
         'household_code',
-        'household_number',
         'household_name',
         'email',
         'member_count',
@@ -46,6 +46,7 @@ class Household extends Model
         static::creating(function (Household $household) {
             $household->id ??= $household->household_code ?: static::generateHouseholdId();
             $household->household_code ??= $household->id;
+            $household->household_id ??= $household->id;
         });
     }
 

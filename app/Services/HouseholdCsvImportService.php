@@ -222,7 +222,7 @@ class HouseholdCsvImportService
         // Household user account
         $householdRole = Role::where('name', 'Household')->first();
         if (!$householdRole) {
-            throw new \Exception('Household role not found — run the role seeder first');
+            throw new \Exception('Household role not found - run the role seeder first');
         }
 
         $tempPassword = Str::random(10);
@@ -233,7 +233,7 @@ class HouseholdCsvImportService
             'name'                 => $headFullName,
             'email'                => $userEmail,
             'password'             => bcrypt($tempPassword),
-            'role_id'              => $householdRole->id,
+            'role_id'              => $householdRole->role_id,
             'household_id'         => $household->id,
             'must_change_password' => true,
             'temp_password'        => $tempPassword,

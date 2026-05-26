@@ -91,7 +91,7 @@ class HouseholdService
                 'name'                 => $headName,
                 'email'                => $userEmail,
                 'password'             => bcrypt($tempPassword),
-                'role_id'              => $role->id,
+                'role_id'              => $role->role_id,
                 'household_id'         => $household->id,
                 'must_change_password' => true,
                 'temp_password'        => $tempPassword,

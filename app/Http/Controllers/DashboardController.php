@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UpdateAnalyticsRequest;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -15,14 +14,7 @@ class DashboardController extends Controller
 
     public function index()
     {
-        return Inertia::render('Dashboard/Index', [
-            'stats'            => $this->dashboardService->getStats(),
-            'barangayStats'    => $this->dashboardService->getBarangayStats(),
-            'recentHouseholds' => $this->dashboardService->getRecentHouseholds(),
-            'membersByBarangay'=> $this->dashboardService->getMembersByBarangay(),
-            'ageDistribution'  => $this->dashboardService->getAgeDistribution(),
-            'sitioVulnerability' => $this->dashboardService->getSitioVulnerabilityRanking(),
-        ]);
+        return redirect()->route('admin.dashboard');
     }
 
     public function updateAnalytics(UpdateAnalyticsRequest $request)
@@ -33,4 +25,3 @@ class DashboardController extends Controller
         return back()->with('success', "Analytics updated for {$updatedCount} locations.");
     }
 }
-

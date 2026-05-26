@@ -15,6 +15,10 @@ class User extends Authenticatable
 
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $primaryKey = 'id';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
     protected $fillable = [
         'name',
         'username',
@@ -43,9 +47,24 @@ class User extends Authenticatable
         'is_active' => 'boolean',
     ];
 
+    public function getIdAttribute(): ?string
+    {
+        return $this->attributes['id'] ?? null;
+    }
+
+    public function getUserIdAttribute(): ?string
+    {
+        return $this->attributes['id'] ?? null;
+    }
+
+    public function setUserIdAttribute(?string $value): void
+    {
+        $this->attributes['id'] = $value;
+    }
+
     public function role()
     {
-        return $this->belongsTo(Role::class, 'role_id');
+        return $this->belongsTo(Role::class, 'role_id', 'id');
     }
 
     public function household()
@@ -53,9 +72,9 @@ class User extends Authenticatable
         return $this->belongsTo(Household::class);
     }
 
-    protected function normalizedRole(): ?string
+    public function normalizedRole(): ?string
     {
-        return strtolower($this->role?->name ?? '');
+        return strtolower($this->role?->name ?? $this->attributes['role'] ?? '');
     }
 
     public function isAdmin(): bool
@@ -65,7 +84,7 @@ class User extends Authenticatable
 
     public function isCaptain(): bool
     {
-        return $this->normalizedRole() === 'captain';
+        return in_array($this->normalizedRole(), ['captain', 'head'], true);
     }
 
     public function isEncoder(): bool
@@ -78,15 +97,25 @@ class User extends Authenticatable
         return in_array($this->normalizedRole(), ['super admin', 'admin'], true);
     }
 
+    public function canDeleteHouseholds(): bool
+    {
+        return $this->isCaptain() || $this->isSuperAdmin();
+    }
+
+    public function canManageAccounts(): bool
+    {
+        return $this->isCaptain() || $this->isSuperAdmin();
+    }
+
     public function hasPermission(string $permission): bool
     {
         // Extend with a real permission system if needed
         $perms = [
-            'manage_households' => ['admin', 'captain', 'encoder'],
-            'view_households'   => ['admin', 'captain', 'encoder'],
-            'manage_accounts'  => ['admin', 'super admin'],
-            'view_reports'     => ['admin', 'captain', 'super admin'],
-            'register_accounts'=> ['admin', 'super admin'],
+            'manage_households' => ['admin', 'captain', 'head', 'encoder'],
+            'view_households'   => ['admin', 'captain', 'head', 'encoder'],
+            'manage_accounts'  => ['admin', 'super admin', 'captain', 'head'],
+            'view_reports'     => ['admin', 'captain', 'head', 'encoder', 'super admin'],
+            'register_accounts'=> ['admin', 'super admin', 'captain', 'head'],
         ];
 
         if (!isset($perms[$permission])) {
@@ -112,4 +141,3 @@ class User extends Authenticatable
         return $this->hasPermission('view_households') || $this->isSuperAdmin();
     }
 }
-

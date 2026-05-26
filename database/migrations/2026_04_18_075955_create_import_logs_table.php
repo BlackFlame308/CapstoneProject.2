@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('import_logs', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('data_source_id')->constrained('data_sources')->cascadeOnDelete();
+            $table->uuid('data_source_id');
             $table->unsignedInteger('row_number')->nullable();
             $table->string('status', 20)->nullable();
             $table->text('error_message')->nullable();
             $table->timestamps();
+
+            $table->foreign('data_source_id')->references('id')->on('data_sources')->cascadeOnDelete();
         });
     }
 

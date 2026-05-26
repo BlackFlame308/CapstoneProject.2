@@ -139,7 +139,7 @@ class HouseholdController extends Controller
                     'name'                 => $headName,
                     'email'                => $userEmail,
                     'password'             => bcrypt($tempPassword),
-                    'role_id'              => $householdRole->id,
+                    'role_id'              => $householdRole->role_id,
                     'household_id'         => $household->id,
                     'must_change_password' => true,
                     'temp_password'        => $tempPassword,

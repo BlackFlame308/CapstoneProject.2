@@ -17,7 +17,7 @@ class ImportLog extends Model
     ];
 
     protected $casts = [
-        'data_source_id' => 'integer',
+        'data_source_id' => 'string',
         'row_number'     => 'integer',
     ];
 

@@ -24,7 +24,7 @@ class HouseholdPolicy
 
     public function delete(User $user, Household $household): bool
     {
-        return $user->canManageHouseholds();
+        return $user->canDeleteHouseholds();
     }
 }
 

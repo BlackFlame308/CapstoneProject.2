@@ -9,19 +9,15 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Analytics now reference the unified locations table.
-     * location_id can point to barangay or sitio for granular reporting.
+     * Analytics now reference the location hierarchy with proper foreign keys.
      */
     public function up(): void
     {
         Schema::create('analytics', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('barangay_id')
-                  ->nullable()
-                  ->constrained()
-                  ->cascadeOnDelete();
+            $table->uuid('barangay_id')->nullable();
             $table->string('purok_sitio', 150)->nullable();
-            $table->date('record_period')->comment('First day of the month for monthly snapshots');
+            $table->date('record_period')->nullable();
             $table->unsignedInteger('total_households')->default(0);
             $table->unsignedInteger('total_population')->default(0);
             $table->unsignedInteger('total_males')->default(0);
@@ -32,10 +28,11 @@ return new class extends Migration
             $table->unsignedInteger('total_adults')->default(0);
             $table->unsignedInteger('total_pregnant')->default(0);
             $table->unsignedInteger('total_evacuees')->default(0);
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->timestamps();
 
-            $table->index(['barangay_id', 'purok_sitio', 'record_period'], 'analytics_location_period_index');
+            $table->foreign('barangay_id')->references('id')->on('barangays')->nullOnDelete();
+
+            $table->index(['barangay_id', 'record_period']);
             $table->index(['barangay_id', 'created_at']);
         });
     }
@@ -48,4 +45,3 @@ return new class extends Migration
         Schema::dropIfExists('analytics');
     }
 };
-

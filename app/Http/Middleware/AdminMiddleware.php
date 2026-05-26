@@ -19,8 +19,8 @@ class AdminMiddleware
         // Get role name from relationship
         $role = strtolower($user->role?->name ?? '');
 
-        // Allow captain, head, encoder
-        if (!$role || !in_array($role, ['head', 'encoder', 'captain'], true)) {
+        // Allow dashboard roles. "head" is kept for legacy seeded data.
+        if (!$role || !in_array($role, ['admin', 'super admin', 'head', 'encoder', 'captain'], true)) {
             return redirect()->route('login')->with('error', 'You do not have permission to access this area.');
         }
 

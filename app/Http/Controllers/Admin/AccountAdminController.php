@@ -40,6 +40,8 @@ class AccountAdminController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to manage accounts.');
+
         $query = User::with(['role', 'household']);
 
         // Filter by role
@@ -62,7 +64,7 @@ class AccountAdminController extends Controller
         $users = $query->latest()->paginate(15)->withQueryString();
         
         // Get roles for filter
-        $roles = Role::where('name', '!=', 'Household')->get();
+        $roles = Role::where('name', '!=', 'Household')->orderBy('name')->get();
 
         return view('admin.accounts.index', [
             'users' => $users,
@@ -76,8 +78,10 @@ class AccountAdminController extends Controller
      */
     public function create()
     {
+        abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to create accounts.');
+
         $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['head', 'encoder', 'household'])->get();
+        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
 
         return view('admin.accounts.create', [
             'households' => $households,
@@ -95,15 +99,15 @@ class AccountAdminController extends Controller
             'username' => 'required|string|unique:users|max:100',
             'email' => 'required|email|unique:users',
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|uuid|exists:roles,id',
-            'household_id' => 'nullable|uuid|exists:households,id',
-            'password' => 'required|string|min:6|confirmed',
+            'role_id' => 'required|string|exists:roles,id',
+            'household_id' => 'nullable|string|exists:households,id',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         try {
             // Check if role is household and household_id is provided
             $role = Role::find($validated['role_id']);
-            if ($role->name === 'household' && !$validated['household_id']) {
+            if (strtolower($role?->name ?? '') === 'household' && empty($validated['household_id'])) {
                 return back()->withInput()
                     ->with('error', 'Household user must be assigned to a household.');
             }
@@ -120,10 +124,10 @@ class AccountAdminController extends Controller
                 'name' => $validated['name'],
                 'username' => $validated['username'],
                 'email' => $validated['email'],
-                'contact_number' => $validated['contact_number'],
+                'contact_number' => $validated['contact_number'] ?? null,
                 'password' => Hash::make($validated['password']),
                 'role_id' => $validated['role_id'],
-                'household_id' => $validated['household_id'],
+                'household_id' => $validated['household_id'] ?? null,
                 'is_active' => true,
                 'must_change_password' => $validated['must_change_password'] ?? false,
                 'temp_password' => $tempPassword,
@@ -148,8 +152,10 @@ class AccountAdminController extends Controller
      */
     public function edit(User $user)
     {
+        abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to edit accounts.');
+
         $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['head', 'encoder', 'household'])->get();
+        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
 
         return view('admin.accounts.edit', [
             'user' => $user,
@@ -163,31 +169,39 @@ class AccountAdminController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to update accounts.');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|max:100|unique:users,username,' . $user->id,
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'username' => 'required|string|max:100|unique:users,username,' . $user->user_id,
+            'email' => 'required|email|unique:users,email,' . $user->user_id,
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|uuid|exists:roles,id',
-            'household_id' => 'nullable|uuid|exists:households,id',
+            'role_id' => 'required|string|exists:roles,id',
+            'household_id' => 'nullable|string|exists:households,id',
             'is_active' => 'boolean',
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         try {
+            $role = Role::find($validated['role_id']);
+            if (strtolower($role?->name ?? '') === 'household' && empty($validated['household_id'])) {
+                return back()->withInput()
+                    ->with('error', 'Household user must be assigned to a household.');
+            }
+
             // Prepare update data
             $updateData = [
                 'name' => $validated['name'],
                 'username' => $validated['username'],
                 'email' => $validated['email'],
-                'contact_number' => $validated['contact_number'],
+                'contact_number' => $validated['contact_number'] ?? null,
                 'role_id' => $validated['role_id'],
-                'household_id' => $validated['household_id'],
+                'household_id' => $validated['household_id'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
             ];
 
             // Update password if provided
-            if ($validated['password']) {
+            if (!empty($validated['password'])) {
                 $updateData['password'] = Hash::make($validated['password']);
                 $updateData['must_change_password'] = false;
             }
@@ -208,6 +222,9 @@ class AccountAdminController extends Controller
      */
     public function destroy(User $user)
     {
+        abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to delete accounts.');
+        abort_if($user->is(auth()->user()), 403, 'You cannot delete your own account.');
+
         try {
             $name = $user->name;
             $user->delete();
