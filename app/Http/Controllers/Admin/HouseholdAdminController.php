@@ -47,7 +47,7 @@ class HouseholdAdminController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Household::with(['address.barangay.city.province.region', 'members']);
+        $query = Household::with(['address.barangay.city.province.region', 'members', 'user']);
         
         // Text search
         if ($request->filled('search')) {
@@ -155,7 +155,7 @@ class HouseholdAdminController extends Controller
      */
     public function show(Household $household)
     {
-        $household->load(['address.barangay.city.province.region', 'members']);
+        $household->load(['address.barangay.city.province.region', 'members', 'user']);
         
         return view('admin.households.show', [
             'household' => $household,

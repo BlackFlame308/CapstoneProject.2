@@ -208,12 +208,14 @@
             .then(data => {
                 const select = document.getElementById(selectId);
                 select.innerHTML = '<option value="">-- Select ' + selectId.replace('_id', '') + ' --</option>';
-                data.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = item.name;
-                    select.appendChild(option);
-                });
+                if (data && data.data) {
+                    data.data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        select.appendChild(option);
+                    });
+                }
             })
             .catch(error => console.error('Error:', error));
     }

@@ -19,70 +19,128 @@ class LocationSeeder extends Seeder
             'Central Visayas (Region VII)' => [
                 'Cebu' => [
                     'Cebu City' => [
-                        'barangays' => ['Lahug', 'Mabolo', 'Guadalupe', 'Banilad', 'Pardo'],
-                        'sitios' => ['Sitio Zapatera', 'Sitio Kamanggahan']
+                        'barangays' => [
+                            'Adlaon', 'Agsungot', 'Apas', 'Babag', 'Bacayan', 'Banilad', 'Basak Pardo', 'Basak San Nicolas',
+                            'Binaliw', 'Bonbon', 'Budlaan', 'Buhisan', 'Bulacao', 'Buot-Taulo', 'Calamba', 'Cambinocot',
+                            'Capitol Site', 'Carreta', 'Cogon Pardo', 'Cogon Ramos', 'Day-as', 'Duljo Fatima', 'Ermita',
+                            'Guadalupe', 'Guba', 'Hipodromo', 'Inayawan', 'Kalubihan', 'Kalunasan', 'Kamagayan', 'Kamputhaw',
+                            'Kasambagan', 'Kinasang-an Pardo', 'Labangon', 'Lahug', 'Lorega San Miguel', 'Lusaran', 'Luz',
+                            'Mabini', 'Mabolo', 'Malubog', 'Mambaling', 'Pahina San Nicolas', 'Pahina Central', 'Pamutan',
+                            'Parian', 'Paril', 'Pasil', 'Pit-os', 'Poblacion Pardo', 'Pulangbato', 'Pung-ol Sibugay',
+                            'Punta Princesa', 'Quiot', 'Sambag I', 'Sambag II', 'San Antonio', 'San Jose', 'San Nicolas Proper',
+                            'San Roque', 'Santa Cruz', 'Santo Niño', 'Sapangdaku', 'Sawang Calero', 'Sinsin', 'Sirao',
+                            'Suba', 'Sudlon I', 'Sudlon II', 'T. Padilla', 'Tabunan', 'Tagbao', 'Talamban', 'Taptap',
+                            'Tejero', 'Tinago', 'Tisa', 'Toong', 'Zapatera'
+                        ],
+                        'sitios' => ['Sitio Zapatera', 'Sitio Kamanggahan', 'Sitio Kadasig', 'Sitio San Roque']
                     ],
                     'Mandaue City' => [
-                        'barangays' => ['Subangdaku', 'Bakilid', 'Tipolo', 'Centro', 'Banilad'],
+                        'barangays' => [
+                            'Alang-alang', 'Bakilid', 'Banilad', 'Basak', 'Cabancalan', 'Cambaro', 'Canduman', 'Casuntingan',
+                            'Casili', 'Centro', 'Cubacub', 'Guizo', 'Ibabao-Estancia', 'Jagobiao', 'Labogon', 'Looc',
+                            'Maguikay', 'Mantuyong', 'Opao', 'Pakna-an', 'Pagsabungan', 'Subangdaku', 'Tabok', 'Tawason',
+                            'Tingub', 'Tipolo', 'Umapad'
+                        ],
                         'sitios' => ['Sitio Sili', 'Sitio Maharlika']
                     ],
                     'Lapu-Lapu City' => [
-                        'barangays' => ['Mactan', 'Maribago', 'Pajo', 'Basak', 'Gun-ob'],
+                        'barangays' => [
+                            'Agus', 'Babag', 'Bankal', 'Baring', 'Basak', 'Buaya', 'Calawisan', 'Canjulao', 'Caubian',
+                            'Caw-oy', 'Cawhagan', 'Gun-ob', 'Ibo', 'Looc', 'Mactan', 'Maribago', 'Marigondon', 'Pajac',
+                            'Pajo', 'Pangan-an', 'Poblacion', 'Punta Engaño', 'Pusok', 'Sabang', 'San Vicente', 'Santa Rosa',
+                            'Subabasbas', 'Talima', 'Tingo', 'Tungasan'
+                        ],
                         'sitios' => ['Sitio Mustang', 'Sitio Kadasig']
+                    ],
+                    'Talisay City' => [
+                        'barangays' => [
+                            'Biasong', 'Bulacao', 'Cadulawan', 'Cansojong', 'Dumlog', 'Jaclupan', 'Lagtang', 'Lawaan I',
+                            'Lawaan II', 'Lawaan III', 'Linao', 'Maghaway', 'Manipis', 'Mohon', 'Poblacion', 'Pooc',
+                            'San Isidro', 'San Roque', 'Tabunok', 'Tangke', 'Tapul', 'Camp 4'
+                        ],
+                        'sitios' => ['Sitio Laray', 'Sitio Mohon']
+                    ],
+                    'Toledo City' => [
+                        'barangays' => [
+                            'Awihao', 'Bagakay', 'Bato', 'Biga', 'Bulongan', 'Bunga', 'Cabitoonan', 'Calongcalong',
+                            'Cambang-ug', 'Camp 8', 'Canlumampao', 'Cantabaco', 'Capitan Claudio', 'Carmen', 'Daanglungsod',
+                            'Don Andres Soriano', 'Dumalmon', 'Gen. Climaco', 'Ibo', 'Ilihan', 'Landahan', 'Loay',
+                            'Lurang', 'Matab-ang', 'Media Once', 'Pangamihan', 'Poblacion', 'Poog', 'Putingbato', 'Sagay',
+                            'Sam-ang', 'Sangi', 'Santo Niño', 'Suba', 'Talavera', 'Tungkay', 'Tubod', 'Uldama'
+                        ],
+                        'sitios' => ['Sitio Toledo Central', 'Sitio Toledo Coast']
+                    ],
+                    'Carcar City' => [
+                        'barangays' => [
+                            'Bolinawan', 'Buenavista', 'Calidngan', 'Can-asujan', 'Guadalupe', 'Liburon', 'Napoles',
+                            'Ocaña', 'Perrelos', 'Poblacion I', 'Poblacion II', 'Poblacion III', 'San Jose', 'Sangatan',
+                            'Valencia'
+                        ],
+                        'sitios' => ['Sitio Carcar Shoe', 'Sitio Carcar Chicharon']
+                    ],
+                    'Naga City' => [
+                        'barangays' => [
+                            'Alpaco', 'Bairan', 'Balirong', 'Cabungahan', 'Cantao-an', 'Central Poblacion', 'Cogon',
+                            'Colon', 'East Poblacion', 'Inoburan', 'Inayagan', 'Jampang', 'Lanas', 'Langtad', 'Lutac',
+                            'Mainit', 'Mayana', 'Naalad', 'Pangdan', 'Patoc', 'Poblacion Barangay I', 'Poblacion Barangay II',
+                            'San Roque', 'South Poblacion', 'Tagjaguimit', 'Tinaan', 'Tuyan', 'Uling'
+                        ],
+                        'sitios' => ['Sitio Naga Power', 'Sitio Naga Industrial']
+                    ],
+                    'Bogo City' => [
+                        'barangays' => [
+                            'Anapog', 'Banban', 'Binabag', 'Bungtod', 'Carbon', 'Cayang', 'Cogon', 'Dakit',
+                            'Don Pedro Rodriguez', 'Gairan', 'La Paz', 'La Purisima Concepcion', 'Libertad', 'Lourdes',
+                            'Malingin', 'Marangog', 'Nailon', 'Odlot', 'Pandasan', 'Polambato', 'Pulangbato', 'San Antonio',
+                            'San Jose', 'San Roque', 'Santa Fe', 'Santo Niño', 'Santo Rosario', 'Siocon', 'Sudlon'
+                        ],
+                        'sitios' => ['Sitio Bogo North', 'Sitio Bogo Port']
                     ]
                 ],
                 'Bohol' => [
                     'Tagbilaran City' => [
-                        'barangays' => ['Cogon', 'Poblacion I', 'Dampas', 'Mansasa', 'San Isidro'],
-                        'sitios' => ['Sitio Ubos', 'Sitio Mansasa Hills']
+                        'barangays' => ['Cogon', 'Poblacion I'],
+                        'sitios' => ['Sitio Ubos']
                     ]
                 ],
             ],
             'Western Visayas (Region VI)' => [
                 'Iloilo' => [
                     'Iloilo City' => [
-                        'barangays' => ['Mandurriao', 'Jaro', 'Molo', 'Arevalo', 'Lapaz'],
-                        'sitios' => ['Sitio Bolilao', 'Sitio Sooc']
+                        'barangays' => ['Mandurriao', 'Jaro'],
+                        'sitios' => ['Sitio Bolilao']
                     ]
                 ],
                 'Aklan' => [
                     'Malay' => [
-                        'barangays' => ['Balabag (Boracay)', 'Yapak (Boracay)', 'Manoc-Manoc', 'Poblacion', 'Caticlan'],
-                        'sitios' => ['Sitio Diniwid', 'Sitio Tambisaan']
+                        'barangays' => ['Balabag (Boracay)'],
+                        'sitios' => ['Sitio Diniwid']
                     ]
                 ]
             ],
             'National Capital Region (NCR)' => [
                 'Metro Manila' => [
                     'Manila' => [
-                        'barangays' => ['Intramuros', 'Binondo', 'Malate', 'Ermita', 'Quiapo'],
-                        'sitios' => ['Zone 61', 'Zone 72'] // NCR uses Zones instead of traditional sub-sitios
+                        'barangays' => ['Intramuros', 'Binondo'],
+                        'sitios' => ['Zone 61']
                     ],
                     'Quezon City' => [
-                        'barangays' => ['Batasan Hills', 'Commonwealth', 'Socorro', 'Kamuning', 'Bagong Pag-asa'],
-                        'sitios' => ['Sitio San Roque', 'Sitio Mendez']
-                    ],
-                    'Makati' => [
-                        'barangays' => ['Bel-Air', 'Poblacion', 'Guadalupe Nuevo', 'Pembo', 'San Lorenzo'],
-                        'sitios' => ['Zone 1', 'Zone 2']
+                        'barangays' => ['Batasan Hills'],
+                        'sitios' => ['Sitio San Roque']
                     ]
                 ]
             ],
             'Davao Region (Region XI)' => [
                 'Davao del Sur' => [
                     'Davao City' => [
-                        'barangays' => ['Buhangin', 'Talomo', 'Agdao', 'Matina Pangi', 'Toril'],
-                        'sitios' => ['Sitio Inas', 'Sitio Balite']
-                    ],
-                    'Digos City' => [
-                        'barangays' => ['Aplaya', 'Tres de Mayo', 'Matti', 'San Jose', 'Zone 1'],
-                        'sitios' => ['Sitio Crame', 'Sitio Mahayahay']
+                        'barangays' => ['Buhangin', 'Talomo'],
+                        'sitios' => ['Sitio Inas']
                     ]
                 ],
                 'Davao del Norte' => [
                     'Tagum City' => [
-                        'barangays' => ['Mankilam', 'Apokon', 'Visayan Village', 'San Miguel', 'Magugpo West'],
-                        'sitios' => ['Sitio Kadaatan', 'Sitio Tipaz']
+                        'barangays' => ['Mankilam'],
+                        'sitios' => ['Sitio Tipaz']
                     ]
                 ]
             ]

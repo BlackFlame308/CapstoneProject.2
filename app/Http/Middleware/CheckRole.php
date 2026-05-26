@@ -25,7 +25,7 @@ class CheckRole
 
         $user = auth()->user();
 
-        if (!$user->role) {
+        if (!$user->normalizedRole()) {
             return $request->expectsJson()
                 ? response()->json(['status' => 'error', 'message' => 'No role assigned.'], 403)
                 : abort(403, 'No role assigned to this account.');
@@ -37,7 +37,10 @@ class CheckRole
             ->map('trim')
             ->all();
 
-        if (!in_array(strtolower($user->role), array_map('strtolower', $allowed), true)) {
+        $roleName = $user->normalizedRole();
+        $allowed = array_map(fn ($role) => strtolower($role), $allowed);
+
+        if (!in_array($roleName, $allowed, true)) {
             return $request->expectsJson()
                 ? response()->json(['status' => 'error', 'message' => 'Forbidden: insufficient role.'], 403)
                 : abort(403, 'You do not have permission to access this page.');

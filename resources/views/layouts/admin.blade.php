@@ -96,6 +96,24 @@
             background-color: rgba(255,255,255,0.1);
         }
 
+        .sidebar-logout {
+            width: 100%;
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-logout:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
         .sidebar-menu a.active {
             background-color: rgba(59, 130, 246, 0.3);
             border-left: 4px solid #3B82F6;
@@ -587,133 +605,99 @@
             </h3>
             <small>Admin Dashboard</small>
         </div>
+        @php
+            $user = auth()->user();
+            $canManageAccounts = $user?->canManageAccounts() ?? false;
+            $canViewReports = ($user?->hasPermission('view_reports') ?? false) || ($user?->isSuperAdmin() ?? false);
+        @endphp
 
         <ul class="sidebar-menu">
             <li>
-                <a href="/dashboard"
-                   class="@if(Request::is('dashboard')) active @endif">
-                    <span>🏠</span>
+                <a href="{{ route('admin.dashboard') }}" class="@if(Request::routeIs('admin.dashboard')) active @endif">
+                    <i class="fas fa-chart-line"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
 
             <li>
-                <a href="/admin/households"
-                   class="@if(Request::is('admin/households*')) active @endif">
-                    <span>🏘️</span>
+                <a href="{{ route('admin.households.index') }}" class="@if(Request::routeIs('admin.households.*')) active @endif">
+                    <i class="fas fa-home"></i>
                     <span>Household Management</span>
                 </a>
             </li>
 
             <li>
-                <a href="/csv/upload"
-                   class="@if(Request::is('csv/upload*')) active @endif">
-                    <span>📂</span>
-                    <span>Upload CSV</span>
+                <a href="{{ route('csv.upload') }}" class="@if(Request::routeIs('csv.upload')) active @endif">
+                    <i class="fas fa-file-csv"></i>
+                    <span>Upload Demographics</span>
                 </a>
             </li>
 
             <li>
-                <a href="/admin/residents"
-                   class="@if(Request::is('admin/residents*')) active @endif">
-                    <span>👥</span>
+                <a href="{{ route('admin.residents.index') }}" class="@if(Request::routeIs('admin.residents.*')) active @endif">
+                    <i class="fas fa-users"></i>
                     <span>Resident/Member Management</span>
                 </a>
             </li>
 
-            <li>
-                <a href="/admin/accounts"
-                   class="@if(Request::is('admin/accounts*')) active @endif">
-                    <span>👤</span>
-                    <span>Account Management</span>
-                </a>
-            </li>
 
-            <li>
-                <a href="/admin/vulnerable-groups"
-                   class="@if(Request::is('admin/vulnerable-groups*')) active @endif">
-                    <span>❤️</span>
-                    <span>Vulnerable Groups</span>
-                </a>
-            </li>
 
-            <li>
-                <a href="/admin/device-tokens"
-                   class="@if(Request::is('admin/device-tokens*')) active @endif">
-                    <span>📱</span>
-                    <span>Device Tracking</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/admin/search"
-                   class="@if(Request::is('admin/search*')) active @endif">
-                    <span>🔎</span>
-                    <span>Advanced Search</span>
-                </a>
-            </li>
-
-            @if(strtolower(auth()->user()->role?->name ?? '') === 'captain' 
-|| strtolower(auth()->user()->role?->name ?? '') === 'head')
-            <li>
-                <a href="/admin/analytics"
-                   class="@if(Request::is('admin/analytics*')) active @endif">
-                    <span>📊</span>
-                    <span>Analytics View</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/admin/reports"
-                   class="@if(Request::is('admin/reports*')) active @endif">
-                    <span>📋</span>
-                    <span>Reports View</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/admin/tokens"
-                   class="@if(Request::is('admin/tokens*')) active @endif">
-                    <span>🔑</span>
-                    <span>API Token Management</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/admin/audit-logs"
-                   class="@if(Request::is('admin/audit-logs*')) active @endif">
-                    <span>📝</span>
-                    <span>Audit Logs</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/admin/csv-import"
-                   class="@if(Request::is('admin/csv-import*')) active @endif">
-                    <span>📤</span>
-                    <span>CSV Import Dashboard</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/admin/notifications"
-                   class="@if(Request::is('admin/notifications*')) active @endif">
-                    <span>🔔</span>
-                    <span>Notifications</span>
-                </a>
-            </li>
+            @if($canManageAccounts)
+                <li>
+                    <a href="{{ route('admin.accounts.index') }}" class="@if(Request::routeIs('admin.accounts.*')) active @endif">
+                        <i class="fas fa-user-gear"></i>
+                        <span>Account Management</span>
+                    </a>
+                </li>
             @endif
+
+            @if($canViewReports)
+                <li>
+                    <a href="{{ route('admin.analytics.index') }}" class="@if(Request::routeIs('admin.analytics.*')) active @endif">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Analytics View</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('admin.reports.index') }}" class="@if(Request::routeIs('admin.reports.*')) active @endif">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Reports View</span>
+                    </a>
+                </li>
+            @endif
+
+            @if($canManageAccounts)
+                <li>
+                    <a href="{{ route('admin.tokens.index') }}" class="@if(Request::routeIs('admin.tokens.*')) active @endif">
+                        <i class="fas fa-key"></i>
+                        <span>API Token Management</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('admin.csv-import.index') }}" class="@if(Request::routeIs('admin.csv-import.*')) active @endif">
+                        <i class="fas fa-upload"></i>
+                        <span>CSV Import Dashboard</span>
+                    </a>
+                </li>
+            @endif
+
+            <li>
+                <a href="{{ route('password.change') }}" class="@if(Request::routeIs('password.change')) active @endif">
+                    <i class="fas fa-lock"></i>
+                    <span>Change Password</span>
+                </a>
+            </li>
 
             <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
 
             <li>
                 <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
                     @csrf
-                    <button type="submit" style="background: none; border: none; width: 100%; text-align: left;">
-                        <a style="padding: 15px 25px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.9); cursor: pointer;">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
-                        </a>
+                    <button type="submit" class="sidebar-logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
                     </button>
                 </form>
             </li>

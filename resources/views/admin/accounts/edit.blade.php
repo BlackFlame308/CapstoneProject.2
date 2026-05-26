@@ -66,18 +66,28 @@
 
                     <div class="mb-3">
                         <label for="password" class="form-label">New Password (Leave empty to keep current)</label>
-                        <input type="password" class="form-control @error('password') is-invalid @enderror"
-                               id="password" name="password">
+                        <div class="input-group">
+                            <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                   id="password" name="password">
+                            <button class="btn btn-outline-secondary toggle-password" type="button" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         @error('password')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <small class="text-muted d-block mt-1">Minimum 8 characters if changing</small>
                     </div>
 
                     <div class="mb-3">
                         <label for="password_confirmation" class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" id="password_confirmation"
-                               name="password_confirmation">
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password_confirmation"
+                                   name="password_confirmation">
+                            <button class="btn btn-outline-secondary toggle-password" type="button" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <hr>
@@ -110,8 +120,8 @@
                                 id="household_id" name="household_id">
                             <option value="">-- None (For Admin Users) --</option>
                             @foreach($households as $household)
-                                <option value="{{ $household->household_id }}"
-                                    @if(old('household_id', $user->household_id) == $household->household_id) selected @endif>
+                                <option value="{{ $household->id }}"
+                                    @if(old('household_id', $user->household_id) == $household->id) selected @endif>
                                     {{ $household->household_code }} - {{ $household->household_name }}
                                 </option>
                             @endforeach
@@ -148,5 +158,25 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.querySelectorAll('.toggle-password').forEach(button => {
+    button.addEventListener('click', function() {
+        const input = this.closest('.input-group').querySelector('input');
+        const icon = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+});
+</script>
+@endpush
 
 @endsection

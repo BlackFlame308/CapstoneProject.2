@@ -230,4 +230,25 @@ class AdminBladeSmokeTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('admin.accounts.index'));
     }
+
+    public function test_household_dashboard_renders_for_household_user(): void
+    {
+        $householdRole = Role::where('name', 'Household')->first() ?? Role::create(['name' => 'Household']);
+        
+        $householdUser = User::create([
+            'name' => 'Household User',
+            'email' => 'household@example.test',
+            'username' => 'household',
+            'password' => Hash::make('password'),
+            'role_id' => $householdRole->id,
+            'household_id' => $this->household->id,
+            'must_change_password' => false,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($householdUser)
+            ->get(route('household.dashboard'))
+            ->assertOk()
+            ->assertSee($this->household->household_code);
+    }
 }

@@ -66,6 +66,7 @@
                         <th style="font-weight: 600; color: #333; padding: 15px;">Location</th>
                         <th style="font-weight: 600; color: #333; padding: 15px;">Members</th>
                         <th style="font-weight: 600; color: #333; padding: 15px;">Contact</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Temporary Password</th>
                         <th style="font-weight: 600; color: #333; padding: 15px; text-align: center;">Actions</th>
                     </tr>
                 </thead>
@@ -90,6 +91,17 @@
                             </td>
                             <td style="padding: 15px; vertical-align: middle;">
                                 <small style="color: #999;">{{ $household->contact_number ?? 'N/A' }}</small>
+                            </td>
+                            <td style="padding: 15px; vertical-align: middle;">
+                                @if($household->user)
+                                    @if($household->user->temp_password)
+                                        <code style="color: #dc3545; font-weight: 700; font-size: 14px;">{{ $household->user->temp_password }}</code>
+                                    @else
+                                        <span class="text-success" style="font-size: 13px;"><i class="fas fa-check-circle"></i> Changed</span>
+                                    @endif
+                                @else
+                                    <span class="text-muted" style="font-size: 13px;"><i class="fas fa-user-slash"></i> No Account</span>
+                                @endif
                             </td>
                             <td style="padding: 15px; vertical-align: middle; text-align: center;">
                                 <div style="display: flex; gap: 8px; justify-content: center;">

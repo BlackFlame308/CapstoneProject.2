@@ -104,6 +104,58 @@
     </div>
 </div>
 
+<!-- Household Account & Credentials -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
+            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 20px;">
+                <h6 style="margin: 0; font-weight: 600; color: #333;">
+                    <i class="fas fa-user-shield"></i> Household Account & Credentials
+                </h6>
+            </div>
+            <div class="card-body" style="padding: 20px;">
+                @if($household->user)
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <small style="color: #999; display: block; margin-bottom: 5px; font-weight: 600;">Account Name</small>
+                            <p style="margin: 0; color: #333; font-weight: 500;">{{ $household->user->name }}</p>
+                        </div>
+                        <div>
+                            <small style="color: #999; display: block; margin-bottom: 5px; font-weight: 600;">Username</small>
+                            <p style="margin: 0; color: #333; font-weight: 500;">{{ $household->user->username }}</p>
+                        </div>
+                        <div>
+                            <small style="color: #999; display: block; margin-bottom: 5px; font-weight: 600;">Email Address</small>
+                            <p style="margin: 0; color: #333; font-weight: 500;">{{ $household->user->email }}</p>
+                        </div>
+                        <div>
+                            <small style="color: #999; display: block; margin-bottom: 5px; font-weight: 600;">Temporary Password</small>
+                            @if($household->user->temp_password)
+                                <p style="margin: 0; color: #dc3545; font-weight: 700; font-family: monospace; font-size: 15px;">
+                                    {{ $household->user->temp_password }}
+                                </p>
+                            @else
+                                <p style="margin: 0; color: #28a745; font-weight: 600; font-size: 14px;">
+                                    <i class="fas fa-check-circle"></i> Changed by user
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                @else
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <span style="color: #999;"><i class="fas fa-exclamation-triangle text-warning me-1"></i> No system account associated with this household.</span>
+                        @if(auth()->user()?->canManageAccounts())
+                            <a href="{{ route('admin.accounts.create', ['household_id' => $household->id]) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-user-plus"></i> Create Account for Household
+                            </a>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Location Information -->
 @if($household->address)
     <div class="row mb-4">

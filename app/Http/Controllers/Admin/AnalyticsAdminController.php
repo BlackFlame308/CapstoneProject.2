@@ -58,6 +58,15 @@ class AnalyticsAdminController extends Controller
         $pwdCount = Member::where('is_pwd', true)->count();
         
         $pregnantCount = Member::where('is_pregnant', true)->count();
+
+        $adultsCount = Member::where(function($q) use ($adultCutoff, $seniorCutoff) {
+            $q->where(function($sub) use ($adultCutoff, $seniorCutoff) {
+                $sub->whereDate('birth_date', '<=', $adultCutoff)
+                    ->whereDate('birth_date', '>', $seniorCutoff);
+            })->orWhere(function ($fallback) {
+                $fallback->whereNull('birth_date')->whereBetween('age', [18, 59]);
+            });
+        })->count();
         
         // Gender distribution
         $genderDistribution = Member::select(
@@ -109,6 +118,7 @@ class AnalyticsAdminController extends Controller
             'seniorsCount' => $seniorsCount,
             'pwdCount' => $pwdCount,
             'pregnantCount' => $pregnantCount,
+            'adultsCount' => $adultsCount,
             'genderDistribution' => $genderDistribution,
             'ageDistribution' => $ageDistribution,
             'civilStatus' => $civilStatus,

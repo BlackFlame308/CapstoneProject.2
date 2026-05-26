@@ -53,6 +53,14 @@
 
     <div class="col-md-3 col-sm-6 mb-3">
         <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+            <div class="stat-value">{{ $adultsCount }}</div>
+            <div class="stat-label">Adults (18-59)</div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-heart"></i></div>
             <div class="stat-value">{{ $pregnantCount }}</div>
             <div class="stat-label">Pregnant</div>

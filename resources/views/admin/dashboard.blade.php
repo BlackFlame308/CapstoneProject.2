@@ -152,9 +152,9 @@
                     <h5>No subsystem data available yet</h5>
                     <p style="margin-bottom: 0;">Waiting for API integration with:</p>
                     <ul style="list-style: none; padding: 0; margin-top: 10px;">
-                        <li>✓ Evacuation System</li>
-                        <li>✓ Rescue System</li>
-                        <li>✓ Logistics System</li>
+                        <li><i class="fas fa-check text-success me-1"></i> Evacuation System</li>
+                        <li><i class="fas fa-check text-success me-1"></i> Rescue System</li>
+                        <li><i class="fas fa-check text-success me-1"></i> Logistics System</li>
                     </ul>
                     <small style="display: block; margin-top: 15px; color: #bbb;">
                         Reports will appear here once subsystems are connected via API.
@@ -174,9 +174,11 @@
                 <a href="{{ route('admin.households.create') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus"></i> Add Household
                 </a>
-                <a href="{{ route('admin.accounts.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-user-plus"></i> Create Account
-                </a>
+                @if(auth()->user()?->canManageAccounts())
+                    <a href="{{ route('admin.accounts.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </a>
+                @endif
                 <a href="{{ route('admin.households.index') }}" class="btn btn-info btn-sm">
                     <i class="fas fa-list"></i> View All Households
                 </a>

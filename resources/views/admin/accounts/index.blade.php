@@ -84,7 +84,7 @@
                             </td>
                             <td style="padding: 15px; vertical-align: middle;">
                                 <span class="badge" style="background-color: #667eea; color: white;">
-                                    {{ ucfirst($user->role ?? 'N/A') }}
+                                    {{ $user->role?->name ?? 'N/A' }}
                                 </span>
                             </td>
                             <td style="padding: 15px; vertical-align: middle;">
@@ -110,6 +110,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm"
+                                                @disabled($user->is(auth()->user()))
                                                 onclick="return confirm('Are you sure?')" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>

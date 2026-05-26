@@ -46,7 +46,12 @@ class AuthenticatedSessionController extends Controller
                 ->with('warning', 'You must change your password before continuing.');
         }
 
-       return redirect()->route('admin.dashboard');
+        $role = auth()->user()->normalizedRole();
+        if ($role === 'household') {
+            return redirect()->route('household.dashboard');
+        }
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function destroy(Request $request)

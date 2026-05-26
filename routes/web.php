@@ -56,10 +56,19 @@ Route::middleware('auth')->group(function () {
 */
 Route::middleware('auth')->group(function () {
 
-    // Dashboard - Captain can view, Encoder can view
+    // Dashboard - Redirect based on role
     Route::get('/dashboard', function () {
+         $role = auth()->user()->normalizedRole();
+         if ($role === 'household') {
+             return redirect()->route('household.dashboard');
+         }
          return redirect()->route('admin.dashboard');
     })->middleware('auth')->name('dashboard');
+
+    // Household Dashboard Route Group
+    Route::middleware(['auth', 'role:Household'])->prefix('household')->name('household.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Household\DashboardController::class, 'index'])->name('dashboard');
+    });
 
     Route::post('/analytics/update', [DashboardController::class, 'updateAnalytics'])
         ->name('analytics.update')
@@ -113,6 +122,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     
     // Dashboard
+    Route::get('/', fn () => redirect()->route('admin.dashboard'))->name('home');
     Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
 
     
@@ -166,9 +176,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Device Token Tracking
     Route::get('/device-tokens', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'index'])->name('device-tokens.index');
+    Route::get('/device-tokens/export/data', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'export'])->name('device-tokens.export');
     Route::get('/device-tokens/{deviceToken}', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'show'])->name('device-tokens.show');
     Route::delete('/device-tokens/{deviceToken}', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'destroy'])->name('device-tokens.destroy');
-    Route::get('/device-tokens/export/data', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'export'])->name('device-tokens.export');
     
     // Advanced Search
     Route::get('/search', [App\Http\Controllers\Admin\AdvancedSearchController::class, 'form'])->name('search.form');
@@ -181,10 +191,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/export/members/pdf', [App\Http\Controllers\Admin\DataExportController::class, 'exportMembersPDF'])->name('export.members-pdf');
     Route::get('/export/analytics', [App\Http\Controllers\Admin\DataExportController::class, 'exportAnalyticsReport'])->name('export.analytics-report');
     
-    // Audit Logs
-    Route::get('/audit-logs', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'index'])->name('audit-logs.index');
-    Route::get('/audit-logs/{id}', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'show'])->name('audit-logs.show');
-    Route::post('/audit-logs/clear', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'clearOldLogs'])->name('audit-logs.clear');
+    // Audit Logs (Disabled - not in agreed features)
+    // Route::get('/audit-logs', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'index'])->name('audit-logs.index');
+    // Route::post('/audit-logs/clear', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'clearOldLogs'])->name('audit-logs.clear');
+    // Route::get('/audit-logs/{id}', [App\Http\Controllers\Admin\AuditLogAdminController::class, 'show'])->name('audit-logs.show');
     
     // CSV Import Dashboard
     Route::get('/csv-import', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'index'])->name('csv-import.index');
@@ -192,14 +202,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/csv-import/{csvUpload}/retry', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'retryErrors'])->name('csv-import.retry');
     Route::delete('/csv-import/{csvUpload}', [App\Http\Controllers\Admin\CSVImportDashboardController::class, 'destroy'])->name('csv-import.destroy');
     
-    // Notifications Management
-    Route::get('/notifications', [App\Http\Controllers\Admin\NotificationManagementController::class, 'index'])->name('notifications.index');
-    Route::get('/notifications/create', [App\Http\Controllers\Admin\NotificationManagementController::class, 'create'])->name('notifications.create');
-    Route::post('/notifications', [App\Http\Controllers\Admin\NotificationManagementController::class, 'store'])->name('notifications.store');
-    Route::get('/notifications/{notification}', [App\Http\Controllers\Admin\NotificationManagementController::class, 'show'])->name('notifications.show');
-    Route::post('/notifications/{notification}/retry', [App\Http\Controllers\Admin\NotificationManagementController::class, 'retry'])->name('notifications.retry');
-    Route::delete('/notifications/{notification}', [App\Http\Controllers\Admin\NotificationManagementController::class, 'destroy'])->name('notifications.destroy');
-    Route::post('/notifications/test', [App\Http\Controllers\Admin\NotificationManagementController::class, 'sendTest'])->name('notifications.test');
+    // Notifications Management (Disabled - not in agreed features)
+    // Route::get('/notifications', [App\Http\Controllers\Admin\NotificationManagementController::class, 'index'])->name('notifications.index');
+    // Route::get('/notifications/create', [App\Http\Controllers\Admin\NotificationManagementController::class, 'create'])->name('notifications.create');
+    // Route::post('/notifications', [App\Http\Controllers\Admin\NotificationManagementController::class, 'store'])->name('notifications.store');
+    // Route::get('/notifications/{notification}', [App\Http\Controllers\Admin\NotificationManagementController::class, 'show'])->name('notifications.show');
+    // Route::post('/notifications/{notification}/retry', [App\Http\Controllers\Admin\NotificationManagementController::class, 'retry'])->name('notifications.retry');
+    // Route::delete('/notifications/{notification}', [App\Http\Controllers\Admin\NotificationManagementController::class, 'destroy'])->name('notifications.destroy');
+    // Route::post('/notifications/test', [App\Http\Controllers\Admin\NotificationManagementController::class, 'sendTest'])->name('notifications.test');
 });
 
 /*

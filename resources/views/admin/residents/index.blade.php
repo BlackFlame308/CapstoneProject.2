@@ -13,8 +13,8 @@
                 <div class="card-header">
                     <h3 class="card-title">All Residents</h3>
                     <div class="card-tools">
-                        <a href="{{ route('admin.residents.create', ['household' => 1]) }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus"></i> Add Resident
+                        <a href="{{ route('admin.households.index') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-home"></i> Choose Household
                         </a>
                     </div>
                 </div>
@@ -37,7 +37,7 @@
                                 <td>{{ $resident->full_name }}</td>
                                 <td>{{ $resident->household->household_name ?? 'N/A' }}</td>
                                 <td>{{ $resident->age ?? 'N/A' }}</td>
-                                <td>{{ ucfirst($resident->gender) }}</td>
+                                <td>{{ $resident->gender ? ucfirst($resident->gender) : ($resident->sex ?? 'N/A') }}</td>
                                 <td>
                                     @if($resident->is_pwd)
                                         <span class="badge badge-warning">Yes</span>
@@ -56,7 +56,7 @@
                                     <a href="{{ route('admin.residents.edit', $resident) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    @if(auth()->user()->role?->name === 'head')
+                                    @if(auth()->user()?->canDeleteHouseholds())
                                     <form action="{{ route('admin.residents.destroy', $resident) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')

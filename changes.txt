@@ -1,0 +1,16 @@
+2026-05-22 - Admin dashboard cleanup and fixes
+
+- Fixed role middleware logic that treated the Role relationship object as a string, causing role checks to fail.
+- Added consistent role helpers for Captain/head, Super Admin/Admin, account management, and delete-only permissions.
+- Restricted household and resident deletion to Captain/head/Admin/Super Admin instead of allowing Encoder through policy checks.
+- Added and registered MemberPolicy so resident delete routes using can:delete,member work correctly.
+- Protected account management actions in AccountAdminController and prevented users from deleting their own account.
+- Fixed account household assignment to store households.id so the User -> Household relationship resolves correctly.
+- Fixed account index role rendering so it displays the role name instead of trying to render the Role object.
+- Fixed the residents index Add action that pointed to a fake household id; it now sends users to choose a real household.
+- Reworked the admin sidebar to use named routes, Font Awesome icons, valid logout markup, and role-aware menu visibility.
+- Added the /admin redirect route so the documented admin URL opens the dashboard.
+- Reordered admin routes so static routes like device token export and audit log clear are not shadowed by dynamic routes.
+- Hid the dashboard Create Account quick action from users without account-management permission.
+- Replaced broken encoded dashboard report markers with proper icons.
+- Verified with PHP lint checks, Blade compilation, admin route listing, and the full Laravel test suite.
