@@ -22,7 +22,7 @@
                 <a href="{{ route('admin.households.edit', $household) }}" class="btn btn-warning">
                     <i class="fas fa-edit"></i> Edit
                 </a>
-                @if(auth()->user()->role?->name && in_array(strtolower(auth()->user()->role->name), ['head', 'captain']))
+                @if(auth()->user()?->canDeleteHouseholds())
                     <form action="{{ route('admin.households.destroy', $household) }}" method="POST" style="display: inline;">
                         @csrf
                         @method('DELETE')
@@ -269,7 +269,7 @@
                                                class="btn btn-warning btn-sm" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            @if(auth()->user()->role?->name && in_array(strtolower(auth()->user()->role->name), ['head', 'captain']))
+                                            @if(auth()->user()?->canDeleteHouseholds())
                                                 <form action="{{ route('admin.residents.destroy', $member) }}"
                                                       method="POST" style="display: inline;">
                                                     @csrf

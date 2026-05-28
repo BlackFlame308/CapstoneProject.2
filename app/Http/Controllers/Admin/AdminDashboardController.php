@@ -47,6 +47,13 @@ class AdminDashboardController extends Controller
         })->count();
 
         $pwdCount = Member::where('is_pwd', true)->count();
+        $pregnantCount = Member::where('is_pregnant', true)->count();
+        $adultsCount = Member::where(function ($query) use ($adultCutoff, $seniorCutoff) {
+            $query->whereBetween('birth_date', [$seniorCutoff, $adultCutoff])
+                ->orWhere(function ($fallback) {
+                    $fallback->whereNull('birth_date')->whereBetween('age', [18, 59]);
+                });
+        })->count();
         
         // Get sitio rankings (most vulnerable areas)
         $sitioRankings = collect([]);
@@ -80,6 +87,8 @@ class AdminDashboardController extends Controller
             'childrenCount' => $childrenCount,
             'seniorsCount' => $seniorsCount,
             'pwdCount' => $pwdCount,
+            'pregnantCount' => $pregnantCount,
+            'adultsCount' => $adultsCount,
             'sitioRankings' => $sitioRankings,
             'recentHouseholds' => $recentHouseholds,
             'reportsData' => $reportsData,

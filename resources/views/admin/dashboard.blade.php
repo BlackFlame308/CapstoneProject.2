@@ -6,6 +6,23 @@
 @endsection
 
 @section('content')
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
+            <div class="card-body" style="padding: 20px;">
+                <h6 style="margin: 0 0 10px 0; font-weight: 700; color: #333;">
+                    <i class="fas fa-compass me-2"></i>Core Principles
+                </h6>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <span class="badge bg-primary">Data Management</span>
+                    <span class="badge bg-info text-dark">Monitoring</span>
+                    <span class="badge bg-success">Viewing Reports</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
@@ -34,7 +51,7 @@
 
     <div class="col-md-3 col-sm-6 mb-3">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-user-crutches"></i></div>
+            <div class="stat-icon"><i class="fas fa-wheelchair"></i></div>
             <div class="stat-value">{{ $pwdCount }}</div>
             <div class="stat-label">PWD Count</div>
         </div>
@@ -45,9 +62,23 @@
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-wheelchair"></i></div>
+            <div class="stat-icon"><i class="fas fa-person-cane"></i></div>
             <div class="stat-value">{{ $seniorsCount }}</div>
             <div class="stat-label">Seniors (60+)</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+            <div class="stat-value">{{ $adultsCount }}</div>
+            <div class="stat-label">Adults (18-59)</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-heart"></i></div>
+            <div class="stat-value">{{ $pregnantCount }}</div>
+            <div class="stat-label">Pregnant</div>
         </div>
     </div>
 </div>
@@ -58,7 +89,7 @@
         <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
             <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 20px;">
                 <h6 style="margin: 0; font-weight: 600; color: #333;">
-                    <i class="fas fa-map-pin"></i> Sitio Rankings (Most Populated)
+                    <i class="fas fa-map-pin"></i> Sitio Rankings (Most Vulnerable)
                 </h6>
             </div>
             <div class="card-body" style="padding: 20px;">
@@ -152,8 +183,8 @@
                     <h5>No subsystem data available yet</h5>
                     <p style="margin-bottom: 0;">Waiting for API integration with:</p>
                     <ul style="list-style: none; padding: 0; margin-top: 10px;">
-                        <li><i class="fas fa-check text-success me-1"></i> Evacuation System</li>
-                        <li><i class="fas fa-check text-success me-1"></i> Rescue System</li>
+                        <li><i class="fas fa-check text-success me-1"></i> EvaTrack Module</li>
+                        <li><i class="fas fa-check text-success me-1"></i> ResQperations Module</li>
                         <li><i class="fas fa-check text-success me-1"></i> Logistics System</li>
                     </ul>
                     <small style="display: block; margin-top: 15px; color: #bbb;">
@@ -172,7 +203,10 @@
             <h6 style="margin: 0 0 15px 0; font-weight: 600; color: #333;">Quick Actions</h6>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <a href="{{ route('admin.households.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i> Add Household
+                    <i class="fas fa-pen"></i> Manual Household Entry
+                </a>
+                <a href="{{ route('csv.upload') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-file-csv"></i> Upload Households via CSV
                 </a>
                 @if(auth()->user()?->canManageAccounts())
                     <a href="{{ route('admin.accounts.create') }}" class="btn btn-primary btn-sm">

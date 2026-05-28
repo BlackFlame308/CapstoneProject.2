@@ -95,55 +95,51 @@ class AccountAdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|unique:users|max:100',
-            'email' => 'required|email|unique:users',
+            'name'           => 'required|string|max:255',
+            'username'       => 'required|string|max:100|unique:users,username',
+            'email'          => 'required|email|max:255|unique:users,email',
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|string|exists:roles,id',
-            'household_id' => 'nullable|string|exists:households,id',
-            'password' => 'required|string|min:8|confirmed',
+            'role_id'        => 'required|string|exists:roles,id',
+            'household_id'   => 'nullable|string|exists:households,id',
+            'password'       => 'required|string|min:8|confirmed',
         ]);
 
         try {
-            // Check if role is household and household_id is provided
-            $role = Role::find($validated['role_id']);
-            if (strtolower($role?->name ?? '') === 'household' && empty($validated['household_id'])) {
+            $role = Role::findOrFail($validated['role_id']);
+
+            // If the role is 'household', a household must be selected
+            if (strtolower($role->name) === 'household' && empty($validated['household_id'])) {
                 return back()->withInput()
-                    ->with('error', 'Household user must be assigned to a household.');
+                    ->with('error', 'Please select a household for this Household account.');
             }
 
-            // Generate temporary password if needed
-            $tempPassword = null;
-            if ($request->has('generate_temp_password')) {
-                $tempPassword = Str::random(12);
-                $validated['password'] = $tempPassword;
-                $validated['must_change_password'] = true;
-            }
+            // Map role name to the enum column value used by the system
+            $roleEnum = match(strtolower($role->name)) {
+                'captain' => 'head',
+                'encoder' => 'encoder',
+                default   => 'resident',
+            };
 
-            $user = User::create([
-                'name' => $validated['name'],
-                'username' => $validated['username'],
-                'email' => $validated['email'],
-                'contact_number' => $validated['contact_number'] ?? null,
-                'password' => Hash::make($validated['password']),
-                'role_id' => $validated['role_id'],
-                'household_id' => $validated['household_id'] ?? null,
-                'is_active' => true,
-                'must_change_password' => $validated['must_change_password'] ?? false,
-                'temp_password' => $tempPassword,
+            User::create([
+                'name'                 => $validated['name'],
+                'username'             => $validated['username'],
+                'email'                => $validated['email'],
+                'contact_number'       => $validated['contact_number'] ?? null,
+                'password'             => Hash::make($validated['password']),
+                'role_id'              => $validated['role_id'],
+                'role'                 => $roleEnum,
+                'household_id'         => $validated['household_id'] ?? null,
+                'is_active'            => true,
+                'must_change_password' => false,
             ]);
 
-            $successMessage = "Account created successfully for '{$user->name}'";
-            if ($tempPassword) {
-                $successMessage .= " with temporary password: {$tempPassword}";
-            }
-
             return redirect()->route('admin.accounts.index')
-                ->with('success', $successMessage);
+                ->with('success', "Account for '{$validated['name']}' created successfully!");
+
         } catch (\Exception $e) {
-            report($e);
+            \Log::error('Account creation error: ' . $e->getMessage());
             return back()->withInput()
-                ->with('error', 'Failed to create account. ' . $e->getMessage());
+                ->with('error', 'Failed to create account: ' . $e->getMessage());
         }
     }
 

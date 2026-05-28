@@ -14,7 +14,7 @@
         body {
             min-height: 100vh;
             margin: 0;
-            background: #f5f7fa;
+            background: #0f172a;
             color: #333;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -87,20 +87,17 @@
     <main class="auth-shell">
         <section class="auth-card">
             <div class="auth-header">
-                <h1><i class="fas fa-shield-alt text-primary"></i> SafeTrack</h1>
+                <h1>
+                    <img src="{{ asset('images/logo.png') }}"
+                         alt="SafeTrack Logo"
+                         style="width: 48px; height: 48px; object-fit: contain; vertical-align: middle; margin-right: 8px; border-radius: 8px; background: #fff; padding: 2px;"
+                         onerror="this.style.display='none'; document.getElementById('auth-fallback-icon').style.display='inline';">
+                    <i id="auth-fallback-icon" class="fas fa-shield-alt text-primary" style="display:none;"></i>
+                    SafeTrack
+                </h1>
                 <p>@yield('subtitle', 'Barangay safety and household management')</p>
             </div>
             <div class="auth-body">
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
                 @if(session('success'))
                     <div class="alert alert-success">{{ session('success') }}</div>
                 @endif

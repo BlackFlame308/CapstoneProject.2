@@ -57,47 +57,50 @@ class ResidentAdminController extends Controller
     public function store(Request $request, Household $household)
     {
         $validated = $request->validate([
-            'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'last_name' => 'required|string|max:100',
-            'birth_date' => 'nullable|date|before:today',
-            'sex' => 'required|in:M,F',
-            'gender' => 'nullable|in:Male,Female,Other',
-            'relation' => 'required|in:Head,Spouse,Child,Parent,Sibling,Grandchild,Others',
-            'civil_status' => 'required|in:Single,Married,Widowed,Separated',
+            'first_name'      => 'required|string|max:100',
+            'middle_name'     => 'nullable|string|max:100',
+            'last_name'       => 'required|string|max:100',
+            'birth_date'      => 'nullable|date|before:today',
+            'sex'             => 'required|in:M,F',
+            'relation'        => 'required|in:Head,Spouse,Child,Parent,Sibling,Grandchild,Others',
+            'civil_status'    => 'required|in:Single,Married,Widowed,Separated',
             'education_level' => 'nullable|in:Elementary,High School,College,Post Graduate',
-            'occupation' => 'nullable|string|max:100',
-            'is_pwd' => 'boolean',
-            'is_pregnant' => 'boolean',
-            'is_graduate' => 'boolean',
-            'special_needs' => 'nullable|string|max:255',
+            'occupation'      => 'nullable|string|max:100',
+            'is_pwd'          => 'boolean',
+            'is_pregnant'     => 'boolean',
+            'special_needs'   => 'nullable|string|max:255',
         ]);
 
         try {
+            // Compute gender from sex (M = Male, F = Female)
+            $gender = $validated['sex'] === 'F' ? 'Female' : 'Male';
+
             // Calculate age from birth date
             $age = null;
-            if ($validated['birth_date']) {
-                $age = Carbon::parse($validated['birth_date'])->diffInYears(Carbon::now());
+            $isSenior = false;
+            if (!empty($validated['birth_date'])) {
+                $age = Carbon::parse($validated['birth_date'])->age;
+                $isSenior = $age >= 60;
             }
 
             $member = Member::create([
-                'household_id' => $household->id,
-                'first_name' => $validated['first_name'],
-                'middle_name' => $validated['middle_name'],
-                'last_name' => $validated['last_name'],
-                'name' => "{$validated['first_name']} {$validated['last_name']}",
-                'birth_date' => $validated['birth_date'],
-                'age' => $age,
-                'sex' => $validated['sex'],
-                'gender' => $validated['gender'],
-                'relation' => $validated['relation'],
-                'civil_status' => $validated['civil_status'],
-                'education_level' => $validated['education_level'],
-                'occupation' => $validated['occupation'],
-                'is_pwd' => $validated['is_pwd'] ?? false,
-                'is_pregnant' => $validated['is_pregnant'] ?? false,
-                'is_graduate' => $validated['is_graduate'] ?? false,
-                'special_needs' => $validated['special_needs'],
+                'household_id'    => $household->id,
+                'first_name'      => $validated['first_name'],
+                'middle_name'     => $validated['middle_name'] ?? null,
+                'last_name'       => $validated['last_name'],
+                'name'            => $validated['first_name'] . ' ' . $validated['last_name'],
+                'birth_date'      => $validated['birth_date'] ?? null,
+                'age'             => $age,
+                'sex'             => $validated['sex'],
+                'gender'          => $gender,
+                'relation'        => $validated['relation'],
+                'civil_status'    => $validated['civil_status'],
+                'education_level' => $validated['education_level'] ?? null,
+                'occupation'      => $validated['occupation'] ?? null,
+                'is_pwd'          => $request->boolean('is_pwd'),
+                'is_pregnant'     => $request->boolean('is_pregnant'),
+                'is_senior'       => $isSenior,
+                'special_needs'   => $validated['special_needs'] ?? null,
             ]);
 
             // Update household member count
@@ -106,7 +109,7 @@ class ResidentAdminController extends Controller
             return redirect()->route('admin.households.show', $household)
                 ->with('success', "Resident '{$member->name}' added successfully!");
         } catch (\Exception $e) {
-            report($e);
+            \Log::error('Resident store error: ' . $e->getMessage());
             return back()->withInput()
                 ->with('error', 'Failed to add resident. ' . $e->getMessage());
         }
@@ -129,52 +132,55 @@ class ResidentAdminController extends Controller
     public function update(Request $request, Member $member)
     {
         $validated = $request->validate([
-            'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'last_name' => 'required|string|max:100',
-            'birth_date' => 'nullable|date|before:today',
-            'sex' => 'required|in:M,F',
-            'gender' => 'nullable|in:Male,Female,Other',
-            'relation' => 'required|in:Head,Spouse,Child,Parent,Sibling,Grandchild,Others',
-            'civil_status' => 'required|in:Single,Married,Widowed,Separated',
+            'first_name'      => 'required|string|max:100',
+            'middle_name'     => 'nullable|string|max:100',
+            'last_name'       => 'required|string|max:100',
+            'birth_date'      => 'nullable|date|before:today',
+            'sex'             => 'required|in:M,F',
+            'relation'        => 'required|in:Head,Spouse,Child,Parent,Sibling,Grandchild,Others',
+            'civil_status'    => 'required|in:Single,Married,Widowed,Separated',
             'education_level' => 'nullable|in:Elementary,High School,College,Post Graduate',
-            'occupation' => 'nullable|string|max:100',
-            'is_pwd' => 'boolean',
-            'is_pregnant' => 'boolean',
-            'is_graduate' => 'boolean',
-            'special_needs' => 'nullable|string|max:255',
+            'occupation'      => 'nullable|string|max:100',
+            'is_pwd'          => 'boolean',
+            'is_pregnant'     => 'boolean',
+            'special_needs'   => 'nullable|string|max:255',
         ]);
 
         try {
+            // Compute gender from sex (M = Male, F = Female)
+            $gender = $validated['sex'] === 'F' ? 'Female' : 'Male';
+
             // Calculate age from birth date
             $age = null;
-            if ($validated['birth_date']) {
-                $age = Carbon::parse($validated['birth_date'])->diffInYears(Carbon::now());
+            $isSenior = false;
+            if (!empty($validated['birth_date'])) {
+                $age = Carbon::parse($validated['birth_date'])->age;
+                $isSenior = $age >= 60;
             }
 
             $member->update([
-                'first_name' => $validated['first_name'],
-                'middle_name' => $validated['middle_name'],
-                'last_name' => $validated['last_name'],
-                'name' => "{$validated['first_name']} {$validated['last_name']}",
-                'birth_date' => $validated['birth_date'],
-                'age' => $age,
-                'sex' => $validated['sex'],
-                'gender' => $validated['gender'],
-                'relation' => $validated['relation'],
-                'civil_status' => $validated['civil_status'],
-                'education_level' => $validated['education_level'],
-                'occupation' => $validated['occupation'],
-                'is_pwd' => $validated['is_pwd'] ?? false,
-                'is_pregnant' => $validated['is_pregnant'] ?? false,
-                'is_graduate' => $validated['is_graduate'] ?? false,
-                'special_needs' => $validated['special_needs'],
+                'first_name'      => $validated['first_name'],
+                'middle_name'     => $validated['middle_name'] ?? null,
+                'last_name'       => $validated['last_name'],
+                'name'            => $validated['first_name'] . ' ' . $validated['last_name'],
+                'birth_date'      => $validated['birth_date'] ?? null,
+                'age'             => $age,
+                'sex'             => $validated['sex'],
+                'gender'          => $gender,
+                'relation'        => $validated['relation'],
+                'civil_status'    => $validated['civil_status'],
+                'education_level' => $validated['education_level'] ?? null,
+                'occupation'      => $validated['occupation'] ?? null,
+                'is_pwd'          => $request->boolean('is_pwd'),
+                'is_pregnant'     => $request->boolean('is_pregnant'),
+                'is_senior'       => $isSenior,
+                'special_needs'   => $validated['special_needs'] ?? null,
             ]);
 
             return redirect()->route('admin.households.show', $member->household)
                 ->with('success', "Resident '{$member->name}' updated successfully!");
         } catch (\Exception $e) {
-            report($e);
+            \Log::error('Resident update error: ' . $e->getMessage());
             return back()->withInput()
                 ->with('error', 'Failed to update resident. ' . $e->getMessage());
         }

@@ -7,6 +7,15 @@
 <form method="POST" action="{{ route('login') }}">
     @csrf
 
+    {{-- Show all validation errors as a styled Bootstrap alert --}}
+    @if ($errors->any())
+        <div class="alert alert-danger mb-3">
+            @foreach ($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
+
     <div class="mb-3">
         <label for="email" class="form-label">Email Address</label>
         <input type="email" class="form-control @error('email') is-invalid @enderror"

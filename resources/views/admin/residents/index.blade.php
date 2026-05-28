@@ -40,16 +40,16 @@
                                 <td>{{ $resident->gender ? ucfirst($resident->gender) : ($resident->sex ?? 'N/A') }}</td>
                                 <td>
                                     @if($resident->is_pwd)
-                                        <span class="badge badge-warning">Yes</span>
+                                        <span class="badge bg-warning text-dark">Yes</span>
                                     @else
-                                        <span class="badge badge-secondary">No</span>
+                                        <span class="badge bg-secondary">No</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($resident->is_senior)
-                                        <span class="badge badge-info">Yes</span>
+                                        <span class="badge bg-info text-dark">Yes</span>
                                     @else
-                                        <span class="badge badge-secondary">No</span>
+                                        <span class="badge bg-secondary">No</span>
                                     @endif
                                 </td>
                                 <td>

@@ -104,7 +104,7 @@ class User extends Authenticatable
 
     public function canManageAccounts(): bool
     {
-        return $this->isCaptain() || $this->isSuperAdmin();
+        return $this->hasPermission('manage_accounts') || $this->isSuperAdmin();
     }
 
     public function hasPermission(string $permission): bool
@@ -113,9 +113,9 @@ class User extends Authenticatable
         $perms = [
             'manage_households' => ['admin', 'captain', 'head', 'encoder'],
             'view_households'   => ['admin', 'captain', 'head', 'encoder'],
-            'manage_accounts'  => ['admin', 'super admin', 'captain', 'head'],
+            'manage_accounts'  => ['admin', 'super admin', 'captain', 'head', 'encoder'],
             'view_reports'     => ['admin', 'captain', 'head', 'encoder', 'super admin'],
-            'register_accounts'=> ['admin', 'super admin', 'captain', 'head'],
+            'register_accounts'=> ['admin', 'super admin', 'captain', 'head', 'encoder'],
         ];
 
         if (!isset($perms[$permission])) {

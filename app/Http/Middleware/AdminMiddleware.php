@@ -16,8 +16,9 @@ class AdminMiddleware
 
         $user = auth()->user();
 
-        // Get role name from relationship
-        $role = strtolower($user->role?->name ?? '');
+        // Use normalizedRole() so this works whether the role comes from the
+        // `role()` relationship OR the raw `role` attribute.
+        $role = strtolower($user->normalizedRole() ?? '');
 
         // Allow dashboard roles. "head" is kept for legacy seeded data.
         if (!$role || !in_array($role, ['admin', 'super admin', 'head', 'encoder', 'captain'], true)) {

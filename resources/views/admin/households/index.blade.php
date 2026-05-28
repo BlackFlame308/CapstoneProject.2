@@ -12,9 +12,14 @@
             <h5 style="margin: 0; font-weight: 600; color: #333;">
                 All Households ({{ $households->total() }})
             </h5>
-            <a href="{{ route('admin.households.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add New Household
-            </a>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{{ route('admin.households.create') }}" class="btn btn-primary">
+                    <i class="fas fa-pen"></i> Manual Entry
+                </a>
+                <a href="{{ route('csv.upload') }}" class="btn btn-success">
+                    <i class="fas fa-file-csv"></i> Upload CSV
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -113,7 +118,7 @@
                                        class="btn btn-warning btn-sm" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    @if(auth()->user()->role?->name && in_array(strtolower(auth()->user()->role->name), ['head', 'captain']))
+                                    @if(auth()->user()?->canDeleteHouseholds())
                                         <form action="{{ route('admin.households.destroy', $household) }}"
                                               method="POST" style="display: inline;">
                                             @csrf

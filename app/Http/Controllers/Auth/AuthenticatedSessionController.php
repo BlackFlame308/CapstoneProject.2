@@ -47,6 +47,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         $role = auth()->user()->normalizedRole();
+        // Redirect users to the correct dashboard based on their role.
         if ($role === 'household') {
             return redirect()->route('household.dashboard');
         }

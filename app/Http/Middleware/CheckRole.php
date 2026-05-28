@@ -40,6 +40,16 @@ class CheckRole
         $roleName = $user->normalizedRole();
         $allowed = array_map(fn ($role) => strtolower($role), $allowed);
 
+        // Treat legacy-equivalent role names as the same access group.
+        // This avoids route failures when one part uses "captain" and another uses "head".
+        if ($roleName === 'head' && in_array('captain', $allowed, true)) {
+            return $next($request);
+        }
+
+        if ($roleName === 'captain' && in_array('head', $allowed, true)) {
+            return $next($request);
+        }
+
         if (!in_array($roleName, $allowed, true)) {
             return $request->expectsJson()
                 ? response()->json(['status' => 'error', 'message' => 'Forbidden: insufficient role.'], 403)

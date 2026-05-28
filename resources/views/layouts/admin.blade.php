@@ -37,7 +37,7 @@
         /* Sidebar */
         .sidebar {
             width: 280px;
-            background: linear-gradient(180deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%);
+            background: #000000;
             padding: 0;
             position: fixed;
             height: 100vh;
@@ -47,21 +47,32 @@
         }
 
         .sidebar-header {
-            padding: 30px 20px;
+            padding: 40px 20px;
             color: white;
             text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            background: #000000;
         }
 
         .sidebar-header h3 {
-            font-size: 22px;
+            font-size: 32px;
             font-weight: 700;
             margin: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            display: inline-block;
+            border: 1.5px solid #ffffff;
+            border-radius: 6px;
+            padding: 2px;
+            background-color: #ffffff;
         }
 
         .sidebar-header small {
@@ -93,7 +104,7 @@
         }
 
         .sidebar-menu a:hover {
-            background-color: rgba(255,255,255,0.1);
+            background-color: #111111;
         }
 
         .sidebar-logout {
@@ -111,12 +122,12 @@
         }
 
         .sidebar-logout:hover {
-            background-color: rgba(255,255,255,0.1);
+            background-color: #111111;
         }
 
         .sidebar-menu a.active {
-            background-color: rgba(59, 130, 246, 0.3);
-            border-left: 4px solid #3B82F6;
+            background-color: #1a1a1a;
+            border-left: 4px solid #ffffff;
         }
 
         .sidebar-menu i {
@@ -601,7 +612,8 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h3>
-                <i class="fas fa-shield-alt"></i> SafeTrack
+                <img src="{{ asset('images/logo.png') }}" alt="SafeTrack Logo" class="brand-logo" onerror="this.style.display='none'">
+                SafeTrack
             </h3>
             <small>Admin Dashboard</small>
         </div>
@@ -609,6 +621,7 @@
             $user = auth()->user();
             $canManageAccounts = $user?->canManageAccounts() ?? false;
             $canViewReports = ($user?->hasPermission('view_reports') ?? false) || ($user?->isSuperAdmin() ?? false);
+            $canDelete = $user?->canDeleteHouseholds() ?? false;
         @endphp
 
         <ul class="sidebar-menu">
@@ -623,13 +636,6 @@
                 <a href="{{ route('admin.households.index') }}" class="@if(Request::routeIs('admin.households.*')) active @endif">
                     <i class="fas fa-home"></i>
                     <span>Household Management</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="{{ route('csv.upload') }}" class="@if(Request::routeIs('csv.upload')) active @endif">
-                    <i class="fas fa-file-csv"></i>
-                    <span>Upload Demographics</span>
                 </a>
             </li>
 
@@ -667,18 +673,11 @@
                 </li>
             @endif
 
-            @if($canManageAccounts)
+            @if($canDelete)
                 <li>
                     <a href="{{ route('admin.tokens.index') }}" class="@if(Request::routeIs('admin.tokens.*')) active @endif">
                         <i class="fas fa-key"></i>
                         <span>API Token Management</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a href="{{ route('admin.csv-import.index') }}" class="@if(Request::routeIs('admin.csv-import.*')) active @endif">
-                        <i class="fas fa-upload"></i>
-                        <span>CSV Import Dashboard</span>
                     </a>
                 </li>
             @endif
@@ -723,11 +722,13 @@
                     <div class="user-info">
                         <h6>{{ auth()->user()->name }}</h6>
                         <small>
-                            @if(auth()->user()->role?->name)
-                                {{ ucfirst(auth()->user()->role->name) }}
-                            @else
-                                User
-                            @endif
+                            @php
+                                // Prefer the related Role model name; fall back to normalizedRole()
+                                $roleLabel = auth()->user()->role->name
+                                    ?? auth()->user()->normalizedRole();
+                            @endphp
+
+                            {{ $roleLabel ? ucfirst($roleLabel) : 'User' }}
                         </small>
                     </div>
                 </div>
@@ -737,17 +738,6 @@
         <!-- Content Area -->
         <div class="content-area">
             <!-- Alerts -->
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>Validation Errors:</strong>
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
             @if (session()->has('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="fas fa-check-circle"></i> {{ session('success') }}

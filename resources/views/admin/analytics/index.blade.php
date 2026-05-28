@@ -45,7 +45,7 @@
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
+            <div class="stat-icon"><i class="fas fa-person-cane"></i></div>
             <div class="stat-value">{{ $seniorsCount }}</div>
             <div class="stat-label">Seniors (60+)</div>
         </div>
@@ -235,11 +235,11 @@
                     <tbody>
                         @forelse($sitioDistribution as $sitio)
                             @php 
-                                $percent = ($sitio->population / $totalMembers) * 100;
+                                $percent = $totalMembers > 0 ? ($sitio->population / $totalMembers) * 100 : 0;
                             @endphp
                             <tr style="border-bottom: 1px solid #f1f1f1;">
-                                <td style="padding: 15px; color: #555;">{{ $sitio->purok_sitio }}</td>
-                                <td style="padding: 15px; font-weight: 600; color: #667eea;">
+                                <td style="padding: 15px; color: #555;">{{ $sitio->sitio_name }}</td>
+                                <td style="padding: 15px; font-weight: 600; color: #667eea; text-align: right;">
                                     {{ $sitio->population }}
                                 </td>
                                 <td style="padding: 15px;">
