@@ -167,7 +167,7 @@
                         <label for="emergency_contact" class="form-label">Emergency Contact</label>
                         <input type="text" class="form-control @error('emergency_contact') is-invalid @enderror"
                                id="emergency_contact" name="emergency_contact"
-                               placeholder="Emergency contact information" value="{{ old('emergency_contact') }}">
+                               placeholder="Emergency contact" value="{{ old('emergency_contact') }}">
                         @error('emergency_contact')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

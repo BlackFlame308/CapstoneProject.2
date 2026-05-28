@@ -102,10 +102,10 @@ class HouseholdAdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'household_code' => 'required|string|unique:households|max:50',
+            'household_code' => 'required|string|unique:households,household_code|max:50',
             'household_name' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
+            'email' => 'nullable|email|max:255|unique:households,email|unique:users,email',
             'emergency_contact' => 'nullable|string|max:255',
             
             // Address fields
@@ -125,12 +125,10 @@ class HouseholdAdminController extends Controller
             $address = null;
             if (!empty($validated['barangay_id'])) {
                 $address = Address::create([
-                    'region_id' => $validated['region_id'] ?? null,
-                    'province_id' => $validated['province_id'] ?? null,
-                    'city_id' => $validated['city_id'] ?? null,
                     'barangay_id' => $validated['barangay_id'],
                     'purok_sitio' => $validated['purok_sitio'] ?? null,
-                    'street_address' => $validated['street_address'] ?? null,
+                    'street' => $validated['street_address'] ?? null,
+                    'full_address' => $validated['street_address'] ?? null,
                 ]);
             }
 
@@ -234,7 +232,7 @@ class HouseholdAdminController extends Controller
         $validated = $request->validate([
             'household_name' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
+            'email' => 'nullable|email|max:255|unique:households,email,' . $household->id . ',id|unique:users,email,' . $household->user?->id . ',id',
             'emergency_contact' => 'nullable|string|max:255',
             
             // Address fields
@@ -259,21 +257,17 @@ class HouseholdAdminController extends Controller
             if (!empty($validated['barangay_id'])) {
                 if ($household->address) {
                     $household->address->update([
-                        'region_id' => $validated['region_id'] ?? null,
-                        'province_id' => $validated['province_id'] ?? null,
-                        'city_id' => $validated['city_id'] ?? null,
                         'barangay_id' => $validated['barangay_id'],
                         'purok_sitio' => $validated['purok_sitio'] ?? null,
-                        'street_address' => $validated['street_address'] ?? null,
+                        'street' => $validated['street_address'] ?? null,
+                        'full_address' => $validated['street_address'] ?? null,
                     ]);
                 } else {
                     $address = Address::create([
-                        'region_id' => $validated['region_id'] ?? null,
-                        'province_id' => $validated['province_id'] ?? null,
-                        'city_id' => $validated['city_id'] ?? null,
                         'barangay_id' => $validated['barangay_id'],
                         'purok_sitio' => $validated['purok_sitio'] ?? null,
-                        'street_address' => $validated['street_address'] ?? null,
+                        'street' => $validated['street_address'] ?? null,
+                        'full_address' => $validated['street_address'] ?? null,
                     ]);
                     $household->update(['address_id' => $address->id]);
                 }
