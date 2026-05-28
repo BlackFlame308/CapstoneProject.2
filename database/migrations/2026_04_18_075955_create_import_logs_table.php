@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('import_logs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('data_source_id');
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('data_source_id');
             $table->unsignedInteger('row_number')->nullable();
             $table->string('status', 20)->nullable();
             $table->text('error_message')->nullable();

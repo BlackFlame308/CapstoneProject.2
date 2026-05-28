@@ -5,21 +5,20 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasUuids;
-
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'user_id';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
+        'user_id',
         'name',
         'username',
         'contact_number',
@@ -27,12 +26,18 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
-        'role',
         'household_id',
         'must_change_password',
         'temp_password',
         'email_verified_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            $user->user_id ??= (string) Str::uuid();
+        });
+    }
 
     protected $hidden = [
         'password',
@@ -41,35 +46,31 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'email_verified_at'    => 'datetime',
+        'password'             => 'hashed',
         'must_change_password' => 'boolean',
-        'is_active' => 'boolean',
+        'is_active'            => 'boolean',
+        'role_id'              => 'integer',
     ];
 
     public function getIdAttribute(): ?string
     {
-        return $this->attributes['id'] ?? null;
+        return $this->attributes['user_id'] ?? null;
     }
 
     public function getUserIdAttribute(): ?string
     {
-        return $this->attributes['id'] ?? null;
-    }
-
-    public function setUserIdAttribute(?string $value): void
-    {
-        $this->attributes['id'] = $value;
+        return $this->attributes['user_id'] ?? null;
     }
 
     public function role()
     {
-        return $this->belongsTo(Role::class, 'role_id', 'id');
+        return $this->belongsTo(Role::class, 'role_id', 'role_id');
     }
 
     public function household()
     {
-        return $this->belongsTo(Household::class);
+        return $this->belongsTo(Household::class, 'household_id', 'household_id');
     }
 
     public function normalizedRole(): ?string
@@ -113,9 +114,9 @@ class User extends Authenticatable
         $perms = [
             'manage_households' => ['admin', 'captain', 'head', 'encoder'],
             'view_households'   => ['admin', 'captain', 'head', 'encoder'],
-            'manage_accounts'  => ['admin', 'super admin', 'captain', 'head', 'encoder'],
-            'view_reports'     => ['admin', 'captain', 'head', 'encoder', 'super admin'],
-            'register_accounts'=> ['admin', 'super admin', 'captain', 'head', 'encoder'],
+            'manage_accounts'   => ['admin', 'super admin', 'captain', 'head', 'encoder'],
+            'view_reports'      => ['admin', 'captain', 'head', 'encoder', 'super admin'],
+            'register_accounts' => ['admin', 'super admin', 'captain', 'head', 'encoder'],
         ];
 
         if (!isset($perms[$permission])) {

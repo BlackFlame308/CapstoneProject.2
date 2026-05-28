@@ -4,14 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Region extends Model
 {
-    use HasUuids;
-
     use HasFactory;
+
+    protected $primaryKey = 'region_id';
+    public $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = ['name', 'code', 'metadata'];
 
@@ -21,6 +23,6 @@ class Region extends Model
 
     public function provinces(): HasMany
     {
-        return $this->hasMany(Province::class)->orderBy('name');
+        return $this->hasMany(Province::class, 'region_id', 'region_id')->orderBy('name');
     }
 }

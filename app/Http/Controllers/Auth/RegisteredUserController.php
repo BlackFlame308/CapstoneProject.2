@@ -48,7 +48,7 @@ class RegisteredUserController extends Controller
         ];
 
         if (!$isFirstUser) {
-            $rules['role_id'] = 'required|exists:roles,id';
+            $rules['role_id'] = 'required|exists:roles,role_id';
         }
 
         $validated = $request->validate($rules);
@@ -65,7 +65,7 @@ class RegisteredUserController extends Controller
                 ? ['Captain', 'Encoder', 'Household']
                 : ['Encoder', 'Household'];
 
-            if (!in_array($role->role_name, $allowedRoles)) {
+            if (!in_array($role->name, $allowedRoles)) {
                 abort(403, 'You are not authorized to assign this role.');
             }
         }

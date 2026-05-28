@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Address extends Model
 {
-    use HasUuids;
+    protected $primaryKey = 'address_id';
+    public $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = [
         'street',
@@ -22,17 +23,17 @@ class Address extends Model
     ];
 
     protected $casts = [
-        'barangay_id' => 'string',
+        'barangay_id' => 'integer',
     ];
 
     public function barangay(): BelongsTo
     {
-        return $this->belongsTo(Barangay::class);
+        return $this->belongsTo(Barangay::class, 'barangay_id', 'barangay_id');
     }
 
     public function household(): HasOne
     {
-        return $this->hasOne(Household::class);
+        return $this->hasOne(Household::class, 'address_id', 'address_id');
     }
 
     /**
@@ -49,13 +50,13 @@ class Address extends Model
     public function getFullLocationAttribute(): ?string
     {
         $parts = [];
-        
+
         if ($this->purok_sitio) {
             $parts[] = $this->purok_sitio;
         }
 
-        if ($this->barangay || $this->barangay_name) {
-            $parts[] = $this->barangay ? $this->barangay->name : $this->barangay_name;
+        if ($this->barangay || ($this->attributes['barangay_name'] ?? null)) {
+            $parts[] = $this->barangay ? $this->barangay->name : ($this->attributes['barangay_name'] ?? null);
         }
 
         $cityObj = $this->barangay?->city;
@@ -76,4 +77,3 @@ class Address extends Model
         return implode(' > ', array_reverse($parts));
     }
 }
-

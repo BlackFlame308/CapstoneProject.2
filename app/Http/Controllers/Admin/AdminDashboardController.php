@@ -59,9 +59,9 @@ class AdminDashboardController extends Controller
         $sitioRankings = collect([]);
         if (class_exists('App\Models\Address')) {
             $sitioRankings = DB::table('members')
-                ->join('households', 'members.household_id', '=', 'households.id')
-                ->join('addresses', 'households.address_id', '=', 'addresses.id')
-                ->select('addresses.purok_sitio', DB::raw('COUNT(members.id) as member_count'))
+                ->join('households', 'members.household_id', '=', 'households.household_id')
+                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+                ->select('addresses.purok_sitio', DB::raw('COUNT(members.member_id) as member_count'))
                 ->groupBy('addresses.purok_sitio')
                 ->orderByDesc('member_count')
                 ->limit(10)

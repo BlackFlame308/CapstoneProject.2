@@ -99,8 +99,8 @@ class AccountAdminController extends Controller
             'username'       => 'required|string|max:100|unique:users,username',
             'email'          => 'required|email|max:255|unique:users,email',
             'contact_number' => 'nullable|string|max:20',
-            'role_id'        => 'required|string|exists:roles,id',
-            'household_id'   => 'nullable|string|exists:households,id',
+            'role_id'        => 'required|integer|exists:roles,role_id',
+            'household_id'   => 'nullable|string|exists:households,household_id',
             'password'       => 'required|string|min:8|confirmed',
         ]);
 
@@ -127,7 +127,6 @@ class AccountAdminController extends Controller
                 'contact_number'       => $validated['contact_number'] ?? null,
                 'password'             => Hash::make($validated['password']),
                 'role_id'              => $validated['role_id'],
-                'role'                 => $roleEnum,
                 'household_id'         => $validated['household_id'] ?? null,
                 'is_active'            => true,
                 'must_change_password' => false,
@@ -172,8 +171,8 @@ class AccountAdminController extends Controller
             'username' => 'required|string|max:100|unique:users,username,' . $user->user_id,
             'email' => 'required|email|unique:users,email,' . $user->user_id,
             'contact_number' => 'nullable|string|max:20',
-            'role_id' => 'required|string|exists:roles,id',
-            'household_id' => 'nullable|string|exists:households,id',
+                        'role_id' => 'required|integer|exists:roles,role_id',
+            'household_id' => 'nullable|string|exists:households,household_id',
             'is_active' => 'boolean',
             'password' => 'nullable|string|min:8|confirmed',
         ]);

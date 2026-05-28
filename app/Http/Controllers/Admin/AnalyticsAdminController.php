@@ -88,12 +88,12 @@ class AnalyticsAdminController extends Controller
 
         // Sitio distribution — leftJoin so members without address are still counted
         $sitioDistribution = DB::table('members')
-            ->join('households', 'members.household_id', '=', 'households.id')
-            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.id')
+            ->join('households', 'members.household_id', '=', 'households.household_id')
+            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->select(
                 DB::raw("COALESCE(addresses.purok_sitio, 'No Sitio') as sitio_name"),
-                DB::raw('COUNT(DISTINCT households.id) as household_count'),
-                DB::raw('COUNT(members.id) as population'),
+                DB::raw('COUNT(DISTINCT households.household_id) as household_count'),
+                DB::raw('COUNT(members.member_id) as population'),
                 DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) < 18 AND members.birth_date IS NOT NULL THEN 1 ELSE 0 END) as children_count'),
                 DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) >= 60 AND members.birth_date IS NOT NULL THEN 1 ELSE 0 END) as seniors_count'),
                 DB::raw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as pwd_count'),

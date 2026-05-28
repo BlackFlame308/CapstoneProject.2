@@ -3,16 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class Analytics extends Model
 {
-    use HasUuids;
-
     protected $table = 'analytics';
+    protected $primaryKey = 'analytic_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
+        'analytic_id',
         'barangay_id',
         'purok_sitio',
         'record_period',
@@ -29,7 +31,7 @@ class Analytics extends Model
     ];
 
     protected $casts = [
-        'barangay_id'      => 'string',
+        'barangay_id'      => 'integer',
         'record_period'    => 'date',
         'total_households' => 'integer',
         'total_population' => 'integer',
@@ -43,8 +45,15 @@ class Analytics extends Model
         'total_evacuees'   => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Analytics $analytic) {
+            $analytic->analytic_id ??= (string) Str::uuid();
+        });
+    }
+
     public function barangay(): BelongsTo
     {
-        return $this->belongsTo(Barangay::class);
+        return $this->belongsTo(Barangay::class, 'barangay_id', 'barangay_id');
     }
 }

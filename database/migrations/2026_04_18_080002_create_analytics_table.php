@@ -9,13 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Analytics now reference the location hierarchy with proper foreign keys.
+     * Analytics reference the location hierarchy with proper foreign keys.
      */
     public function up(): void
     {
         Schema::create('analytics', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('barangay_id')->nullable();
+            $table->string('analytic_id', 255)->primary();
+            $table->unsignedInteger('barangay_id')->nullable();
             $table->string('purok_sitio', 150)->nullable();
             $table->date('record_period')->nullable();
             $table->unsignedInteger('total_households')->default(0);
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->unsignedInteger('total_evacuees')->default(0);
             $table->timestamps();
 
-            $table->foreign('barangay_id')->references('id')->on('barangays')->nullOnDelete();
+            $table->foreign('barangay_id')->references('barangay_id')->on('barangays')->nullOnDelete();
 
             $table->index(['barangay_id', 'record_period']);
             $table->index(['barangay_id', 'created_at']);

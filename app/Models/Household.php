@@ -12,14 +12,14 @@ class Household extends Model
 {
     use SoftDeletes;
 
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'household_id';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id',
         'household_id',
         'household_code',
+        'household_number',
         'household_name',
         'email',
         'member_count',
@@ -30,8 +30,9 @@ class Household extends Model
     ];
 
     protected $casts = [
-        'address_id' => 'string',
-        'created_by' => 'string',
+        'address_id'   => 'integer',
+        'member_count' => 'integer',
+        'created_by'   => 'string',
     ];
 
     protected $appends = [
@@ -44,9 +45,8 @@ class Household extends Model
     protected static function booted(): void
     {
         static::creating(function (Household $household) {
-            $household->id ??= $household->household_code ?: static::generateHouseholdId();
-            $household->household_code ??= $household->id;
-            $household->household_id ??= $household->id;
+            $household->household_id ??= $household->household_code ?: static::generateHouseholdId();
+            $household->household_code ??= $household->household_id;
         });
     }
 
@@ -54,7 +54,7 @@ class Household extends Model
     {
         do {
             $id = 'HH' . random_int(100000, 999999);
-        } while (static::whereKey($id)->orWhere('household_code', $id)->exists());
+        } while (static::where('household_id', $id)->orWhere('household_code', $id)->exists());
 
         return $id;
     }
@@ -63,22 +63,22 @@ class Household extends Model
 
     public function address(): BelongsTo
     {
-        return $this->belongsTo(Address::class);
+        return $this->belongsTo(Address::class, 'address_id', 'address_id');
     }
 
     public function members(): HasMany
     {
-        return $this->hasMany(Member::class);
+        return $this->hasMany(Member::class, 'household_id', 'household_id');
     }
 
     public function user(): HasOne
     {
-        return $this->hasOne(User::class);
+        return $this->hasOne(User::class, 'household_id', 'household_id');
     }
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by', 'user_id');
     }
 
     // ── Computed attributes ───────────────────────────────────────────────────

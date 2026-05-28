@@ -4,15 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sitio extends Model
 {
-    use HasUuids;
-
     use HasFactory;
+
+    protected $primaryKey = 'sitio_id';
+    public $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = ['barangay_id', 'name', 'code', 'metadata'];
 
@@ -22,11 +23,11 @@ class Sitio extends Model
 
     public function barangay(): BelongsTo
     {
-        return $this->belongsTo(Barangay::class);
+        return $this->belongsTo(Barangay::class, 'barangay_id', 'barangay_id');
     }
 
     public function addresses(): HasMany
     {
-        return $this->hasMany(Address::class);
+        return $this->hasMany(Address::class, 'barangay_id', 'barangay_id');
     }
 }
