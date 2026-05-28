@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class DataSource extends Model
 {
-    use HasUuids;
+    protected $primaryKey = 'id';
+    public $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = [
         'type',
@@ -44,6 +45,6 @@ class DataSource extends Model
 
     public function uploader(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(User::class, 'uploaded_by', 'id');
+        return $this->belongsTo(User::class, 'uploaded_by', 'user_id');
     }
 }

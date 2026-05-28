@@ -109,10 +109,10 @@ class HouseholdAdminController extends Controller
             'emergency_contact' => 'nullable|string|max:255',
             
             // Address fields
-            'region_id' => 'nullable|uuid|exists:regions,id',
-            'province_id' => 'nullable|uuid|exists:provinces,id',
-            'city_id' => 'nullable|uuid|exists:cities,id',
-            'barangay_id' => 'nullable|uuid|exists:barangays,id',
+            'region_id' => 'nullable|integer|exists:regions,region_id',
+            'province_id' => 'nullable|integer|exists:provinces,province_id',
+            'city_id' => 'nullable|integer|exists:cities,city_id',
+            'barangay_id' => 'nullable|integer|exists:barangays,barangay_id',
             'purok_sitio' => 'nullable|string|max:255',
             'street_address' => 'nullable|string|max:255',
         ]);
@@ -125,12 +125,9 @@ class HouseholdAdminController extends Controller
             $address = null;
             if (!empty($validated['barangay_id'])) {
                 $address = Address::create([
-                    'region_id' => $validated['region_id'] ?? null,
-                    'province_id' => $validated['province_id'] ?? null,
-                    'city_id' => $validated['city_id'] ?? null,
                     'barangay_id' => $validated['barangay_id'],
                     'purok_sitio' => $validated['purok_sitio'] ?? null,
-                    'street_address' => $validated['street_address'] ?? null,
+                    'street'      => $validated['street_address'] ?? null,
                 ]);
             }
 
@@ -141,7 +138,7 @@ class HouseholdAdminController extends Controller
                 'contact_number' => $validated['contact_number'] ?? null,
                 'email' => $validated['email'] ?? null,
                 'emergency_contact' => $validated['emergency_contact'] ?? null,
-                'address_id' => $address?->id,
+                'address_id' => $address?->address_id,
                 'created_by' => auth()->id(),
             ]);
 
@@ -163,7 +160,7 @@ class HouseholdAdminController extends Controller
 
                 $userEmail = $validated['email'] ?? null;
                 if (empty($userEmail) || \App\Models\User::where('email', $userEmail)->exists()) {
-                    $safeCode = Str::slug($household->household_code ?: $household->id, '');
+                    $safeCode = Str::slug($household->household_code ?: $household->household_id, '');
                     $suffix = Str::lower(Str::random(4));
                     $userEmail = "{$safeCode}{$suffix}@safetrack.local";
                 }
@@ -174,9 +171,8 @@ class HouseholdAdminController extends Controller
                     'email' => $userEmail,
                     'contact_number' => $household->contact_number,
                     'password' => Hash::make($generatedPassword),
-                    'role_id' => $householdRole->id,
-                    'role' => 'household',
-                    'household_id' => $household->id,
+                    'role_id' => $householdRole->role_id,
+                    'household_id' => $household->household_id,
                     'is_active' => true,
                     'must_change_password' => true,
                     'temp_password' => $generatedPassword,
@@ -238,10 +234,10 @@ class HouseholdAdminController extends Controller
             'emergency_contact' => 'nullable|string|max:255',
             
             // Address fields
-            'region_id' => 'nullable|uuid|exists:regions,id',
-            'province_id' => 'nullable|uuid|exists:provinces,id',
-            'city_id' => 'nullable|uuid|exists:cities,id',
-            'barangay_id' => 'nullable|uuid|exists:barangays,id',
+            'region_id' => 'nullable|integer|exists:regions,region_id',
+            'province_id' => 'nullable|integer|exists:provinces,province_id',
+            'city_id' => 'nullable|integer|exists:cities,city_id',
+            'barangay_id' => 'nullable|integer|exists:barangays,barangay_id',
             'purok_sitio' => 'nullable|string|max:255',
             'street_address' => 'nullable|string|max:255',
         ]);
@@ -259,23 +255,17 @@ class HouseholdAdminController extends Controller
             if (!empty($validated['barangay_id'])) {
                 if ($household->address) {
                     $household->address->update([
-                        'region_id' => $validated['region_id'] ?? null,
-                        'province_id' => $validated['province_id'] ?? null,
-                        'city_id' => $validated['city_id'] ?? null,
                         'barangay_id' => $validated['barangay_id'],
                         'purok_sitio' => $validated['purok_sitio'] ?? null,
-                        'street_address' => $validated['street_address'] ?? null,
+                        'street'      => $validated['street_address'] ?? null,
                     ]);
                 } else {
                     $address = Address::create([
-                        'region_id' => $validated['region_id'] ?? null,
-                        'province_id' => $validated['province_id'] ?? null,
-                        'city_id' => $validated['city_id'] ?? null,
                         'barangay_id' => $validated['barangay_id'],
                         'purok_sitio' => $validated['purok_sitio'] ?? null,
-                        'street_address' => $validated['street_address'] ?? null,
+                        'street'      => $validated['street_address'] ?? null,
                     ]);
-                    $household->update(['address_id' => $address->id]);
+                    $household->update(['address_id' => $address->address_id]);
                 }
             }
 

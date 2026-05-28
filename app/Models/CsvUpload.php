@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class CsvUpload extends Model
 {
-    use HasUuids;
+    protected $primaryKey = 'id';
+    public $keyType = 'int';
+    public $incrementing = true;
 
     protected $fillable = [
         'data_source_id',
@@ -18,7 +19,7 @@ class CsvUpload extends Model
     ];
 
     protected $casts = [
-        'data_source_id'     => 'string',
+        'data_source_id'     => 'integer',
         'total_records'      => 'integer',
         'successful_records' => 'integer',
         'failed_records'     => 'integer',

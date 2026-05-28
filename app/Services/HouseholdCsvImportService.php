@@ -208,12 +208,12 @@ class HouseholdCsvImportService
         // Household
         $householdCode = Household::generateHouseholdId();
         $household = Household::create([
-            'id'                => $householdCode,
+            'household_id'      => $householdCode,
             'household_code'    => $householdCode,
             'household_name'    => $householdName ?: 'Unnamed Household',
             'email'             => $email ?: null,
             'member_count'      => 0,
-            'address_id'        => $address->id,
+            'address_id'        => $address->address_id,
             'contact_number'    => $contactNumber    ?: null,
             'emergency_contact' => $emergencyContact ?: null,
             'created_by'        => $uploadedBy,
@@ -230,11 +230,12 @@ class HouseholdCsvImportService
         $userEmail    = !empty($email) ? $email : strtolower("{$householdCode}@capstone.local");
 
         User::create([
+            'user_id'              => (string) \Illuminate\Support\Str::uuid(),
             'name'                 => $headFullName,
             'email'                => $userEmail,
             'password'             => bcrypt($tempPassword),
             'role_id'              => $householdRole->role_id,
-            'household_id'         => $household->id,
+            'household_id'         => $household->household_id,
             'must_change_password' => true,
             'temp_password'        => $tempPassword,
         ]);
@@ -260,7 +261,7 @@ class HouseholdCsvImportService
             );
 
             Member::create([
-                'household_id'    => $household->id,
+                'household_id'    => $household->household_id,
                 'name'            => $memberFullName,
                 'gender'          => $gender,
                 'sex'             => $memberSex,   // M or F (matches enum)
@@ -295,19 +296,21 @@ class HouseholdCsvImportService
     }
 
     /**
-     * Resolve barangay by UUID or case-insensitive name.
+     * Resolve barangay by integer ID or case-insensitive name.
      */
-    private function resolveBarangay(string $value): ?string
+    private function resolveBarangay(string $value): ?int
     {
         if (empty($value)) {
             return null;
         }
 
-        if (Str::isUuid($value)) {
-            return Barangay::where('id', $value)->exists() ? $value : null;
+        if (is_numeric($value)) {
+            $id = (int) $value;
+            return Barangay::where('barangay_id', $id)->exists() ? $id : null;
         }
 
-        return Barangay::whereRaw('LOWER(name) = ?', [strtolower($value)])->value('id');
+        $found = Barangay::whereRaw('LOWER(name) = ?', [strtolower($value)])->value('barangay_id');
+        return $found !== null ? (int) $found : null;
     }
 
     /**

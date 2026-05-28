@@ -54,11 +54,11 @@ class CSVImportDashboardController extends Controller
         $csvUpload->load('dataSource');
 
         $logs = ImportLog::where('data_source_id', $csvUpload->data_source_id)
-            ->orderBy('row_num')
+            ->orderBy('row_number')
             ->paginate(50);
 
         $errorLogs = ImportLog::where('data_source_id', $csvUpload->data_source_id)
-            ->where('status', 'error')
+            ->where('status', 'failed')
             ->count();
 
         return view('admin.csv-import.show', [
@@ -75,7 +75,7 @@ class CSVImportDashboardController extends Controller
     {
         try {
             $failedLogs = ImportLog::where('data_source_id', $csvUpload->data_source_id)
-                ->where('status', 'error')
+                ->where('status', 'failed')
                 ->get();
 
             // TODO: Implement retry logic based on your CSV import service

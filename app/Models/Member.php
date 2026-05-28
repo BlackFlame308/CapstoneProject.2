@@ -3,14 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Member extends Model
 {
-    use HasUuids, SoftDeletes;
+    use SoftDeletes;
+
+    protected $primaryKey = 'member_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
+        'member_id',
         'household_id',
         'name',
         'first_name',
@@ -47,9 +52,16 @@ class Member extends Model
 
     public $timestamps = true;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Member $member) {
+            $member->member_id ??= (string) Str::uuid();
+        });
+    }
+
     public function household()
     {
-        return $this->belongsTo(Household::class);
+        return $this->belongsTo(Household::class, 'household_id', 'household_id');
     }
 
     /**

@@ -9,12 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Ensure the 'name' column exists (it should already, but guard against older state)
         Schema::table('roles', function (Blueprint $table) {
             if (!Schema::hasColumn('roles', 'name')) {
                 $table->string('name', 50)->nullable();
             }
         });
 
+        // If a legacy 'role_name' column exists, migrate its data into 'name'
         if (Schema::hasColumn('roles', 'role_name')) {
             DB::table('roles')
                 ->whereNull('name')

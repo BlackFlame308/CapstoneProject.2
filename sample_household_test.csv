@@ -1,0 +1,11 @@
+head_first_name,head_middle_name,head_last_name,household_name,email,street,purok,barangay,contact_number,emergency_contact,member_first_name,member_middle_name,member_last_name,member_birth_date,member_sex,member_relation,member_civil_status,member_education_level,member_occupation,member_is_pwd,member_is_pregnant
+Juan,Dela,Cruz,Juan Dela Cruz Household,juan.delacruz@email.com,123 Mabini Street,Purok 1,Barangay Poblacion,09123456789,09987654321,Juan,Dela,Cruz,01/15/1985,M,Head,Married,College Graduate,Farmer,N,N
+Maria,Santos,Reyes,Maria Reyes Household,maria.reyes@email.com,456 Rizal Avenue,Purok 2,Barangay San Jose,09123456790,09987654320,Maria,Santos,Reyes,03/22/1990,F,Head,Single,College Graduate,Teacher,N,N
+Pedro,Garcia,Padilla,Pedro Padilla Household,,789 Luna Street,Purok 3,Barangay Sta. Cruz,09123456791,,Pedro,Garcia,Padilla,05/10/1975,M,Head,Married,High School Graduate,Tricycle Driver,N,N
+Ana,Bautista,Cruz,Ana Cruz Household,ana.cruz@email.com,321 Aguinaldo Road,Purok 1,Barangay Poblacion,09123456792,09987654319,Ana,Bautista,Cruz,08/15/1988,F,Head,Single,Vocational,Dressmaker,N,Y
+Jose,Bonifacio,Mercado,Jose Mercado Household,,654 Jacinto Street,Purok 4,Barangay San Isidro,09123456793,,Jose,Bonifacio,Mercado,12/25/1960,M,Head,Widowed,Elementary Graduate,Retired,N,N
+Rosario,De Leon,Villanueva,Rosario Villanueva Household,rosario.v@email.com,12 Katipunan Drive,Purok 2,Barangay Sta. Cruz,09123456794,09987654318,Rosario,De Leon,Villanueva,07/04/1992,F,Head,Married,College Graduate,Nurse,N,N
+Roberto,Castillo,Hernandez,Roberto Hernandez Household,,88 Pilar Street,Purok 5,Barangay San Jose,09123456795,,Roberto,Castillo,Hernandez,11/30/1955,M,Head,Married,High School Graduate,Fisherman,Y,N
+Lourdes,Aquino,Torres,Lourdes Torres Household,lourdes.t@email.com,200 Gen Luna Road,Purok 3,Barangay Poblacion,09123456796,09987654317,Lourdes,Aquino,Torres,1998-04-19,F,Head,Single,College Undergraduate,Call Center Agent,N,N
+Fernando,Navarro,Ramos,Fernando Ramos Household,,33 Tandang Sora Ave,Purok 6,Barangay San Isidro,09123456797,,Fernando,Navarro,Ramos,1970-09-08,M,Head,Separated,Elementary Graduate,Vendor,N,N
+Cynthia,Salazar,Gomez,Cynthia Gomez Household,cynthia.g@email.com,77 Bonifacio Blvd,Purok 1,Barangay Sta. Cruz,09123456798,09987654316,Cynthia,Salazar,Gomez,1983-12-01,F,Head,Married,College Graduate,Business Owner,N,N

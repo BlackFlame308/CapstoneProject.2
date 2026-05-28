@@ -2,25 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    use HasUuids;
-
-    protected $primaryKey = 'id';
-    protected $keyType = 'string';
-    public $incrementing = false;
+    protected $primaryKey = 'role_id';
+    public $keyType = 'int';
+    public $incrementing = true;
     public $timestamps = false;
 
-    protected $fillable = ['name', 'role_name', 'role_key'];
-    protected $appends = ['role_id', 'role_name'];
-
-    public function getRoleIdAttribute(): ?string
-    {
-        return $this->attributes['id'] ?? null;
-    }
+    protected $fillable = ['name'];
+    protected $appends = ['role_name'];
 
     public function getRoleNameAttribute(): ?string
     {
@@ -34,6 +26,6 @@ class Role extends Model
 
     public function users()
     {
-        return $this->hasMany(User::class, 'role_id', 'id');
+        return $this->hasMany(User::class, 'role_id', 'role_id');
     }
 }

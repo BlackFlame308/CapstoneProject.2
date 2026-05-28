@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('members', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->string('member_id', 255)->primary();
             $table->string('household_id', 255);
             $table->string('name', 255)->nullable();
             $table->string('first_name', 100);
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('household_id')->references('id')->on('households')->cascadeOnDelete();
+            $table->foreign('household_id')->references('household_id')->on('households')->cascadeOnDelete();
 
             $table->index('household_id');
             $table->index('birth_date');

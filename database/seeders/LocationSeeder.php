@@ -154,25 +154,25 @@ class LocationSeeder extends Seeder
 
             foreach ($provinces as $provinceName => $cities) {
                 $province = Province::firstOrCreate(
-                    ['name' => $provinceName, 'region_id' => $region->id],
+                    ['name' => $provinceName, 'region_id' => $region->region_id],
                     $this->codeAttributes('provinces', $regionName, $provinceName)
                 );
 
                 foreach ($cities as $cityName => $cityDetails) {
                     $city = City::firstOrCreate(
-                        ['name' => $cityName, 'province_id' => $province->id],
+                        ['name' => $cityName, 'province_id' => $province->province_id],
                         $this->codeAttributes('cities', $regionName, $provinceName, $cityName)
                     );
 
                     foreach ($cityDetails['barangays'] as $barangayName) {
                         $barangay = Barangay::firstOrCreate(
-                            ['name' => $barangayName, 'city_id' => $city->id],
+                            ['name' => $barangayName, 'city_id' => $city->city_id],
                             $this->codeAttributes('barangays', $regionName, $provinceName, $cityName, $barangayName)
                         );
 
                         foreach ($cityDetails['sitios'] as $sitioName) {
                             Sitio::firstOrCreate(
-                                ['name' => $sitioName, 'barangay_id' => $barangay->id],
+                                ['name' => $sitioName, 'barangay_id' => $barangay->barangay_id],
                                 $this->codeAttributes('sitios', $regionName, $provinceName, $cityName, $barangayName, $sitioName)
                             );
                         }

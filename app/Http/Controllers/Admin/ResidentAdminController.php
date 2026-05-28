@@ -84,7 +84,7 @@ class ResidentAdminController extends Controller
             }
 
             $member = Member::create([
-                'household_id'    => $household->id,
+                'household_id'    => $household->household_id,
                 'first_name'      => $validated['first_name'],
                 'middle_name'     => $validated['middle_name'] ?? null,
                 'last_name'       => $validated['last_name'],
