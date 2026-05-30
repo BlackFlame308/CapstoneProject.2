@@ -37,8 +37,8 @@
                 <select name="barangay_id" class="form-select">
                     <option value="">-- Select Barangay --</option>
                     @foreach($barangays as $barangay)
-                        <option value="{{ $barangay->id }}"
-                            @if(($filters['barangay_id'] ?? '') == $barangay->id) selected @endif>
+                        <option value="{{ $barangay->barangay_id }}"
+                            @if(($filters['barangay_id'] ?? '') == $barangay->barangay_id) selected @endif>
                             {{ $barangay->name }}
                         </option>
                     @endforeach

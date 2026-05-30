@@ -57,8 +57,8 @@
                                 id="region_id" name="region_id">
                             <option value="">-- Select Region --</option>
                             @foreach($regions as $region)
-                                <option value="{{ $region->id }}"
-                                    @if(old('region_id') == $region->id) selected @endif>
+                                <option value="{{ $region->region_id }}"
+                                    @if(old('region_id') == $region->region_id) selected @endif>
                                     {{ $region->name }}
                                 </option>
                             @endforeach

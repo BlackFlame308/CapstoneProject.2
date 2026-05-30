@@ -29,7 +29,7 @@ class CSVImportDashboardController extends Controller
         $failedRecords = CsvUpload::sum('failed_records') ?? 0;
 
         // Recent errors
-        $recentErrors = ImportLog::where('status', 'error')
+        $recentErrors = ImportLog::where('status', 'failed')
             ->with('dataSource')
             ->latest()
             ->limit(10)

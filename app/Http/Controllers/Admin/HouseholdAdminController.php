@@ -10,6 +10,7 @@ use App\Models\Household;
 use App\Models\Member;
 use App\Models\Province;
 use App\Models\Region;
+use App\Services\HouseholdAccountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -97,30 +98,28 @@ class HouseholdAdminController extends Controller
     }
 
     /**
-     * Store new household in database
+     * Store new household in database.
+     * A Household-role user account is automatically provisioned after creation.
      */
-    public function store(Request $request)
+    public function store(Request $request, HouseholdAccountService $accountService)
     {
         $validated = $request->validate([
-            'household_code' => 'required|string|unique:households|max:50',
-            'household_name' => 'nullable|string|max:255',
-            'contact_number' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'emergency_contact' => 'nullable|string|max:255',
-            
+            'household_code'   => 'required|string|unique:households|max:50',
+            'household_name'   => 'nullable|string|max:255',
+            'contact_number'   => 'nullable|string|max:20',
+            'email'            => 'nullable|email|max:255',
+            'emergency_contact'=> 'nullable|string|max:255',
+
             // Address fields
-            'region_id' => 'nullable|integer|exists:regions,region_id',
-            'province_id' => 'nullable|integer|exists:provinces,province_id',
-            'city_id' => 'nullable|integer|exists:cities,city_id',
-            'barangay_id' => 'nullable|integer|exists:barangays,barangay_id',
-            'purok_sitio' => 'nullable|string|max:255',
-            'street_address' => 'nullable|string|max:255',
+            'region_id'    => 'nullable|integer|exists:regions,region_id',
+            'province_id'  => 'nullable|integer|exists:provinces,province_id',
+            'city_id'      => 'nullable|integer|exists:cities,city_id',
+            'barangay_id'  => 'nullable|integer|exists:barangays,barangay_id',
+            'purok_sitio'  => 'nullable|string|max:255',
+            'street_address'=> 'nullable|string|max:255',
         ]);
 
         try {
-            $createdUsername = null;
-            $createdTempPassword = null;
-
             // Create address if location data provided
             $address = null;
             if (!empty($validated['barangay_id'])) {
@@ -133,66 +132,38 @@ class HouseholdAdminController extends Controller
 
             // Create household
             $household = Household::create([
-                'household_code' => $validated['household_code'],
-                'household_name' => $validated['household_name'] ?? $validated['household_code'],
-                'contact_number' => $validated['contact_number'] ?? null,
-                'email' => $validated['email'] ?? null,
+                'household_code'    => $validated['household_code'],
+                'household_name'    => $validated['household_name'] ?? $validated['household_code'],
+                'contact_number'    => $validated['contact_number'] ?? null,
+                'email'             => $validated['email'] ?? null,
                 'emergency_contact' => $validated['emergency_contact'] ?? null,
-                'address_id' => $address?->address_id,
-                'created_by' => auth()->id(),
+                'address_id'        => $address?->address_id,
+                'created_by'        => auth()->id(),
             ]);
 
-            // Automatically provision one household account for resident login.
-            $householdRole = \App\Models\Role::query()
-                ->whereRaw('LOWER(name) = ?', ['household'])
-                ->first();
+            // ── Automatically provision Household user account ──
+            $accountResult = $accountService->provision(
+                $household,
+                $validated['email'] ?? null
+            );
 
-            if ($householdRole) {
-                $baseUsername = Str::slug($household->household_code ?: ('hh-' . Str::random(6)), '_');
-                $username = $baseUsername;
-                $counter = 1;
+            $redirect = redirect()->route('admin.households.index')
+                ->with('success', "Household '{$household->household_code}' created successfully.");
 
-                while (\App\Models\User::where('username', $username)->exists()) {
-                    $username = $baseUsername . '_' . $counter++;
-                }
-
-                $generatedPassword = Str::upper(Str::random(10)) . random_int(10, 99);
-
-                $userEmail = $validated['email'] ?? null;
-                if (empty($userEmail) || \App\Models\User::where('email', $userEmail)->exists()) {
-                    $safeCode = Str::slug($household->household_code ?: $household->household_id, '');
-                    $suffix = Str::lower(Str::random(4));
-                    $userEmail = "{$safeCode}{$suffix}@safetrack.local";
-                }
-
-                $createdUser = \App\Models\User::create([
-                    'name' => $household->household_name ?: ('Household ' . $household->household_code),
-                    'username' => $username,
-                    'email' => $userEmail,
-                    'contact_number' => $household->contact_number,
-                    'password' => Hash::make($generatedPassword),
-                    'role_id' => $householdRole->role_id,
-                    'household_id' => $household->household_id,
-                    'is_active' => true,
-                    'must_change_password' => true,
-                    'temp_password' => $generatedPassword,
+            if ($accountResult) {
+                // Pass credentials as a separate session key so the view can display them prominently
+                $redirect->with('new_account', [
+                    'username' => $accountResult['user']->username,
+                    'email'    => $accountResult['user']->email,
+                    'password' => $accountResult['password'],
                 ]);
-
-                $createdUsername = $createdUser->username;
-                $createdTempPassword = $generatedPassword;
             }
 
-            $successMessage = "Household '{$household->household_code}' created successfully.";
-            if ($createdUsername && $createdTempPassword) {
-                $successMessage .= " Resident login created (username: {$createdUsername}, temporary password: {$createdTempPassword}).";
-            }
+            return $redirect;
 
-            return redirect()->route('admin.households.index')
-                ->with('success', $successMessage);
         } catch (\Exception $e) {
             \Log::error('Household store error: ' . $e->getMessage());
-            return back()->withInput()
-                ->with('error', $e->getMessage());
+            return back()->withInput()->with('error', $e->getMessage());
         }
     }
 

@@ -80,13 +80,17 @@ class AdvancedSearchController extends Controller
                 });
             }
 
-            // Apply filters
-            if ($request->filled('gender_id')) {
-                $memberQuery->where('gender_id', $request->gender_id);
+// Apply filters
+            if ($request->filled('sex')) {
+                $memberQuery->where('sex', $request->sex);
             }
 
             if ($request->filled('vulnerable_only')) {
-                $memberQuery->whereHas('vulnerableGroups');
+                $memberQuery->where(function($q) {
+                    $q->where('is_pwd', true)
+                      ->orWhere('is_senior', true)
+                      ->orWhere('is_pregnant', true);
+                });
             }
 
             $results['members'] = $memberQuery->limit(20)->get()->map(function($m) {
