@@ -11,18 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Member vulnerable groups (many-to-many relationship)
-        Schema::create('member_vulnerable_groups', function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('member_id', 255);
-            $table->unsignedInteger('vulnerable_group_id');
-
-            $table->foreign('member_id')->references('member_id')->on('members')->cascadeOnDelete();
-            $table->foreign('vulnerable_group_id')->references('vulnerable_group_id')->on('vulnerable_groups')->cascadeOnDelete();
-
-            $table->unique(['member_id', 'vulnerable_group_id']);
-        });
-
         // Device Tokens
         Schema::create('device_tokens', function (Blueprint $table) {
             $table->unsignedBigInteger('id')->primary();
@@ -43,6 +31,5 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('device_tokens');
-        Schema::dropIfExists('member_vulnerable_groups');
     }
 };

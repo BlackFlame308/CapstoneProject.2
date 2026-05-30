@@ -38,14 +38,13 @@ class AnalyticsAdminController extends Controller
         $totalHouseholds = \App\Models\Household::count();
         $totalMembers    = Member::count();
 
-        // Use TIMESTAMPDIFF so calculations are always current (not stale 'age' column)
-        $childrenCount = Member::whereRaw(
-            'TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) < 18'
-        )->whereNotNull('birth_date')->count();
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $ageRaw = $isSqlite
+            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', birth_date) as integer), age)"
+            : "COALESCE(TIMESTAMPDIFF(YEAR, birth_date, CURDATE()), age)";
 
-        $seniorsCount = Member::whereRaw(
-            'TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) >= 60'
-        )->whereNotNull('birth_date')->count();
+        $childrenCount = Member::whereRaw("({$ageRaw}) < 18")->count();
+        $seniorsCount = Member::whereRaw("({$ageRaw}) >= 60")->count();
 
         $pwdCount      = Member::where('is_pwd', true)->count();
         $pregnantCount = Member::where('is_pregnant', true)->count();
@@ -64,14 +63,14 @@ class AnalyticsAdminController extends Controller
             ['type' => 'Female', 'count' => $femaleCount],
         ])->filter(fn($row) => $row['count'] > 0)->values();
 
-        // Age distribution — use TIMESTAMPDIFF so it never uses stale 'age' column
+        // Age distribution
         $ageDistribution = collect([
-            ['range' => '0-5',   'count' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 0 AND 5')->whereNotNull('birth_date')->count()],
-            ['range' => '6-12',  'count' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 6 AND 12')->whereNotNull('birth_date')->count()],
-            ['range' => '13-17', 'count' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 13 AND 17')->whereNotNull('birth_date')->count()],
-            ['range' => '18-35', 'count' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 18 AND 35')->whereNotNull('birth_date')->count()],
-            ['range' => '36-59', 'count' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 36 AND 59')->whereNotNull('birth_date')->count()],
-            ['range' => '60+',   'count' => Member::whereRaw('TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) >= 60')->whereNotNull('birth_date')->count()],
+            ['range' => '0-5',   'count' => Member::whereRaw("({$ageRaw}) BETWEEN 0 AND 5")->count()],
+            ['range' => '6-12',  'count' => Member::whereRaw("({$ageRaw}) BETWEEN 6 AND 12")->count()],
+            ['range' => '13-17', 'count' => Member::whereRaw("({$ageRaw}) BETWEEN 13 AND 17")->count()],
+            ['range' => '18-35', 'count' => Member::whereRaw("({$ageRaw}) BETWEEN 18 AND 35")->count()],
+            ['range' => '36-59', 'count' => Member::whereRaw("({$ageRaw}) BETWEEN 36 AND 59")->count()],
+            ['range' => '60+',   'count' => Member::whereRaw("({$ageRaw}) >= 60")->count()],
         ]);
 
         // Civil status
@@ -87,6 +86,10 @@ class AnalyticsAdminController extends Controller
             ->get();
 
         // Sitio distribution — leftJoin so members without address are still counted
+        $ageExpr = $isSqlite 
+            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', members.birth_date) as integer), members.age)"
+            : "COALESCE(TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()), members.age)";
+
         $sitioDistribution = DB::table('members')
             ->join('households', 'members.household_id', '=', 'households.household_id')
             ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
@@ -94,16 +97,23 @@ class AnalyticsAdminController extends Controller
                 DB::raw("COALESCE(addresses.purok_sitio, 'No Sitio') as sitio_name"),
                 DB::raw('COUNT(DISTINCT households.household_id) as household_count'),
                 DB::raw('COUNT(members.member_id) as population'),
-                DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) < 18 AND members.birth_date IS NOT NULL THEN 1 ELSE 0 END) as children_count'),
-                DB::raw('SUM(CASE WHEN TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()) >= 60 AND members.birth_date IS NOT NULL THEN 1 ELSE 0 END) as seniors_count'),
+                DB::raw("SUM(CASE WHEN ({$ageExpr} < 18) THEN 1 ELSE 0 END) as children_count"),
+                DB::raw("SUM(CASE WHEN ({$ageExpr} >= 60) THEN 1 ELSE 0 END) as seniors_count"),
                 DB::raw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as pwd_count'),
-                DB::raw('SUM(CASE WHEN members.is_pregnant = 1 THEN 1 ELSE 0 END) as pregnant_count')
+                DB::raw('SUM(CASE WHEN members.is_pregnant = 1 THEN 1 ELSE 0 END) as pregnant_count'),
+                DB::raw("SUM(CASE WHEN (
+                    members.is_pwd = 1 OR 
+                    members.is_pregnant = 1 OR 
+                    ({$ageExpr} >= 60) OR 
+                    ({$ageExpr} < 18)
+                ) THEN 1 ELSE 0 END) as vulnerable_count")
             )
             ->whereNull('members.deleted_at')
             ->whereNull('households.deleted_at')
             ->groupBy('sitio_name')
-            ->orderByDesc('population')
-            ->get();
+            ->get()
+            ->sortByDesc('vulnerable_count')
+            ->values();
 
         // Vulnerability score: children×1 + seniors×1.5 + pwd×2 + pregnant×1.5
         $sitioRankings = $sitioDistribution->map(function ($row) {

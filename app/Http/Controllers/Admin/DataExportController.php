@@ -64,7 +64,6 @@ class DataExportController extends Controller
     {
         $totalHouseholds = Household::count();
         $totalMembers = Member::count();
-        $vulnerableGroups = Member::with('vulnerableGroups')->get();
 
         $pdf = PDF::loadView('admin.exports.analytics-report', [
             'totalHouseholds' => $totalHouseholds,

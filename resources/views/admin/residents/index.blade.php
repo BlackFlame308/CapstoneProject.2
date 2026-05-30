@@ -28,6 +28,9 @@
                                 <th>Gender</th>
                                 <th>PWD</th>
                                 <th>Senior</th>
+                                <th>Child</th>
+                                <th>Pregnant</th>
+                                <th>Adult</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -53,6 +56,27 @@
                                     @endif
                                 </td>
                                 <td>
+                                    @if($resident->age !== null && $resident->age < 18)
+                                        <span class="badge bg-danger">Yes</span>
+                                    @else
+                                        <span class="badge bg-secondary">No</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($resident->is_pregnant)
+                                        <span class="badge text-white" style="background-color: #e83e8c;">Yes</span>
+                                    @else
+                                        <span class="badge bg-secondary">No</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($resident->age !== null && $resident->age >= 18 && $resident->age < 60)
+                                        <span class="badge bg-success">Yes</span>
+                                    @else
+                                        <span class="badge bg-secondary">No</span>
+                                    @endif
+                                </td>
+                                <td>
                                     <a href="{{ route('admin.residents.edit', $resident) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -69,7 +93,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="text-center">No residents found.</td>
+                                <td colspan="10" class="text-center">No residents found.</td>
                             </tr>
                             @endforelse
                         </tbody>

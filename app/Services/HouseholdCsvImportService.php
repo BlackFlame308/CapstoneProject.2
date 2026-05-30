@@ -89,6 +89,7 @@ class HouseholdCsvImportService
             $header = array_map(fn($h) => strtolower(trim($h)), $header);
 
             $rowNumber = 1;
+            $currentHousehold = null;
 
             while (($row = fgetcsv($file)) !== false) {
                 $rowNumber++;
@@ -100,8 +101,8 @@ class HouseholdCsvImportService
                 $this->totalRecords++;
 
                 try {
-                    DB::transaction(function () use ($row, $header, $rowNumber, $uploadedBy) {
-                        $this->processRow($row, $header, $rowNumber, $uploadedBy);
+                    DB::transaction(function () use ($row, $header, $rowNumber, $uploadedBy, &$currentHousehold) {
+                        $this->processRow($row, $header, $rowNumber, $uploadedBy, $currentHousehold);
                     });
                     $this->successfulRecords++;
                 } catch (\Throwable $e) {
@@ -142,7 +143,7 @@ class HouseholdCsvImportService
      * 17/member_education_level, 18/member_occupation,
      * 19/member_is_pwd (Y/N/1/0), 20/member_is_pregnant (Y/N/1/0)
      */
-    private function processRow(array $row, array $header, int $rowNumber, string $uploadedBy): void
+    private function processRow(array $row, array $header, int $rowNumber, string $uploadedBy, ?Household &$currentHousehold): void
     {
         // Helper to get value by name or index
         $get = function (array $names, int $fallbackIndex) use ($row, $header): string {
@@ -164,7 +165,8 @@ class HouseholdCsvImportService
         $headSexRaw       = strtoupper($get(['head_sex', 'sex'],      14) ?: 'M');
         $headIsPwdRaw     = $get(['head_is_pwd', 'head_pwd'],         19);
         $headIsPregnantRaw = $get(['head_is_pregnant'],               20);
-        $householdName    = $get(['household_name'],                   3);
+        $householdCode    = $get(['household_code', 'household_id'],   3);
+        $householdName    = $get(['household_name'],                  -1); // Search by name only, fallback to head's name below
         $email            = $get(['email'],                            4);
         $street           = $get(['street'],                           5);
         $purokSitio       = $get(['purok', 'purok_sitio'],             6);
@@ -172,61 +174,89 @@ class HouseholdCsvImportService
         $contactNumber    = $get(['contact_number'],                   8);
         $emergencyContact = $get(['emergency_contact'],                9);
 
-        $memberFirstName   = $get(['member_first_name'],               10) ?: $headFirstName;
-        $memberMiddleName  = $get(['member_middle_name'],              11) ?: $headMiddleName;
-        $memberLastName    = $get(['member_last_name'],                12) ?: $headLastName;
-        $memberBirthDate   = $get(['member_birth_date'],               13) ?: $headBirthDate;
-        $memberSexRaw      = strtoupper($get(['member_sex'],           14) ?: $headSexRaw);
-        $memberRelation    = $get(['member_relation'],                 15) ?: 'Head';
+        $memberFirstName   = $get(['member_first_name'],               10);
+        $memberMiddleName  = $get(['member_middle_name'],              11);
+        $memberLastName    = $get(['member_last_name'],                12);
+        $memberBirthDate   = $get(['member_birth_date'],               13);
+        $memberSexRaw      = strtoupper($get(['member_sex'],           14));
+        $memberRelation    = $get(['member_relation'],                 15);
         $memberCivilStatus = $get(['member_civil_status'],             16);
         $memberEducation   = $get(['member_education_level'],          17);
         $memberOccupation  = $get(['member_occupation', 'member_profession'], 18);
-        $memberIsPwdRaw    = $get(['member_is_pwd', 'is_pwd', 'pwd', 'person_with_disability'], 19) ?: $headIsPwdRaw;
-        $memberIsPregnantRaw = $get(['member_is_pregnant', 'is_pregnant', 'pregnant'], 20) ?: $headIsPregnantRaw;
+        $memberIsPwdRaw    = $get(['member_is_pwd', 'is_pwd', 'pwd', 'person_with_disability'], 19);
+        $memberIsPregnantRaw = $get(['member_is_pregnant', 'is_pregnant', 'pregnant'], 20);
+
+        $isNewHousehold = !empty($headFirstName) || !empty($headLastName) || !empty($householdName);
+
+        if ($isNewHousehold) {
+            if (empty($householdCode)) {
+                throw new \Exception("Row {$rowNumber}: missing household_code");
+            }
+            if (empty($headFirstName) || empty($headLastName)) {
+                throw new \Exception("Row {$rowNumber}: missing household head first/last name");
+            }
+            if (Household::where('household_id', $householdCode)->orWhere('household_code', $householdCode)->exists()) {
+                throw new \Exception("Row {$rowNumber}: household code '{$householdCode}' already exists");
+            }
+
+            // Apply fallbacks for member details on head row
+            $memberFirstName   = $memberFirstName ?: $headFirstName;
+            $memberMiddleName  = $memberMiddleName ?: $headMiddleName;
+            $memberLastName    = $memberLastName ?: $headLastName;
+            $memberBirthDate   = $memberBirthDate ?: $headBirthDate;
+            $memberSexRaw      = $memberSexRaw ?: $headSexRaw;
+            $memberRelation    = $memberRelation ?: 'Head';
+            $memberIsPwdRaw    = $memberIsPwdRaw ?: $headIsPwdRaw;
+            $memberIsPregnantRaw = $memberIsPregnantRaw ?: $headIsPregnantRaw;
+
+            // Resolve barangay
+            $barangayId = $this->resolveBarangay($barangayValue);
+
+            // Address
+            $address = Address::create([
+                'street'        => $street      ?: null,
+                'purok_sitio'   => $purokSitio  ?: null,
+                'barangay_id'   => $barangayId,
+                'barangay_name' => (!$barangayId && $barangayValue) ? $barangayValue : null,
+            ]);
+
+            // Household
+            $household = Household::create([
+                'household_id'      => $householdCode,
+                'household_code'    => $householdCode,
+                'household_name'    => $householdName ?: trim($headFirstName . ' ' . $headLastName . ' Household'),
+                'email'             => $email ?: null,
+                'member_count'      => 0,
+                'address_id'        => $address->address_id,
+                'contact_number'    => $contactNumber    ?: null,
+                'emergency_contact' => $emergencyContact ?: null,
+                'created_by'        => $uploadedBy,
+            ]);
+
+            // Automatically provision Household user account via shared service
+            $accountService = new HouseholdAccountService();
+            $accountService->provision(
+                $household,
+                $email ?: null,
+                trim($headFirstName . ' ' . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName)
+            );
+
+            // Set as current context
+            $currentHousehold = $household;
+        } else {
+            if (!$currentHousehold) {
+                throw new \Exception("Row {$rowNumber}: Member row without an active household head context.");
+            }
+            $household = $currentHousehold;
+        }
 
         $memberIsPwd      = $boolVal($memberIsPwdRaw);
         $memberIsPregnant = $boolVal($memberIsPregnantRaw);
 
-        if (empty($headFirstName) || empty($headLastName)) {
-            throw new \Exception("Row {$rowNumber}: missing household head first/last name");
-        }
-
         // Normalize sex: must be M or F for the enum column
+        $memberSexRaw = strtoupper($memberSexRaw ?: 'M');
         $memberSex = in_array($memberSexRaw, ['M', 'F']) ? $memberSexRaw
             : (str_starts_with($memberSexRaw, 'M') ? 'M' : 'F');
-
-        // Resolve barangay
-        $barangayId = $this->resolveBarangay($barangayValue);
-
-        // Address
-        $address = Address::create([
-            'street'        => $street      ?: null,
-            'purok_sitio'   => $purokSitio  ?: null,
-            'barangay_id'   => $barangayId,
-            'barangay_name' => (!$barangayId && $barangayValue) ? $barangayValue : null,
-        ]);
-
-        // Household
-        $householdCode = Household::generateHouseholdId();
-        $household = Household::create([
-            'household_id'      => $householdCode,
-            'household_code'    => $householdCode,
-            'household_name'    => $householdName ?: 'Unnamed Household',
-            'email'             => $email ?: null,
-            'member_count'      => 0,
-            'address_id'        => $address->address_id,
-            'contact_number'    => $contactNumber    ?: null,
-            'emergency_contact' => $emergencyContact ?: null,
-            'created_by'        => $uploadedBy,
-        ]);
-
-        // Automatically provision Household user account via shared service
-        $accountService = new HouseholdAccountService();
-        $accountService->provision(
-            $household,
-            $email ?: null,
-            trim($headFirstName . ' ' . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName)
-        );
 
         // Member (from this row)
         $hasMemberData = !empty($memberFirstName) && !empty($memberLastName) && !empty($memberBirthDate);
@@ -271,7 +301,7 @@ class HouseholdCsvImportService
             // Update member count
             $household->increment('member_count');
 
-            \Log::info("Row {$rowNumber}: member {$memberFullName} added to {$householdCode}");
+            \Log::info("Row {$rowNumber}: member {$memberFullName} added to {$household->household_code}");
         }
 
         ImportLog::create([
@@ -280,7 +310,7 @@ class HouseholdCsvImportService
             'status'         => 'success',
         ]);
 
-        \Log::info("Row {$rowNumber}: household {$householdCode} created successfully");
+        \Log::info("Row {$rowNumber}: household {$household->household_code} processed successfully");
     }
 
     /**

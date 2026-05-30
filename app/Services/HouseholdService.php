@@ -64,12 +64,12 @@ class HouseholdService
             $memberCount = count($allMembers);
 
             $household = Household::create([
-                'id'                => $householdCode,
+                'household_id'      => $householdCode,
                 'household_code'    => $householdCode,
                 'household_name'    => $data['household_name'] ?? 'Unnamed Household',
                 'email'             => $data['email'] ?? null,
                 'member_count'      => $memberCount,
-                'address_id'        => $address->id,
+                'address_id'        => $address->address_id,
                 'contact_number'    => $data['contact_number'] ?? null,
                 'emergency_contact' => $data['emergency_contact'] ?? null,
                 'created_by'        => $createdBy,
@@ -92,14 +92,14 @@ class HouseholdService
                 'email'                => $userEmail,
                 'password'             => bcrypt($tempPassword),
                 'role_id'              => $role->role_id,
-                'household_id'         => $household->id,
+                'household_id'         => $household->household_id,
                 'must_change_password' => true,
                 'temp_password'        => $tempPassword,
             ]);
 
             // Create member records for all members including the head
             foreach ($allMembers as $memberData) {
-                Member::create($this->buildMemberData($memberData, $household->id));
+                Member::create($this->buildMemberData($memberData, $household->household_id));
             }
 
             return $household;
@@ -122,22 +122,22 @@ class HouseholdService
                         continue;
                     }
 
-                    if (!empty($memberData['id'])) {
-                        $member = Member::find($memberData['id']);
-                        if ($member && $member->household_id === $household->id) {
-                            $member->update($this->buildMemberData($memberData, $household->id));
-                            $allMembers[] = $member->id;
+                    if (!empty($memberData['member_id'])) {
+                        $member = Member::find($memberData['member_id']);
+                        if ($member && $member->household_id === $household->household_id) {
+                            $member->update($this->buildMemberData($memberData, $household->household_id));
+                            $allMembers[] = $member->member_id;
                         }
                     } else {
-                        $newMember = Member::create($this->buildMemberData($memberData, $household->id));
-                        $allMembers[] = $newMember->id;
+                        $newMember = Member::create($this->buildMemberData($memberData, $household->household_id));
+                        $allMembers[] = $newMember->member_id;
                     }
                 }
 
-                $currentMemberIds = $household->members()->pluck('members.id')->toArray();
+                $currentMemberIds = $household->members()->pluck('members.member_id')->toArray();
                 $membersToDelete = array_diff($currentMemberIds, $allMembers);
                 if (!empty($membersToDelete)) {
-                    Member::whereIn('id', $membersToDelete)->delete();
+                    Member::whereIn('member_id', $membersToDelete)->delete();
                 }
             }
 
@@ -176,7 +176,7 @@ class HouseholdService
     {
         DB::transaction(function () use ($household) {
             $household->members()->delete();
-            User::where('household_id', $household->id)->delete();
+            User::where('household_id', $household->household_id)->delete();
             if ($household->address) {
                 $household->address->delete();
             }
