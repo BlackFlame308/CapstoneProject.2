@@ -120,11 +120,11 @@ class HouseholdAdminController extends Controller
         ]);
 
         try {
-            // Create address if location data provided
+            // Create address if location data provided (including street or purok/sitio)
             $address = null;
-            if (!empty($validated['barangay_id'])) {
+            if (!empty($validated['barangay_id']) || !empty($validated['purok_sitio']) || !empty($validated['street_address'])) {
                 $address = Address::create([
-                    'barangay_id' => $validated['barangay_id'],
+                    'barangay_id' => $validated['barangay_id'] ?? null,
                     'purok_sitio' => $validated['purok_sitio'] ?? null,
                     'street'      => $validated['street_address'] ?? null,
                 ]);
@@ -223,16 +223,17 @@ class HouseholdAdminController extends Controller
             ]);
 
             // Update or create address
-            if (!empty($validated['barangay_id'])) {
+            $hasAddressData = !empty($validated['barangay_id']) || !empty($validated['purok_sitio']) || !empty($validated['street_address']);
+            if ($hasAddressData) {
                 if ($household->address) {
                     $household->address->update([
-                        'barangay_id' => $validated['barangay_id'],
+                        'barangay_id' => $validated['barangay_id'] ?? $household->address->barangay_id,
                         'purok_sitio' => $validated['purok_sitio'] ?? null,
                         'street'      => $validated['street_address'] ?? null,
                     ]);
                 } else {
                     $address = Address::create([
-                        'barangay_id' => $validated['barangay_id'],
+                        'barangay_id' => $validated['barangay_id'] ?? null,
                         'purok_sitio' => $validated['purok_sitio'] ?? null,
                         'street'      => $validated['street_address'] ?? null,
                     ]);

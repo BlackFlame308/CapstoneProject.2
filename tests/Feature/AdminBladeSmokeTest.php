@@ -36,22 +36,19 @@ class AdminBladeSmokeTest extends TestCase
             'email' => 'captain@example.test',
             'username' => 'captain',
             'password' => Hash::make('password'),
-            'role_id' => $captainRole->id,
+            'role_id' => $captainRole->role_id,
             'must_change_password' => false,
             'is_active' => true,
         ]);
 
         $region = Region::create(['name' => 'Region Test']);
-        $province = Province::create(['region_id' => $region->id, 'name' => 'Province Test']);
-        $city = City::create(['province_id' => $province->id, 'name' => 'City Test']);
-        $barangay = Barangay::create(['city_id' => $city->id, 'name' => 'Barangay Test']);
+        $province = Province::create(['region_id' => $region->region_id, 'name' => 'Province Test']);
+        $city = City::create(['province_id' => $province->province_id, 'name' => 'City Test']);
+        $barangay = Barangay::create(['city_id' => $city->city_id, 'name' => 'Barangay Test']);
         $address = Address::create([
-            'region_id' => $region->id,
-            'province_id' => $province->id,
-            'city_id' => $city->id,
-            'barangay_id' => $barangay->id,
+            'barangay_id' => $barangay->barangay_id,
             'purok_sitio' => 'Purok 1',
-            'street_address' => 'Main Street',
+            'street' => 'Main Street',
         ]);
 
         $this->household = Household::create([
@@ -59,12 +56,12 @@ class AdminBladeSmokeTest extends TestCase
             'household_name' => 'Test Household',
             'contact_number' => '09170000000',
             'email' => 'household@example.test',
-            'address_id' => $address->id,
-            'created_by' => $this->captain->id,
+            'address_id' => $address->address_id,
+            'created_by' => $this->captain->user_id,
         ]);
 
         $this->member = Member::create([
-            'household_id' => $this->household->id,
+            'household_id' => $this->household->household_id,
             'first_name' => 'Juan',
             'last_name' => 'Dela Cruz',
             'name' => 'Juan Dela Cruz',
@@ -209,7 +206,7 @@ class AdminBladeSmokeTest extends TestCase
                 'username' => 'encoder-user',
                 'email' => 'encoder-user@example.test',
                 'contact_number' => '09175555555',
-                'role_id' => $encoderRole->id,
+                'role_id' => $encoderRole->role_id,
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
             ])
@@ -224,7 +221,7 @@ class AdminBladeSmokeTest extends TestCase
                 'username' => 'encoder-user',
                 'email' => 'encoder-user@example.test',
                 'contact_number' => '09176666666',
-                'role_id' => $encoderRole->id,
+                'role_id' => $encoderRole->role_id,
                 'is_active' => true,
             ])
             ->assertSessionHasNoErrors()
@@ -240,8 +237,8 @@ class AdminBladeSmokeTest extends TestCase
             'email' => 'household@example.test',
             'username' => 'household',
             'password' => Hash::make('password'),
-            'role_id' => $householdRole->id,
-            'household_id' => $this->household->id,
+            'role_id' => $householdRole->role_id,
+            'household_id' => $this->household->household_id,
             'must_change_password' => false,
             'is_active' => true,
         ]);

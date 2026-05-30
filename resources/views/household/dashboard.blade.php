@@ -104,7 +104,7 @@
                         <small style="color: #999; display: block; margin-bottom: 3px; font-weight: 600; text-transform: uppercase; font-size: 11px;">Assigned Location</small>
                         <p style="margin: 0; color: #333; font-weight: 500; font-size: 14px;">
                             {{ $household->address?->purok_sitio ?? 'N/A' }}, 
-                            {{ $household->address?->barangay?->name ?? 'No Barangay' }}, 
+                            {{ $household->address?->barangay_name ?? 'No Barangay' }}, 
                             {{ $household->address?->barangay?->city?->name ?? 'No City' }}
                         </p>
                     </div>

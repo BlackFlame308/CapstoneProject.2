@@ -105,7 +105,7 @@
                         <label for="street_address" class="form-label">Street Address</label>
                         <input type="text" class="form-control @error('street_address') is-invalid @enderror"
                                id="street_address" name="street_address"
-                               value="{{ old('street_address', $household->address?->street_address) }}">
+                               value="{{ old('street_address', $household->address?->street) }}">
                         @error('street_address')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

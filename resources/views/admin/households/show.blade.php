@@ -189,7 +189,7 @@
                         <div>
                             <small style="color: #999; display: block; margin-bottom: 5px; font-weight: 600;">Barangay</small>
                             <p style="margin: 0; color: #333; font-weight: 500;">
-                                {{ $household->address->barangay?->name ?? 'N/A' }}
+                                {{ $household->address->barangay_name ?? 'N/A' }}
                             </p>
                         </div>
                         <div>
@@ -201,7 +201,7 @@
                         <div>
                             <small style="color: #999; display: block; margin-bottom: 5px; font-weight: 600;">Street Address</small>
                             <p style="margin: 0; color: #333; font-weight: 500;">
-                                {{ $household->address->street_address ?? 'N/A' }}
+                                {{ $household->address->street ?? 'N/A' }}
                             </p>
                         </div>
                     </div>

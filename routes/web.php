@@ -99,16 +99,11 @@ Route::middleware('auth')->group(function () {
     | LOCATION DROPDOWN ROUTES (internal — no public API)
     |--------------------------------------------------------------------------
     */
-    Route::get('/locations/regions', [LocationController::class, 'regions'])->name('locations.regions')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/provinces/{regionId}', [LocationController::class, 'provinces'])->name('locations.provinces')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities'])->name('locations.cities')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/barangays/{cityId}', [LocationController::class, 'barangays'])->name('locations.barangays')
-        ->middleware('role:Captain|Encoder|Household');
-    Route::get('/locations/sitios/{barangayId}', [LocationController::class, 'sitios'])->name('locations.sitios')
-        ->middleware('role:Captain|Encoder|Household');
+    Route::get('/locations/regions', [LocationController::class, 'regions'])->name('locations.regions');
+    Route::get('/locations/provinces/{regionId}', [LocationController::class, 'provinces'])->name('locations.provinces');
+    Route::get('/locations/cities/{provinceId}', [LocationController::class, 'cities'])->name('locations.cities');
+    Route::get('/locations/barangays/{cityId}', [LocationController::class, 'barangays'])->name('locations.barangays');
+    Route::get('/locations/sitios/{barangayId}', [LocationController::class, 'sitios'])->name('locations.sitios');
 });
 
 /*
@@ -165,15 +160,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/reports/evacuation', [App\Http\Controllers\Admin\ReportAdminController::class, 'evacuation'])->name('reports.evacuation');
     Route::get('/reports/rescue', [App\Http\Controllers\Admin\ReportAdminController::class, 'rescue'])->name('reports.rescue');
     Route::get('/reports/logistics', [App\Http\Controllers\Admin\ReportAdminController::class, 'logistics'])->name('reports.logistics');
-    
-    // Vulnerable Groups Management
-    Route::get('/vulnerable-groups', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'index'])->name('vulnerable-groups.index');
-    Route::get('/vulnerable-groups/create', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'create'])->name('vulnerable-groups.create');
-    Route::post('/vulnerable-groups', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'store'])->name('vulnerable-groups.store');
-    Route::get('/vulnerable-groups/{vulnerableGroup}/edit', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'edit'])->name('vulnerable-groups.edit');
-    Route::put('/vulnerable-groups/{vulnerableGroup}', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'update'])->name('vulnerable-groups.update');
-    Route::delete('/vulnerable-groups/{vulnerableGroup}', [App\Http\Controllers\Admin\VulnerableGroupAdminController::class, 'destroy'])->name('vulnerable-groups.destroy');
-    
     // Device Token Tracking
     Route::get('/device-tokens', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'index'])->name('device-tokens.index');
     Route::get('/device-tokens/export/data', [App\Http\Controllers\Admin\DeviceTokenAdminController::class, 'export'])->name('device-tokens.export');

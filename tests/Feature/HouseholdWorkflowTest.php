@@ -25,19 +25,19 @@ class HouseholdWorkflowTest extends TestCase
             'name' => 'Captain Test',
             'email' => 'captain@example.test',
             'password' => 'password',
-            'role_id' => $captainRole->id,
+            'role_id' => $captainRole->role_id,
             'must_change_password' => false,
         ]);
 
         $region = Region::create(['name' => 'Region Test']);
-        $province = Province::create(['region_id' => $region->id, 'name' => 'Province Test']);
-        $city = City::create(['province_id' => $province->id, 'name' => 'City Test']);
-        $barangay = Barangay::create(['city_id' => $city->id, 'name' => 'Barangay Test']);
+        $province = Province::create(['region_id' => $region->region_id, 'name' => 'Province Test']);
+        $city = City::create(['province_id' => $province->province_id, 'name' => 'City Test']);
+        $barangay = Barangay::create(['city_id' => $city->city_id, 'name' => 'Barangay Test']);
 
         $service = app(HouseholdService::class);
         $household = $service->create([
             'household_name' => 'Dela Cruz Household',
-            'barangay_id' => $barangay->id,
+            'barangay_id' => $barangay->barangay_id,
             'street' => 'Main Street',
             'purok_sitio' => 'Purok 1',
             'head_first_name' => 'Juan',
@@ -54,17 +54,17 @@ class HouseholdWorkflowTest extends TestCase
                     'relation' => 'Daughter',
                 ],
             ],
-        ], $captain->id);
+        ], $captain->user_id);
 
-        $this->assertMatchesRegularExpression('/^HH\d{6}$/', $household->id);
-        $this->assertSame($household->id, $household->household_code);
+        $this->assertMatchesRegularExpression('/^HH\d{6}$/', $household->household_id);
+        $this->assertSame($household->household_id, $household->household_code);
         $this->assertSame(2, $household->members()->count());
         $this->assertTrue($household->members()->where('relation', 'Head')->first()->is_pwd);
         $this->assertNotEmpty($household->user->temp_password);
 
         $service->update($household->fresh(['address', 'members']), [
             'household_name' => 'Updated Dela Cruz Household',
-            'barangay_id' => $barangay->id,
+            'barangay_id' => $barangay->barangay_id,
             'street' => 'Updated Street',
         ]);
 

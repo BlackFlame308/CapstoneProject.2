@@ -99,6 +99,7 @@
                             <thead>
                                 <tr style="border-bottom: 2px solid #dee2e6;">
                                     <th style="font-weight: 600; color: #333;">Sitio/Purok</th>
+                                    <th style="font-weight: 600; color: #e74c3c; text-align: right;">Vulnerable</th>
                                     <th style="font-weight: 600; color: #333; text-align: right;">Population</th>
                                 </tr>
                             </thead>
@@ -106,6 +107,9 @@
                                 @foreach($sitioRankings as $sitio)
                                     <tr style="border-bottom: 1px solid #f1f1f1;">
                                         <td style="padding: 12px; color: #555;">{{ $sitio->purok_sitio ?? 'Unknown' }}</td>
+                                        <td style="padding: 12px; text-align: right; font-weight: 600; color: #e74c3c;">
+                                            {{ $sitio->vulnerable_count }}
+                                        </td>
                                         <td style="padding: 12px; text-align: right; font-weight: 600; color: #667eea;">
                                             {{ $sitio->member_count }}
                                         </td>

@@ -220,7 +220,7 @@
         <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
             <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 20px;">
                 <h6 style="margin: 0; font-weight: 600; color: #333;">
-                    <i class="fas fa-map-pin"></i> Population by Sitio/Purok
+                    <i class="fas fa-map-pin"></i> Sitio Vulnerability Rankings (Sorted by Vulnerable Count)
                 </h6>
             </div>
             <div class="table-responsive">
@@ -228,24 +228,28 @@
                     <thead>
                         <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                             <th style="font-weight: 600; color: #333; padding: 15px;">Sitio/Purok</th>
-                            <th style="font-weight: 600; color: #333; padding: 15px; text-align: right;">Population</th>
-                            <th style="font-weight: 600; color: #333; padding: 15px;">Progress</th>
+                            <th style="font-weight: 600; color: #e74c3c; padding: 15px; text-align: right;">Vulnerable</th>
+                            <th style="font-weight: 600; color: #333; padding: 15px; text-align: right;">Total Population</th>
+                            <th style="font-weight: 600; color: #333; padding: 15px;">Vulnerability Density Ratio</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($sitioDistribution as $sitio)
                             @php 
-                                $percent = $totalMembers > 0 ? ($sitio->population / $totalMembers) * 100 : 0;
+                                $percent = $sitio->population > 0 ? ($sitio->vulnerable_count / $sitio->population) * 100 : 0;
                             @endphp
                             <tr style="border-bottom: 1px solid #f1f1f1;">
                                 <td style="padding: 15px; color: #555;">{{ $sitio->sitio_name }}</td>
+                                <td style="padding: 15px; font-weight: 700; color: #e74c3c; text-align: right;">
+                                    {{ $sitio->vulnerable_count }}
+                                </td>
                                 <td style="padding: 15px; font-weight: 600; color: #667eea; text-align: right;">
                                     {{ $sitio->population }}
                                 </td>
                                 <td style="padding: 15px;">
                                     <div style="background-color: #f1f1f1; height: 20px; border-radius: 10px; overflow: hidden;">
-                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; width: {{ $percent }}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">
-                                            @if($percent > 5) {{ number_format($percent, 1) }}% @endif
+                                        <div style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); height: 100%; width: {{ $percent }}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: bold;">
+                                            @if($percent > 0) {{ number_format($percent, 1) }}% @else 0% @endif
                                         </div>
                                     </div>
                                 </td>

@@ -39,13 +39,6 @@ return new class extends Migration
             $table->string('relationship_label', 100);
         });
 
-        // Vulnerable Groups
-        Schema::create('vulnerable_groups', function (Blueprint $table) {
-            $table->increments('vulnerable_group_id');
-            $table->string('vulnerable_group_key', 20)->unique();
-            $table->string('vulnerable_group_label', 20);
-        });
-
         // Occupations
         Schema::create('occupations', function (Blueprint $table) {
             $table->increments('occupation_id');
@@ -59,7 +52,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('occupations');
-        Schema::dropIfExists('vulnerable_groups');
         Schema::dropIfExists('relationships');
         Schema::dropIfExists('education_levels');
         Schema::dropIfExists('civil_statuses');

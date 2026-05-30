@@ -193,56 +193,78 @@
 
 @push('scripts')
 <script>
-    // API Helper function
-    function fetchLocationData(url, selectId) {
-        const regionId = document.getElementById('region_id').value;
-        const provinceId = document.getElementById('province_id').value;
-        const cityId = document.getElementById('city_id').value;
+    // Pre-populate values from validation old() inputs if present
+    var prePopProvinceId = {{ old('province_id', 'null') }};
+    var prePopCityId     = {{ old('city_id', 'null') }};
+    var prePopBarangayId = {{ old('barangay_id', 'null') }};
 
-        if (selectId === 'province_id' && !regionId) return;
-        if (selectId === 'city_id' && !provinceId) return;
-        if (selectId === 'barangay_id' && !cityId) return;
-
+    function fetchLocationData(url, selectId, preSelectId) {
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                const select = document.getElementById(selectId);
-                select.innerHTML = '<option value="">-- Select ' + selectId.replace('_id', '') + ' --</option>';
+                var select = document.getElementById(selectId);
+                var label  = selectId === 'province_id' ? 'Province'
+                           : selectId === 'city_id'     ? 'City'
+                           : 'Barangay';
+                select.innerHTML = '<option value="">-- Select ' + label + ' --</option>';
                 if (data && data.data) {
-                    data.data.forEach(item => {
-                        const option = document.createElement('option');
+                    data.data.forEach(function(item) {
+                        var option = document.createElement('option');
                         option.value = item.id;
                         option.textContent = item.name;
+                        if (preSelectId && item.id == preSelectId) {
+                            option.selected = true;
+                        }
                         select.appendChild(option);
                     });
                 }
+                // Chain: after province loads, auto-load cities
+                if (selectId === 'province_id' && prePopProvinceId) {
+                    fetchLocationData('/locations/cities/' + prePopProvinceId, 'city_id', prePopCityId);
+                }
+                // Chain: after city loads, auto-load barangays
+                if (selectId === 'city_id' && prePopCityId) {
+                    fetchLocationData('/locations/barangays/' + prePopCityId, 'barangay_id', prePopBarangayId);
+                }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(function(error) { console.error('Location fetch error:', error); });
     }
 
-    // Region change
+    // On manual region change
     document.getElementById('region_id').addEventListener('change', function() {
-        const regionId = this.value;
-        if (regionId) {
-            fetchLocationData(`/locations/provinces/${regionId}`, 'province_id');
+        if (this.value) {
+            prePopProvinceId = null;
+            prePopCityId = null;
+            prePopBarangayId = null;
+            fetchLocationData('/locations/provinces/' + this.value, 'province_id', null);
+            document.getElementById('city_id').innerHTML     = '<option value="">-- Select City --</option>';
+            document.getElementById('barangay_id').innerHTML = '<option value="">-- Select Barangay --</option>';
         }
     });
 
-    // Province change
     document.getElementById('province_id').addEventListener('change', function() {
-        const provinceId = this.value;
-        if (provinceId) {
-            fetchLocationData(`/locations/cities/${provinceId}`, 'city_id');
+        if (this.value) {
+            prePopCityId = null;
+            prePopBarangayId = null;
+            fetchLocationData('/locations/cities/' + this.value, 'city_id', null);
+            document.getElementById('barangay_id').innerHTML = '<option value="">-- Select Barangay --</option>';
         }
     });
 
-    // City change
     document.getElementById('city_id').addEventListener('change', function() {
-        const cityId = this.value;
-        if (cityId) {
-            fetchLocationData(`/locations/barangays/${cityId}`, 'barangay_id');
+        if (this.value) {
+            prePopBarangayId = null;
+            fetchLocationData('/locations/barangays/' + this.value, 'barangay_id', null);
         }
     });
+
+    // On page load: auto-populate cascade if old inputs exist
+    (function() {
+        var regionSelect = document.getElementById('region_id');
+        if (regionSelect.value && prePopProvinceId) {
+            fetchLocationData('/locations/provinces/' + regionSelect.value, 'province_id', prePopProvinceId);
+        }
+    })();
 </script>
 @endpush
 
