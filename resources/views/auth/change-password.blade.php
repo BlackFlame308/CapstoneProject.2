@@ -6,6 +6,15 @@
 @section('content')
 <form method="POST" action="{{ route('password.update') }}">
     @csrf
+    @if ($errors->any())
+        <div class="alert alert-danger mb-3" role="alert">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="mb-3">
         <label for="current_password" class="form-label">Current Password</label>

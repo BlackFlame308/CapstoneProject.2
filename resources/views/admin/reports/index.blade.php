@@ -18,7 +18,7 @@
 <div class="row mb-4">
     <div class="col-lg-4 col-md-6 mb-3">
         <a href="{{ route('admin.reports.evacuation') }}" style="text-decoration: none;">
-            <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
+            <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #667eea 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-body" style="padding: 30px; text-align: center; color: white;">
                     <i class="fas fa-building" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.9;"></i>
                     <h5 style="margin: 0 0 10px 0; font-weight: 600;">Evacuation Reports</h5>
@@ -30,7 +30,7 @@
 
     <div class="col-lg-4 col-md-6 mb-3">
         <a href="{{ route('admin.reports.rescue') }}" style="text-decoration: none;">
-            <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
+            <div class="card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-body" style="padding: 30px; text-align: center; color: white;">
                     <i class="fas fa-life-ring" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.9;"></i>
                     <h5 style="margin: 0 0 10px 0; font-weight: 600;">Rescue Reports</h5>
@@ -42,7 +42,7 @@
 
     <div class="col-lg-4 col-md-6 mb-3">
         <a href="{{ route('admin.reports.logistics') }}" style="text-decoration: none;">
-            <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
+            <div class="card" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-body" style="padding: 30px; text-align: center; color: white;">
                     <i class="fas fa-boxes" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.9;"></i>
                     <h5 style="margin: 0 0 10px 0; font-weight: 600;">Logistics Reports</h5>

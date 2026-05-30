@@ -278,6 +278,14 @@
             min-width: 0;
         }
 
+        /* Stat card color variants (subtle backgrounds, not too light/dark) */
+        .stat-card.primary { background: linear-gradient(135deg,#eef2ff 0%, #e6ecff 100%); border-top-color: #667eea; }
+        .stat-card.info    { background: linear-gradient(135deg,#e6fffa 0%, #dff8f2 100%); border-top-color: #17a2b8; }
+        .stat-card.success { background: linear-gradient(135deg,#ecfdf5 0%, #e6fbef 100%); border-top-color: #10b981; }
+        .stat-card.warning { background: linear-gradient(135deg,#fff7ed 0%, #fff3d6 100%); border-top-color: #f59e0b; }
+        .stat-card.danger  { background: linear-gradient(135deg,#fff1f2 0%, #ffe5e8 100%); border-top-color: #ef4444; }
+        .stat-card.purple  { background: linear-gradient(135deg,#f3f0ff 0%, #efe8ff 100%); border-top-color: #764ba2; }
+
         .stat-card:hover {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
             transform: translateY(-2px);
@@ -288,6 +296,14 @@
             margin-bottom: 15px;
             color: #667eea;
         }
+
+        /* Variant icon colors */
+        .stat-card.primary  .stat-icon { color: #667eea; }
+        .stat-card.info     .stat-icon { color: #17a2b8; }
+        .stat-card.success  .stat-icon { color: #10b981; }
+        .stat-card.warning  .stat-icon { color: #f59e0b; }
+        .stat-card.danger   .stat-icon { color: #ef4444; }
+        .stat-card.purple   .stat-icon { color: #764ba2; }
 
         .stat-card .stat-value {
             font-size: 32px;
@@ -738,23 +754,39 @@
         <!-- Content Area -->
         <div class="content-area">
             <!-- Alerts -->
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <strong>There were some problems with your input:</strong>
+                    <ul style="margin-top:8px; margin-bottom:0; padding-left:18px;">
+                        @foreach ($errors->all() as $err)
+                            <li>{!! e($err) !!}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
             @if (session()->has('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
+                    <i class="fas fa-check-circle"></i>
+                    {!! session('success') !!}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
             @if (session()->has('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                    <i class="fas fa-exclamation-circle"></i>
+                    {!! session('error') !!}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
             @if (session()->has('info'))
                 <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    <i class="fas fa-info-circle"></i> {{ session('info') }}
+                    <i class="fas fa-info-circle"></i>
+                    {!! session('info') !!}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
