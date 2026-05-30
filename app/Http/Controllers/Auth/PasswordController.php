@@ -24,17 +24,11 @@ class PasswordController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'current_password'      => ['required', 'string'],
-            'password'              => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'current_password' => ['required', 'current_password'],
+            'password'         => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
         ]);
 
         $user = Auth::user();
-
-        if (!Hash::check($request->current_password, $user->password)) {
-            return back()->withErrors([
-                'current_password' => 'The current password is incorrect.',
-            ]);
-        }
 
         $user->update([
             'password'             => Hash::make($request->password),

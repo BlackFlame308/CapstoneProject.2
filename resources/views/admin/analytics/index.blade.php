@@ -9,7 +9,7 @@
 <!-- Key Statistics -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card primary">
             <div class="stat-icon"><i class="fas fa-home"></i></div>
             <div class="stat-value">{{ $totalHouseholds }}</div>
             <div class="stat-label">Total Households</div>
@@ -17,7 +17,7 @@
     </div>
 
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card info">
             <div class="stat-icon"><i class="fas fa-users"></i></div>
             <div class="stat-value">{{ $totalMembers }}</div>
             <div class="stat-label">Total Population</div>
@@ -25,15 +25,15 @@
     </div>
 
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card warning">
             <div class="stat-icon"><i class="fas fa-child"></i></div>
             <div class="stat-value">{{ $childrenCount }}</div>
-            <div class="stat-label">Children (< 18)</div>
+            <div class="stat-label">Children (&lt; 18)</div>
         </div>
     </div>
 
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card danger">
             <div class="stat-icon"><i class="fas fa-wheelchair"></i></div>
             <div class="stat-value">{{ $pwdCount }}</div>
             <div class="stat-label">PWD</div>
@@ -44,7 +44,7 @@
 <!-- Additional Metrics -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card success">
             <div class="stat-icon"><i class="fas fa-person-cane"></i></div>
             <div class="stat-value">{{ $seniorsCount }}</div>
             <div class="stat-label">Seniors (60+)</div>
@@ -52,7 +52,7 @@
     </div>
 
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card purple">
             <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
             <div class="stat-value">{{ $adultsCount }}</div>
             <div class="stat-label">Adults (18-59)</div>
@@ -60,7 +60,7 @@
     </div>
 
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card">
+        <div class="stat-card primary">
             <div class="stat-icon"><i class="fas fa-heart"></i></div>
             <div class="stat-value">{{ $pregnantCount }}</div>
             <div class="stat-label">Pregnant</div>
