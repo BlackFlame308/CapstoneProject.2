@@ -11,6 +11,7 @@ use App\Models\CsvUpload;
 use App\Models\ImportLog;
 use App\Models\User;
 use App\Models\Role;
+use App\Services\HouseholdAccountService;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -219,26 +220,13 @@ class HouseholdCsvImportService
             'created_by'        => $uploadedBy,
         ]);
 
-        // Household user account
-        $householdRole = Role::where('name', 'Household')->first();
-        if (!$householdRole) {
-            throw new \Exception('Household role not found - run the role seeder first');
-        }
-
-        $tempPassword = Str::random(10);
-        $headFullName = trim($headFirstName . ' ' . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName);
-        $userEmail    = !empty($email) ? $email : strtolower("{$householdCode}@capstone.local");
-
-        User::create([
-            'user_id'              => (string) \Illuminate\Support\Str::uuid(),
-            'name'                 => $headFullName,
-            'email'                => $userEmail,
-            'password'             => bcrypt($tempPassword),
-            'role_id'              => $householdRole->role_id,
-            'household_id'         => $household->household_id,
-            'must_change_password' => true,
-            'temp_password'        => $tempPassword,
-        ]);
+        // Automatically provision Household user account via shared service
+        $accountService = new HouseholdAccountService();
+        $accountService->provision(
+            $household,
+            $email ?: null,
+            trim($headFirstName . ' ' . ($headMiddleName ? $headMiddleName . ' ' : '') . $headLastName)
+        );
 
         // Member (from this row)
         $hasMemberData = !empty($memberFirstName) && !empty($memberLastName) && !empty($memberBirthDate);

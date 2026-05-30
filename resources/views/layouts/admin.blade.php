@@ -759,6 +759,70 @@
                 </div>
             @endif
 
+            @if (session()->has('new_account'))
+                @php $acct = session('new_account'); @endphp
+                <div class="alert alert-dismissible fade show" role="alert" id="new-account-alert"
+                     style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:white;
+                            border-radius:12px;border:none;box-shadow:0 8px 32px rgba(102,126,234,.35);padding:0;">
+                    <div style="padding:20px 24px;">
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                            <div style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.15);
+                                        display:flex;align-items:center;justify-content:center;font-size:18px;">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:15px;">Household Account Created Automatically</strong>
+                                <div style="font-size:12px;opacity:.75;margin-top:2px;">
+                                    Share these credentials with the household head. They must change their password on first login.
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+                            <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;">
+                                <div style="font-size:11px;opacity:.65;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Username</div>
+                                <div style="font-family:monospace;font-size:14px;font-weight:600;">{{ $acct['username'] }}</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;">
+                                <div style="font-size:11px;opacity:.65;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Email / Login</div>
+                                <div style="font-family:monospace;font-size:14px;font-weight:600;overflow-wrap:anywhere;">{{ $acct['email'] }}</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;border:1px solid rgba(255,193,7,.4);">
+                                <div style="font-size:11px;opacity:.65;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Temporary Password</div>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span id="tmp-pwd-display"
+                                          style="font-family:monospace;font-size:15px;font-weight:700;color:#ffd700;letter-spacing:1px;">
+                                        {{ $acct['password'] }}
+                                    </span>
+                                    <button type="button" onclick="copyTmpPassword()" id="copy-pwd-btn"
+                                            style="background:rgba(255,255,255,.2);border:none;border-radius:5px;
+                                                   padding:3px 8px;color:white;cursor:pointer;font-size:11px;">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;font-size:11px;opacity:.55;">
+                            <i class="fas fa-clock"></i> This alert auto-closes in 30 seconds. Note these credentials before it closes.
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    function copyTmpPassword() {
+                        var pwd = document.getElementById('tmp-pwd-display').innerText.trim();
+                        navigator.clipboard.writeText(pwd).then(function() {
+                            var btn = document.getElementById('copy-pwd-btn');
+                            btn.innerHTML = '<i class="fas fa-check"></i>';
+                            setTimeout(function() { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+                        });
+                    }
+                    setTimeout(function() {
+                        var el = document.getElementById('new-account-alert');
+                        if (el) { new bootstrap.Alert(el).close(); }
+                    }, 30000);
+                </script>
+            @endif
+
             <!-- Page Content -->
             @yield('content')
         </div>
