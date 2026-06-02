@@ -6,6 +6,33 @@
 @endsection
 
 @section('content')
+<!-- Barangay Selector -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
+            <div class="card-body" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h5 style="margin: 0 0 5px 0; color: #333; font-weight: 600;">Active Barangay Filter</h5>
+                    <p style="margin: 0; color: #999; font-size: 13px;">
+                        Showing analytics specifically for <strong>{{ $selectedBarangay ? $selectedBarangay->name : 'All Barangay' }}</strong>.
+                    </p>
+                </div>
+                <div>
+                    <form action="{{ route('admin.analytics.index') }}" method="GET" style="display: flex; gap: 10px; align-items: center;">
+                        <select name="barangay_id" class="form-select" style="min-width: 250px; border-radius: 8px; border: 1px solid #dee2e6; padding: 8px 12px;" onchange="this.form.submit()">
+                            @foreach($availableBarangays as $b)
+                                <option value="{{ $b->barangay_id }}" {{ $selectedBarangayId == $b->barangay_id ? 'selected' : '' }}>
+                                    {{ $b->name }} ({{ $b->city?->name ?? 'Unknown City' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Key Statistics -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">

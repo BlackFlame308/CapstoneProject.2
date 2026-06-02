@@ -190,7 +190,7 @@ class HouseholdCsvImportService
 
         if ($isNewHousehold) {
             if (empty($householdCode)) {
-                throw new \Exception("Row {$rowNumber}: missing household_code");
+                $householdCode = 'HH-' . strtoupper(\Illuminate\Support\Str::random(8));
             }
             if (empty($headFirstName) || empty($headLastName)) {
                 throw new \Exception("Row {$rowNumber}: missing household head first/last name");
@@ -327,7 +327,7 @@ class HouseholdCsvImportService
             return Barangay::where('barangay_id', $id)->exists() ? $id : null;
         }
 
-        $found = Barangay::whereRaw('LOWER(name) = ?', [strtolower($value)])->value('barangay_id');
+        $found = Barangay::where('name', $value)->value('barangay_id');
         return $found !== null ? (int) $found : null;
     }
 

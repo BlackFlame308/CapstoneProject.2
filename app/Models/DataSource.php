@@ -8,7 +8,7 @@ class DataSource extends Model
 {
     protected $primaryKey = 'id';
     public $keyType = 'int';
-    public $incrementing = true;
+    public $incrementing = false;
 
     protected $fillable = [
         'type',
@@ -23,6 +23,16 @@ class DataSource extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (DataSource $source) {
+            if (empty($source->id)) {
+                try {
+                    $source->id = (\Illuminate\Support\Facades\DB::table('data_sources')->max('id') ?? 0) + 1;
+                } catch (\Throwable $e) {
+                    $source->id = random_int(100000, 999999);
+                }
+            }
+        });
+
         static::saving(function (DataSource $source) {
             $allowed = ['csv'];
             if (!in_array($source->type, $allowed, true)) {

@@ -42,6 +42,8 @@ class Household extends Model
         'vulnerability_badge',
     ];
 
+
+
     protected static function booted(): void
     {
         static::creating(function (Household $household) {
