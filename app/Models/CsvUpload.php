@@ -8,7 +8,7 @@ class CsvUpload extends Model
 {
     protected $primaryKey = 'id';
     public $keyType = 'int';
-    public $incrementing = true;
+    public $incrementing = false;
 
     protected $fillable = [
         'data_source_id',
@@ -27,6 +27,16 @@ class CsvUpload extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (CsvUpload $upload) {
+            if (empty($upload->id)) {
+                try {
+                    $upload->id = (\Illuminate\Support\Facades\DB::table('csv_uploads')->max('id') ?? 0) + 1;
+                } catch (\Throwable $e) {
+                    $upload->id = random_int(100000, 999999);
+                }
+            }
+        });
+
         static::saving(function (CsvUpload $upload) {
             $sum = ($upload->successful_records ?? 0) + ($upload->failed_records ?? 0);
             if ($upload->total_records !== null && $sum > $upload->total_records) {

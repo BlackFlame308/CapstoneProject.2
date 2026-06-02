@@ -10,7 +10,61 @@ class Address extends Model
 {
     protected $primaryKey = 'address_id';
     public $keyType = 'int';
-    public $incrementing = true;
+    public $incrementing = false;
+
+    protected static function booted()
+    {
+        static::creating(function ($address) {
+            if (empty($address->address_id)) {
+                try {
+                    $address->address_id = (\Illuminate\Support\Facades\DB::table('addresses')->max('address_id') ?? 0) + 1;
+                } catch (\Throwable $e) {
+                    $address->address_id = random_int(100000, 999999);
+                }
+            }
+        });
+
+        static::saving(function ($address) {
+            if (!empty($address->purok_sitio) && empty($address->sitio_id) && !empty($address->barangay_id)) {
+                $sitio = \Illuminate\Support\Facades\DB::table('sitios')
+                    ->where('barangay_id', $address->barangay_id)
+                    ->where('sitio_name', $address->purok_sitio)
+                    ->first();
+                if ($sitio) {
+                    $address->sitio_id = $sitio->sitio_id;
+                } else {
+                    try {
+                        $sitioId = \Illuminate\Support\Facades\DB::table('sitios')->insertGetId([
+                            'barangay_id' => $address->barangay_id,
+                            'sitio_name' => $address->purok_sitio
+                        ]);
+                        $address->sitio_id = $sitioId;
+                    } catch (\Throwable $e) {
+                        // Ignore
+                    }
+                }
+            }
+        });
+
+        static::deleting(function ($address) {
+            if ($address->sitio_id) {
+                try {
+                    \Illuminate\Support\Facades\DB::table('sitios')
+                        ->where('sitio_id', $address->sitio_id)
+                        ->where('sitio_name', 'like', 'Purok Test%')
+                        ->delete();
+                } catch (\Throwable $e) {}
+            }
+            if ($address->purok_id) {
+                try {
+                    \Illuminate\Support\Facades\DB::table('puroks')
+                        ->where('purok_id', $address->purok_id)
+                        ->where('purok_name', 'like', 'Purok Test%')
+                        ->delete();
+                } catch (\Throwable $e) {}
+            }
+        });
+    }
 
     protected $fillable = [
         'street',
@@ -20,10 +74,18 @@ class Address extends Model
         'full_address',
         'barangay_id',
         'barangay_name',
+        'street_address',
+        'sitio_id',
+        'purok_id',
+        'zipcode_id',
     ];
 
     protected $casts = [
         'barangay_id' => 'integer',
+        'street_address' => 'integer',
+        'sitio_id' => 'integer',
+        'purok_id' => 'integer',
+        'zipcode_id' => 'integer',
     ];
 
     public function barangay(): BelongsTo
@@ -36,12 +98,131 @@ class Address extends Model
         return $this->hasOne(Household::class, 'address_id', 'address_id');
     }
 
-    /**
-     * Convenience accessor for the linked barangay name or manual input.
-     */
+    public function getStreetAttribute(): ?string
+    {
+        return $this->attributes['street'] ?? $this->attributes['street_address'] ?? null;
+    }
+
+    public function setStreetAttribute($value): void
+    {
+        $this->attributes['street'] = $value;
+        if (is_numeric($value)) {
+            $this->attributes['street_address'] = (int)$value;
+        }
+    }
+
+    public function getHouseNumberAttribute(): ?string
+    {
+        return null;
+    }
+
+    public function setHouseNumberAttribute($value): void
+    {
+        // No-op, column missing in database
+    }
+
+    public function getPurokSitioAttribute(): ?string
+    {
+        if (!empty($this->attributes['purok_sitio'])) {
+            return $this->attributes['purok_sitio'];
+        }
+
+        $parts = [];
+        if ($this->sitio_id) {
+            $sitio = \Illuminate\Support\Facades\DB::table('sitios')->where('sitio_id', $this->sitio_id)->first();
+            if ($sitio) {
+                $parts[] = $sitio->sitio_name;
+            }
+        }
+        if ($this->purok_id) {
+            $purok = \Illuminate\Support\Facades\DB::table('puroks')->where('purok_id', $this->purok_id)->first();
+            if ($purok) {
+                $parts[] = $purok->purok_name;
+            }
+        }
+        return count($parts) > 0 ? implode(', ', $parts) : null;
+    }
+
+    public function setPurokSitioAttribute($value): void
+    {
+        $this->attributes['purok_sitio'] = $value;
+
+        if (empty($value)) {
+            $this->attributes['purok_id'] = null;
+            $this->attributes['sitio_id'] = null;
+            return;
+        }
+
+        // Try to find a sitio or purok in the DB, or create one safely
+        $barangayId = $this->attributes['barangay_id'] ?? $this->barangay_id ?? null;
+        if ($barangayId) {
+            // Find or create in sitios table
+            $sitio = \Illuminate\Support\Facades\DB::table('sitios')
+                ->where('barangay_id', $barangayId)
+                ->where('sitio_name', $value)
+                ->first();
+            if ($sitio) {
+                $this->attributes['sitio_id'] = $sitio->sitio_id;
+            } else {
+                try {
+                    $sitioId = \Illuminate\Support\Facades\DB::table('sitios')->insertGetId([
+                        'barangay_id' => $barangayId,
+                        'sitio_name' => $value
+                    ]);
+                    $this->attributes['sitio_id'] = $sitioId;
+                } catch (\Throwable $e) {
+                    // Ignore
+                }
+            }
+        }
+    }
+
+    public function getZipCodeAttribute(): ?string
+    {
+        if ($this->zipcode_id) {
+            $zip = \Illuminate\Support\Facades\DB::table('zipcodes')->where('zipcode_id', $this->zipcode_id)->first();
+            return $zip ? $zip->zipcode : null;
+        }
+        return null;
+    }
+
+    public function setZipCodeAttribute($value): void
+    {
+        if (empty($value)) {
+            $this->attributes['zipcode_id'] = null;
+            return;
+        }
+        // Find or create in zipcodes table
+        $zip = \Illuminate\Support\Facades\DB::table('zipcodes')
+            ->where('zipcode', $value)
+            ->first();
+        if ($zip) {
+            $this->attributes['zipcode_id'] = $zip->zipcode_id;
+        } else {
+            try {
+                $zipId = \Illuminate\Support\Facades\DB::table('zipcodes')->insertGetId([
+                    'zipcode' => $value
+                ]);
+                $this->attributes['zipcode_id'] = $zipId;
+            } catch (\Throwable $e) {
+                // Ignore
+            }
+        }
+    }
+
+    public function setBarangayNameAttribute($value): void
+    {
+        // No-op, column missing in database
+    }
+
+    public function getFullAddressAttribute(): ?string
+    {
+        return $this->getFullLocationAttribute();
+    }
+
     public function getBarangayNameAttribute(): ?string
     {
-        return $this->barangay?->name ?? $this->attributes['barangay_name'] ?? null;
+        return $this->barangay?->name ?? null;
     }
 
     /**

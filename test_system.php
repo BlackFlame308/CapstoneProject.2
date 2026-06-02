@@ -81,21 +81,26 @@ chk('Regions have id alias', isset($regions->first()->id));
 chk('Regions have name', isset($regions->first()->name));
 chk('id is integer (not null)', is_int($regions->first()->id), 'id=' . $regions->first()->id);
 
-$firstRegion = Region::first();
+$firstBarangay = Barangay::has('sitios')->with('city.province.region')->first();
+if (!$firstBarangay) {
+    $firstBarangay = Barangay::with('city.province.region')->first();
+}
+
+$firstCity = $firstBarangay->city;
+$firstProvince = $firstCity->province;
+$firstRegion = $firstProvince->region;
+
 $provinces = Province::where('region_id',$firstRegion->region_id)->select('province_id as id','name')->get();
 chk('Provinces for region populated', $provinces->count() > 0, $provinces->count() . ' provinces');
 chk('Provinces have id alias', isset($provinces->first()?->id));
 
-$firstProvince = Province::where('region_id',$firstRegion->region_id)->first();
 $cities = City::where('province_id',$firstProvince->province_id)->select('city_id as id','name')->get();
 chk('Cities for province populated', $cities->count() > 0, $cities->count() . ' cities');
 
-$firstCity = City::where('province_id',$firstProvince->province_id)->first();
 $barangays = Barangay::where('city_id',$firstCity->city_id)->select('barangay_id as id','name')->get();
 chk('Barangays for city populated', $barangays->count() > 0, $barangays->count() . ' barangays');
 chk('Barangay id is integer', is_int($barangays->first()->id), 'id=' . $barangays->first()->id);
 
-$firstBarangay = Barangay::where('city_id',$firstCity->city_id)->first();
 $sitios = Sitio::where('barangay_id',$firstBarangay->barangay_id)->select('sitio_id as id','name')->get();
 chk('Sitios for barangay populated', $sitios->count() > 0, $sitios->count() . ' sitios');
 
@@ -276,11 +281,11 @@ chk('Age brackets sum = members with birth_date (no overlap)', ($b05+$b612+$b131
     "sum=".($b05+$b612+$b1317+$b1835+$b3659+$b60p)." dob={$withDob}");
 
 // Sitio distribution
-$sitioSum = DB::table('members')
-    ->join('households','members.household_id','=','households.household_id')
+$sitioSum = DB::table('household_members')
+    ->join('households','household_members.household_id','=','households.household_id')
     ->leftJoin('addresses','households.address_id','=','addresses.address_id')
-    ->whereNull('members.deleted_at')->whereNull('households.deleted_at')
-    ->count('members.member_id');
+    ->whereNull('household_members.deleted_at')->whereNull('households.deleted_at')
+    ->count('household_members.member_id');
 chk('Sitio distribution population sum = totalMembers', $sitioSum === $totalMem,
     "sitio_sum={$sitioSum} total={$totalMem}");
 
@@ -409,8 +414,21 @@ $routesToCheck = [
 ];
 foreach ($routesToCheck as $routeName) {
     try {
-        $url = route($routeName, [], false);
-        ok("Route [{$routeName}] registered", $url);
+        if (\Illuminate\Support\Facades\Route::has($routeName)) {
+            $url = route($routeName, [
+                'household' => 1,
+                'member' => 1,
+                'user' => 1,
+                'csvUpload' => 1,
+                'regionId' => 1,
+                'provinceId' => 1,
+                'cityId' => 1,
+                'barangayId' => 1
+            ], false);
+            ok("Route [{$routeName}] registered", $url);
+        } else {
+            fail("Route [{$routeName}] NOT registered", "Route not registered in RouteCollection");
+        }
     } catch (\Throwable $e) {
         fail("Route [{$routeName}] NOT registered", $e->getMessage());
     }

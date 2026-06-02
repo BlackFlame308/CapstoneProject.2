@@ -60,23 +60,23 @@ class AdminDashboardController extends Controller
         if (class_exists('App\Models\Address')) {
             $isSqlite = DB::connection()->getDriverName() === 'sqlite';
             $ageExpr = $isSqlite 
-                ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', members.birth_date) as integer), members.age)"
-                : "COALESCE(TIMESTAMPDIFF(YEAR, members.birth_date, CURDATE()), members.age)";
+                ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', household_members.birth_date) as integer), household_members.age)"
+                : "COALESCE(TIMESTAMPDIFF(YEAR, household_members.birth_date, CURDATE()), household_members.age)";
 
-            $sitioRankings = DB::table('members')
-                ->join('households', 'members.household_id', '=', 'households.household_id')
+            $sitioRankings = DB::table('household_members')
+                ->join('households', 'household_members.household_id', '=', 'households.household_id')
                 ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
                 ->select(
                     'addresses.purok_sitio',
-                    DB::raw('COUNT(members.member_id) as member_count'),
+                    DB::raw('COUNT(household_members.member_id) as member_count'),
                     DB::raw("SUM(CASE WHEN (
-                        members.is_pwd = 1 OR 
-                        members.is_pregnant = 1 OR 
+                        household_members.is_pwd = 1 OR 
+                        household_members.is_pregnant = 1 OR 
                         ({$ageExpr} >= 60) OR 
                         ({$ageExpr} < 18)
                     ) THEN 1 ELSE 0 END) as vulnerable_count")
                 )
-                ->whereNull('members.deleted_at')
+                ->whereNull('household_members.deleted_at')
                 ->whereNull('households.deleted_at')
                 ->groupBy('addresses.purok_sitio')
                 ->get()
