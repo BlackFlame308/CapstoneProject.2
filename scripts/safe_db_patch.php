@@ -138,6 +138,10 @@ try {
                 echo "[+] Adding column 'civil_status' to 'household_members' table...\n";
                 $table->string('civil_status', 50)->nullable();
             }
+            if (!Schema::hasColumn('household_members', 'education_level')) {
+                echo "[+] Adding column 'education_level' to 'household_members' table...\n";
+                $table->string('education_level', 100)->nullable();
+            }
             if (!Schema::hasColumn('household_members', 'special_needs')) {
                 echo "[+] Adding column 'special_needs' to 'household_members' table...\n";
                 $table->string('special_needs', 50)->nullable();
@@ -167,6 +171,17 @@ try {
         DB::statement("UPDATE household_members SET civil_status = 'Married' WHERE civil_status_id = 2 AND civil_status IS NULL");
         DB::statement("UPDATE household_members SET civil_status = 'Widowed' WHERE civil_status_id = 3 AND civil_status IS NULL");
         DB::statement("UPDATE household_members SET civil_status = 'Divorced' WHERE civil_status_id = 4 AND civil_status IS NULL");
+
+        echo "[~] Backfilling 'education_level' in 'household_members'...\n";
+        DB::statement("
+            UPDATE household_members m
+            SET m.education_level = (
+                SELECT el.education_level_label 
+                FROM education_levels el 
+                WHERE el.education_level_id = m.education_level_id
+            )
+            WHERE m.education_level IS NULL AND m.education_level_id IS NOT NULL
+        ");
 
         echo "[~] Backfilling relational vulnerabilities in 'household_members'...\n";
         // PWD backfill

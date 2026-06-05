@@ -25,30 +25,51 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
-        // Get statistics
-        $totalHouseholds = Household::count();
-        $totalPopulation = Member::count();
+        $mambaling = \App\Models\Barangay::where('name', 'like', 'Mambaling')->first();
+        $mambalingId = $mambaling?->barangay_id ?? 396;
+
+        // Get statistics (scoping to Mambaling)
+        $totalHouseholds = Household::whereHas('address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->count();
+
+        $totalPopulation = Member::whereHas('household.address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->count();
+
         $adultCutoff = now()->subYears(18)->toDateString();
         $seniorCutoff = now()->subYears(60)->toDateString();
         
-        // Get demographics
-        $childrenCount = Member::where(function ($query) use ($adultCutoff) {
+        // Get demographics (scoping to Mambaling)
+        $childrenCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->where(function ($query) use ($adultCutoff) {
             $query->whereDate('birth_date', '>', $adultCutoff)
                 ->orWhere(function ($fallback) {
                     $fallback->whereNull('birth_date')->where('age', '<', 18);
                 });
         })->count();
 
-        $seniorsCount = Member::where(function ($query) use ($seniorCutoff) {
+        $seniorsCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->where(function ($query) use ($seniorCutoff) {
             $query->whereDate('birth_date', '<=', $seniorCutoff)
                 ->orWhere(function ($fallback) {
                     $fallback->whereNull('birth_date')->where('age', '>=', 60);
                 });
         })->count();
 
-        $pwdCount = Member::where('is_pwd', true)->count();
-        $pregnantCount = Member::where('is_pregnant', true)->count();
-        $adultsCount = Member::where(function ($query) use ($adultCutoff, $seniorCutoff) {
+        $pwdCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->where('is_pwd', true)->count();
+
+        $pregnantCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->where('is_pregnant', true)->count();
+
+        $adultsCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
+            $q->where('barangay_id', $mambalingId);
+        })->where(function ($query) use ($adultCutoff, $seniorCutoff) {
             $query->whereBetween('birth_date', [$seniorCutoff, $adultCutoff])
                 ->orWhere(function ($fallback) {
                     $fallback->whereNull('birth_date')->whereBetween('age', [18, 59]);
@@ -59,25 +80,27 @@ class AdminDashboardController extends Controller
         $sitioRankings = collect([]);
         if (class_exists('App\Models\Address')) {
             $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+            $memberTable = (new \App\Models\Member)->getTable();
             $ageExpr = $isSqlite 
-                ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', household_members.birth_date) as integer), household_members.age)"
-                : "COALESCE(TIMESTAMPDIFF(YEAR, household_members.birth_date, CURDATE()), household_members.age)";
+                ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$memberTable}.age)"
+                : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$memberTable}.age)";
 
-            $sitioRankings = DB::table('household_members')
-                ->join('households', 'household_members.household_id', '=', 'households.household_id')
+            $sitioRankings = DB::table($memberTable)
+                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
                 ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
                 ->select(
                     'addresses.purok_sitio',
-                    DB::raw('COUNT(household_members.member_id) as member_count'),
+                    DB::raw("COUNT({$memberTable}.member_id) as member_count"),
                     DB::raw("SUM(CASE WHEN (
-                        household_members.is_pwd = 1 OR 
-                        household_members.is_pregnant = 1 OR 
+                        {$memberTable}.is_pwd = 1 OR 
+                        {$memberTable}.is_pregnant = 1 OR 
                         ({$ageExpr} >= 60) OR 
                         ({$ageExpr} < 18)
                     ) THEN 1 ELSE 0 END) as vulnerable_count")
                 )
-                ->whereNull('household_members.deleted_at')
+                ->whereNull("{$memberTable}.deleted_at")
                 ->whereNull('households.deleted_at')
+                ->where('addresses.barangay_id', $mambalingId) // Filter by Mambaling barangay_id!
                 ->groupBy('addresses.purok_sitio')
                 ->get()
                 ->sortByDesc('vulnerable_count')
@@ -85,8 +108,11 @@ class AdminDashboardController extends Controller
                 ->values();
         }
         
-        // Get recent households
+        // Get recent households (scoping to Mambaling)
         $recentHouseholds = Household::with('address')
+            ->whereHas('address', function($q) use ($mambalingId) {
+                $q->where('barangay_id', $mambalingId);
+            })
             ->latest()
             ->limit(5)
             ->get();

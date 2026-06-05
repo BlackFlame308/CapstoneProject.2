@@ -65,6 +65,10 @@ class User extends Authenticatable
 
     public function setNameAttribute(?string $value): void
     {
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['name'] = $value;
+            return;
+        }
         $parts = explode(' ', trim((string)$value), 2);
         $this->attributes['first_name'] = $parts[0] ?? '';
         $this->attributes['last_name'] = $parts[1] ?? '';
@@ -162,6 +166,9 @@ class User extends Authenticatable
 
     public function newEloquentBuilder($query)
     {
+        if (config('database.default') === 'sqlite') {
+            return new \Illuminate\Database\Eloquent\Builder($query);
+        }
         return new class($query) extends \Illuminate\Database\Eloquent\Builder {
             public function where($column, $operator = null, $value = null, $boolean = 'and')
             {

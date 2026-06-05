@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Traits\NormalizesLocationNames;
 
 class Address extends Model
 {
@@ -15,6 +16,9 @@ class Address extends Model
     protected static function booted()
     {
         static::creating(function ($address) {
+            if (config('database.default') === 'sqlite') {
+                return;
+            }
             if (empty($address->address_id)) {
                 try {
                     $address->address_id = (\Illuminate\Support\Facades\DB::table('addresses')->max('address_id') ?? 0) + 1;
@@ -25,10 +29,16 @@ class Address extends Model
         });
 
         static::saving(function ($address) {
+            if (config('database.default') === 'sqlite') {
+                return;
+            }
             if (!empty($address->purok_sitio) && empty($address->sitio_id) && !empty($address->barangay_id)) {
+                $normalizedPurokSitio = NormalizesLocationNames::normalizeLocationName($address->purok_sitio);
+                $address->purok_sitio = $normalizedPurokSitio;
+
                 $sitio = \Illuminate\Support\Facades\DB::table('sitios')
                     ->where('barangay_id', $address->barangay_id)
-                    ->where('sitio_name', $address->purok_sitio)
+                    ->where('sitio_name', 'like', $normalizedPurokSitio)
                     ->first();
                 if ($sitio) {
                     $address->sitio_id = $sitio->sitio_id;
@@ -36,7 +46,7 @@ class Address extends Model
                     try {
                         $sitioId = \Illuminate\Support\Facades\DB::table('sitios')->insertGetId([
                             'barangay_id' => $address->barangay_id,
-                            'sitio_name' => $address->purok_sitio
+                            'sitio_name' => $normalizedPurokSitio
                         ]);
                         $address->sitio_id = $sitioId;
                     } catch (\Throwable $e) {
@@ -47,6 +57,9 @@ class Address extends Model
         });
 
         static::deleting(function ($address) {
+            if (config('database.default') === 'sqlite') {
+                return;
+            }
             if ($address->sitio_id) {
                 try {
                     \Illuminate\Support\Facades\DB::table('sitios')
@@ -106,25 +119,30 @@ class Address extends Model
     public function setStreetAttribute($value): void
     {
         $this->attributes['street'] = $value;
-        if (is_numeric($value)) {
+        if (config('database.default') !== 'sqlite' && is_numeric($value)) {
             $this->attributes['street_address'] = (int)$value;
         }
     }
 
     public function getHouseNumberAttribute(): ?string
     {
+        if (config('database.default') === 'sqlite') {
+            return $this->attributes['house_number'] ?? null;
+        }
         return null;
     }
 
     public function setHouseNumberAttribute($value): void
     {
-        // No-op, column missing in database
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['house_number'] = $value;
+        }
     }
 
     public function getPurokSitioAttribute(): ?string
     {
-        if (!empty($this->attributes['purok_sitio'])) {
-            return $this->attributes['purok_sitio'];
+        if (config('database.default') === 'sqlite' || !empty($this->attributes['purok_sitio'])) {
+            return $this->attributes['purok_sitio'] ?? null;
         }
 
         $parts = [];
@@ -145,9 +163,14 @@ class Address extends Model
 
     public function setPurokSitioAttribute($value): void
     {
-        $this->attributes['purok_sitio'] = $value;
+        $normalized = NormalizesLocationNames::normalizeLocationName($value);
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['purok_sitio'] = $normalized;
+            return;
+        }
+        $this->attributes['purok_sitio'] = $normalized;
 
-        if (empty($value)) {
+        if (empty($normalized)) {
             $this->attributes['purok_id'] = null;
             $this->attributes['sitio_id'] = null;
             return;
@@ -159,7 +182,7 @@ class Address extends Model
             // Find or create in sitios table
             $sitio = \Illuminate\Support\Facades\DB::table('sitios')
                 ->where('barangay_id', $barangayId)
-                ->where('sitio_name', $value)
+                ->where('sitio_name', 'like', $normalized)
                 ->first();
             if ($sitio) {
                 $this->attributes['sitio_id'] = $sitio->sitio_id;
@@ -167,7 +190,7 @@ class Address extends Model
                 try {
                     $sitioId = \Illuminate\Support\Facades\DB::table('sitios')->insertGetId([
                         'barangay_id' => $barangayId,
-                        'sitio_name' => $value
+                        'sitio_name' => $normalized
                     ]);
                     $this->attributes['sitio_id'] = $sitioId;
                 } catch (\Throwable $e) {
@@ -179,6 +202,9 @@ class Address extends Model
 
     public function getZipCodeAttribute(): ?string
     {
+        if (config('database.default') === 'sqlite') {
+            return $this->attributes['zip_code'] ?? null;
+        }
         if ($this->zipcode_id) {
             $zip = \Illuminate\Support\Facades\DB::table('zipcodes')->where('zipcode_id', $this->zipcode_id)->first();
             return $zip ? $zip->zipcode : null;
@@ -188,6 +214,10 @@ class Address extends Model
 
     public function setZipCodeAttribute($value): void
     {
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['zip_code'] = $value;
+            return;
+        }
         if (empty($value)) {
             $this->attributes['zipcode_id'] = null;
             return;
@@ -212,7 +242,8 @@ class Address extends Model
 
     public function setBarangayNameAttribute($value): void
     {
-        // No-op, column missing in database
+        $normalized = NormalizesLocationNames::normalizeLocationName($value);
+        $this->attributes['barangay_name'] = $normalized;
     }
 
     public function getFullAddressAttribute(): ?string
@@ -222,6 +253,9 @@ class Address extends Model
 
     public function getBarangayNameAttribute(): ?string
     {
+        if (config('database.default') === 'sqlite') {
+            return $this->attributes['barangay_name'] ?? $this->barangay?->name ?? null;
+        }
         return $this->barangay?->name ?? null;
     }
 

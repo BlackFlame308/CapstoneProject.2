@@ -327,7 +327,7 @@ class HouseholdCsvImportService
             return Barangay::where('barangay_id', $id)->exists() ? $id : null;
         }
 
-        $found = Barangay::where('name', $value)->value('barangay_id');
+        $found = Barangay::where('name', 'like', $value)->value('barangay_id');
         return $found !== null ? (int) $found : null;
     }
 

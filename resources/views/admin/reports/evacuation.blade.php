@@ -52,28 +52,55 @@
     </div>
 </div>
 
-<!-- Empty State / Placeholder -->
-<div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
-    <div style="padding: 80px 20px; text-align: center;">
-        <i class="fas fa-inbox" style="font-size: 64px; color: #ddd; margin-bottom: 20px; display: block;"></i>
-        <h4 style="color: #999; margin-bottom: 10px;">No Evacuation Reports</h4>
-        <p style="color: #bbb; margin-bottom: 20px;">
-            Reports will appear here once the evacuation subsystem is connected via API.
-        </p>
-
-        <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; border-radius: 8px; text-align: left; display: inline-block;">
-            <p style="margin: 0 0 10px 0; color: #333; font-weight: 600;">
-                <i class="fas fa-wrench"></i> Integration Checklist
-            </p>
-            <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
-                <li>Create API endpoint for evacuation data</li>
-                <li>Implement token-based authentication</li>
-                <li>Add error handling and logging</li>
-                <li>Test API connection and data format</li>
-                <li>Configure caching strategy</li>
-            </ul>
+<!-- Evacuation Reports Table -->
+@if($reports->count() > 0)
+    <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
+        <div class="table-responsive">
+            <table class="table" style="margin: 0;">
+                <thead>
+                    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Event / Disaster</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Evacuation Center</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Household</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px; text-align: right;">Evacuated Count</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Method</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Verified By</th>
+                        <th style="font-weight: 600; color: #333; padding: 15px;">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($reports as $report)
+                        <tr style="border-bottom: 1px solid #f1f1f1;">
+                            <td style="padding: 15px; color: #333; font-weight: 500;">{{ $report->event_name ?? 'N/A' }}</td>
+                            <td style="padding: 15px; color: #555;">{{ $report->center_name ?? 'N/A' }}</td>
+                            <td style="padding: 15px; color: #555;">{{ $report->household_name ?? 'N/A' }}</td>
+                            <td style="padding: 15px; text-align: right; font-weight: 600; color: #4f46e5;">{{ $report->evacuated_count ?? 0 }}</td>
+                            <td style="padding: 15px;">
+                                <span class="badge {{ $report->method === 'qr' ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ strtoupper($report->method ?? 'manual') }}
+                                </span>
+                            </td>
+                            <td style="padding: 15px; color: #555;">{{ $report->verified_by ?? 'System' }}</td>
+                            <td style="padding: 15px; color: #999;">
+                                {{ \Carbon\Carbon::parse($report->created_at)->format('M d, Y g:i A') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
+@else
+    <!-- Empty State / Placeholder -->
+    <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
+        <div style="padding: 80px 20px; text-align: center;">
+            <i class="fas fa-inbox" style="font-size: 64px; color: #ddd; margin-bottom: 20px; display: block;"></i>
+            <h4 style="color: #999; margin-bottom: 10px;">No Evacuation Reports</h4>
+            <p style="color: #bbb; margin-bottom: 20px;">
+                No evacuation records matched your filters.
+            </p>
+        </div>
+    </div>
+@endif
 
 @endsection

@@ -19,7 +19,7 @@ class Role extends Model
             if (empty($role->role_id)) {
                 $role->role_id = (static::max('role_id') ?? 0) + 1;
             }
-            if (empty($role->role_key)) {
+            if (config('database.default') !== 'sqlite' && empty($role->role_key)) {
                 $role->role_key = \Illuminate\Support\Str::slug($role->role_name ?? $role->name ?? 'role', '_');
             }
         });
@@ -27,6 +27,9 @@ class Role extends Model
 
     public function getNameAttribute(): ?string
     {
+        if (config('database.default') === 'sqlite') {
+            return $this->attributes['name'] ?? null;
+        }
         $key = $this->attributes['role_key'] ?? null;
         $name = $this->attributes['role_name'] ?? $this->attributes['name'] ?? null;
         
@@ -48,7 +51,11 @@ class Role extends Model
 
     public function setNameAttribute(?string $value): void
     {
-        $this->attributes['role_name'] = $value;
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['name'] = $value;
+        } else {
+            $this->attributes['role_name'] = $value;
+        }
     }
 
     public function getRoleNameAttribute(): ?string
@@ -58,7 +65,11 @@ class Role extends Model
 
     public function setRoleNameAttribute(?string $value): void
     {
-        $this->attributes['role_name'] = $value;
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['name'] = $value;
+        } else {
+            $this->attributes['role_name'] = $value;
+        }
     }
 
     public function users()
@@ -68,6 +79,9 @@ class Role extends Model
 
     public function newEloquentBuilder($query)
     {
+        if (config('database.default') === 'sqlite') {
+            return new \Illuminate\Database\Eloquent\Builder($query);
+        }
         return new class($query) extends \Illuminate\Database\Eloquent\Builder {
             public function select($columns = ['*'])
             {
