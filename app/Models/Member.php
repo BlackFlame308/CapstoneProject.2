@@ -13,6 +13,18 @@ class Member extends Model
     protected $table = 'household_members';
     public $timestamps = false;
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        if (config('database.default') === 'sqlite') {
+            $this->setTable('members');
+            $this->timestamps = true;
+        } else {
+            $this->setTable('household_members');
+            $this->timestamps = false;
+        }
+    }
+
     protected $primaryKey = 'member_id';
     public $incrementing = false;
     protected $keyType = 'string';
@@ -68,6 +80,9 @@ class Member extends Model
         });
 
         static::saved(function (Member $member) {
+            if (config('database.default') === 'sqlite') {
+                return;
+            }
             // Sync PWD vulnerability group
             if (isset($member->attributes['is_pwd'])) {
                 $isPwd = (bool)$member->attributes['is_pwd'];
@@ -108,6 +123,9 @@ class Member extends Model
         });
 
         static::deleting(function (Member $member) {
+            if (config('database.default') === 'sqlite') {
+                return;
+            }
             $occId = $member->attributes['occupation'] ?? null;
             if ($occId) {
                 try {
@@ -144,9 +162,14 @@ class Member extends Model
         );
     }
 
+    public function getNameAttribute(): ?string
+    {
+        return $this->attributes['name'] ?? $this->full_name;
+    }
+
     public function setNameAttribute($value): void
     {
-        // No-op, name is constructed from first_name, middle_name, and last_name
+        $this->attributes['name'] = $value;
     }
 
     public function getVulnerabilityAttribute(): string
@@ -159,8 +182,8 @@ class Member extends Model
 
     public function getIsPwdAttribute(): bool
     {
-        if (isset($this->attributes['is_pwd'])) {
-            return (bool)$this->attributes['is_pwd'];
+        if (config('database.default') === 'sqlite' || isset($this->attributes['is_pwd'])) {
+            return (bool)($this->attributes['is_pwd'] ?? false);
         }
 
         return \Illuminate\Support\Facades\DB::table('member_vulnerable_groups')
@@ -177,18 +200,23 @@ class Member extends Model
 
     public function getIsSeniorAttribute(): bool
     {
+        if (config('database.default') === 'sqlite') {
+            return (bool)($this->attributes['is_senior'] ?? false);
+        }
         return $this->age >= 60;
     }
 
     public function setIsSeniorAttribute($value): void
     {
-        // No-op
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['is_senior'] = $value ? 1 : 0;
+        }
     }
 
     public function getIsPregnantAttribute(): bool
     {
-        if (isset($this->attributes['is_pregnant'])) {
-            return (bool)$this->attributes['is_pregnant'];
+        if (config('database.default') === 'sqlite' || isset($this->attributes['is_pregnant'])) {
+            return (bool)($this->attributes['is_pregnant'] ?? false);
         }
 
         return \Illuminate\Support\Facades\DB::table('member_vulnerable_groups')
@@ -205,25 +233,39 @@ class Member extends Model
 
     public function getSexAttribute(): ?string
     {
-        $genderId = $this->attributes['gender_id'] ?? null;
-        if ($genderId == 1) return 'm';
-        if ($genderId == 2) return 'f';
+        $sex = $this->attributes['sex'] ?? null;
+        if ($sex) {
+            return strtoupper($sex); // returns M or F
+        }
+        if (config('database.default') !== 'sqlite') {
+            $genderId = $this->attributes['gender_id'] ?? null;
+            if ($genderId == 1) return 'M';
+            if ($genderId == 2) return 'F';
+        }
         return null;
     }
 
     public function setSexAttribute($value): void
     {
         $val = strtolower(trim((string)$value));
-        if ($val === 'm' || $val === 'male') {
-            $this->attributes['gender_id'] = 1;
-        } elseif ($val === 'f' || $val === 'female') {
-            $this->attributes['gender_id'] = 2;
+        $sexVal = ($val === 'm' || $val === 'male') ? 'M' : 'F';
+        $genderVal = ($val === 'm' || $val === 'male') ? 'Male' : 'Female';
+        $genderId = ($val === 'm' || $val === 'male') ? 1 : 2;
+
+        $this->attributes['sex'] = $sexVal;
+        $this->attributes['gender'] = $genderVal;
+        if (config('database.default') !== 'sqlite') {
+            $this->attributes['gender_id'] = $genderId;
         }
     }
 
     public function getGenderAttribute(): ?string
     {
-        return $this->getSexAttribute() === 'm' ? 'Male' : 'Female';
+        $gender = $this->attributes['gender'] ?? null;
+        if ($gender) {
+            return $gender;
+        }
+        return $this->getSexAttribute() === 'M' ? 'Male' : 'Female';
     }
 
     public function setGenderAttribute($value): void
@@ -233,18 +275,47 @@ class Member extends Model
 
     public function getRelationAttribute(): ?string
     {
-        $relId = $this->attributes['relationship_id'] ?? null;
-        if ($relId) {
-            $rel = \Illuminate\Support\Facades\DB::table('relationships')->where('relationship_id', $relId)->first();
-            return $rel ? $rel->relationship_label : null;
+        $val = $this->attributes['relation'] ?? null;
+        if (!$val && config('database.default') !== 'sqlite') {
+            $relId = $this->attributes['relationship_id'] ?? null;
+            if ($relId) {
+                $rel = \Illuminate\Support\Facades\DB::table('relationships')->where('relationship_id', $relId)->first();
+                $val = $rel ? $rel->relationship_label : null;
+            }
         }
+
+        if ($val) {
+            if (strtolower($val) === 'head of household') {
+                return 'Head';
+            }
+            if (strtolower($val) === 'other relative') {
+                return 'Others';
+            }
+            return $val;
+        }
+
         return null;
     }
 
     public function setRelationAttribute($value): void
     {
         $val = trim((string)$value);
-        $rel = \Illuminate\Support\Facades\DB::table('relationships')->where('relationship_label', 'like', $val)->first();
+        $this->attributes['relation'] = $val;
+
+        if (config('database.default') === 'sqlite') {
+            return;
+        }
+
+        $mapped = $val;
+        if (strtolower($val) === 'head') {
+            $mapped = 'Head of Household';
+        } elseif (strtolower($val) === 'others' || strtolower($val) === 'other' || strtolower($val) === 'grandchild') {
+            $mapped = 'Other Relative';
+        }
+
+        $rel = \Illuminate\Support\Facades\DB::table('relationships')
+            ->where('relationship_label', 'like', $mapped)
+            ->first();
         if ($rel) {
             $this->attributes['relationship_id'] = $rel->relationship_id;
         }
@@ -252,18 +323,29 @@ class Member extends Model
 
     public function getCivilStatusAttribute(): ?string
     {
-        $statusId = $this->attributes['civil_status_id'] ?? null;
-        if ($statusId) {
-            $status = \Illuminate\Support\Facades\DB::table('civil_statuses')->where('status_id', $statusId)->first();
-            return $status ? $status->status_label : null;
+        $val = $this->attributes['civil_status'] ?? null;
+        if (!$val && config('database.default') !== 'sqlite') {
+            $statusId = $this->attributes['civil_status_id'] ?? null;
+            if ($statusId) {
+                $status = \Illuminate\Support\Facades\DB::table('civil_statuses')->where('status_id', $statusId)->first();
+                $val = $status ? $status->status_label : null;
+            }
         }
-        return null;
+        return $val;
     }
 
     public function setCivilStatusAttribute($value): void
     {
         $val = trim((string)$value);
-        $status = \Illuminate\Support\Facades\DB::table('civil_statuses')->where('status_label', 'like', $val)->first();
+        $this->attributes['civil_status'] = $val;
+
+        if (config('database.default') === 'sqlite') {
+            return;
+        }
+
+        $status = \Illuminate\Support\Facades\DB::table('civil_statuses')
+            ->where('status_label', 'like', $val)
+            ->first();
         if ($status) {
             $this->attributes['civil_status_id'] = $status->status_id;
         }
@@ -271,18 +353,29 @@ class Member extends Model
 
     public function getEducationLevelAttribute(): ?string
     {
-        $elId = $this->attributes['education_level_id'] ?? null;
-        if ($elId) {
-            $el = \Illuminate\Support\Facades\DB::table('education_levels')->where('education_level_id', $elId)->first();
-            return $el ? $el->education_level_label : null;
+        $val = $this->attributes['education_level'] ?? null;
+        if (!$val && config('database.default') !== 'sqlite') {
+            $elId = $this->attributes['education_level_id'] ?? null;
+            if ($elId) {
+                $el = \Illuminate\Support\Facades\DB::table('education_levels')->where('education_level_id', $elId)->first();
+                $val = $el ? $el->education_level_label : null;
+            }
         }
-        return null;
+        return $val;
     }
 
     public function setEducationLevelAttribute($value): void
     {
         $val = trim((string)$value);
-        $el = \Illuminate\Support\Facades\DB::table('education_levels')->where('education_level_label', 'like', $val)->first();
+        $this->attributes['education_level'] = $val;
+
+        if (config('database.default') === 'sqlite') {
+            return;
+        }
+
+        $el = \Illuminate\Support\Facades\DB::table('education_levels')
+            ->where('education_level_label', 'like', $val)
+            ->first();
         if ($el) {
             $this->attributes['education_level_id'] = $el->education_level_id;
         }
@@ -290,22 +383,27 @@ class Member extends Model
 
     public function getOccupationAttribute(): ?string
     {
-        $occId = $this->attributes['occupation'] ?? null;
-        if ($occId) {
-            $occ = \Illuminate\Support\Facades\DB::table('occupations')->where('occuaption_id', $occId)->first();
+        $val = $this->attributes['occupation'] ?? null;
+        if (is_numeric($val) && config('database.default') !== 'sqlite') {
+            $occ = \Illuminate\Support\Facades\DB::table('occupations')->where('occuaption_id', (int)$val)->first();
             return $occ ? $occ->occupation_name : null;
         }
-        return null;
+        return $val;
     }
 
     public function setOccupationAttribute($value): void
     {
-        if (empty($value)) {
-            $this->attributes['occupation'] = null;
+        $val = trim((string)$value);
+        $this->attributes['occupation'] = $val;
+
+        if (config('database.default') === 'sqlite') {
             return;
         }
 
-        $val = trim((string)$value);
+        if (empty($val)) {
+            return;
+        }
+
         $occ = \Illuminate\Support\Facades\DB::table('occupations')->where('occupation_name', 'like', $val)->first();
         if ($occ) {
             $this->attributes['occupation'] = $occ->occuaption_id;
@@ -326,16 +424,19 @@ class Member extends Model
 
     public function getSpecialNeedsAttribute(): ?string
     {
-        return null;
+        return $this->attributes['special_needs'] ?? null;
     }
 
     public function setSpecialNeedsAttribute($value): void
     {
-        // No-op
+        $this->attributes['special_needs'] = $value;
     }
 
     public function newEloquentBuilder($query)
     {
+        if (config('database.default') === 'sqlite') {
+            return new \Illuminate\Database\Eloquent\Builder($query);
+        }
         return new class($query) extends \Illuminate\Database\Eloquent\Builder {
             public function whereRaw($sql, $bindings = [], $boolean = 'and')
             {

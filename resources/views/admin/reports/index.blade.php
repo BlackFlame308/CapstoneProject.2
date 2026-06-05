@@ -21,7 +21,7 @@
             <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #667eea 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-body" style="padding: 30px; text-align: center; color: white;">
                     <i class="fas fa-building" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.9;"></i>
-                    <h5 style="margin: 0 0 10px 0; font-weight: 600;">Evacuation Reports</h5>
+                    <h5 style="margin: 0 0 10px 0; font-weight: 600;">Evacuation Reports ({{ $evacuationCount }})</h5>
                     <p style="margin: 0; opacity: 0.9; font-size: 14px;">Disaster evacuation incidents</p>
                 </div>
             </div>
@@ -33,7 +33,7 @@
             <div class="card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-body" style="padding: 30px; text-align: center; color: white;">
                     <i class="fas fa-life-ring" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.9;"></i>
-                    <h5 style="margin: 0 0 10px 0; font-weight: 600;">Rescue Reports</h5>
+                    <h5 style="margin: 0 0 10px 0; font-weight: 600;">Rescue Operations ({{ $rescueCount }})</h5>
                     <p style="margin: 0; opacity: 0.9; font-size: 14px;">Rescue and emergency operations</p>
                 </div>
             </div>
@@ -45,7 +45,7 @@
             <div class="card" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); border-radius: 12px; border: none; cursor: pointer; transition: all 0.3s ease;">
                 <div class="card-body" style="padding: 30px; text-align: center; color: white;">
                     <i class="fas fa-boxes" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.9;"></i>
-                    <h5 style="margin: 0 0 10px 0; font-weight: 600;">Logistics Reports</h5>
+                    <h5 style="margin: 0 0 10px 0; font-weight: 600;">Logistics Requests ({{ $logisticsCount }})</h5>
                     <p style="margin: 0; opacity: 0.9; font-size: 14px;">Aid and supply distribution</p>
                 </div>
             </div>

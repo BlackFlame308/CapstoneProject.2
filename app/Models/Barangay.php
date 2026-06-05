@@ -6,12 +6,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Traits\NormalizesLocationNames;
 
 class Barangay extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesLocationNames;
 
     public $timestamps = false;
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->timestamps = (config('database.default') === 'sqlite');
+    }
 
     protected $primaryKey = 'barangay_id';
     public $keyType = 'int';
@@ -39,7 +46,12 @@ class Barangay extends Model
 
     public function setNameAttribute($value): void
     {
-        $this->attributes['barangay_name'] = $value;
+        $normalized = static::normalizeLocationName($value);
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['name'] = $normalized;
+        } else {
+            $this->attributes['barangay_name'] = $normalized;
+        }
     }
 
     public function getCodeAttribute(): ?string
@@ -49,7 +61,11 @@ class Barangay extends Model
 
     public function setCodeAttribute($value): void
     {
-        $this->attributes['barangay_code'] = $value;
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['code'] = $value;
+        } else {
+            $this->attributes['barangay_code'] = $value;
+        }
     }
 
     public function city(): BelongsTo
@@ -59,7 +75,8 @@ class Barangay extends Model
 
     public function sitios(): HasMany
     {
-        return $this->hasMany(Sitio::class, 'barangay_id', 'barangay_id')->orderBy('sitio_name');
+        $orderCol = (config('database.default') === 'sqlite') ? 'name' : 'sitio_name';
+        return $this->hasMany(Sitio::class, 'barangay_id', 'barangay_id')->orderBy($orderCol);
     }
 
     public function addresses(): HasMany
@@ -74,16 +91,30 @@ class Barangay extends Model
 
     public function newEloquentBuilder($query)
     {
-        return new class($query) extends \Illuminate\Database\Eloquent\Builder {
+        $isSqlite = (config('database.default') === 'sqlite');
+        $columnMap = [
+            'name' => $isSqlite ? 'name' : 'barangay_name',
+            'code' => $isSqlite ? 'code' : 'barangay_code',
+        ];
+
+        return new class($query, $columnMap) extends \Illuminate\Database\Eloquent\Builder {
+            protected $columnMap;
+
+            public function __construct($query, $columnMap)
+            {
+                parent::__construct($query);
+                $this->columnMap = $columnMap;
+            }
+
             public function select($columns = ['*'])
             {
                 $columns = is_array($columns) ? $columns : func_get_args();
                 foreach ($columns as &$column) {
                     if ($column === 'name') {
-                        $column = 'barangay_name as name';
+                        $column = $this->columnMap['name'] . ' as name';
                     }
                     if ($column === 'code') {
-                        $column = 'barangay_code as code';
+                        $column = $this->columnMap['code'] . ' as code';
                     }
                 }
                 return parent::select($columns);
@@ -97,35 +128,43 @@ class Barangay extends Model
                     }
                     return $this;
                 }
-                if ($column === 'code') {
-                    $column = 'barangay_code';
+
+                $mappedCol = $this->columnMap[$column] ?? $column;
+
+                if (func_num_args() === 2) {
+                    $value = $operator;
+                    $operator = '=';
                 }
-                if ($column === 'name') {
-                    $column = 'barangay_name';
+
+                if ($column === 'name' || $column === $this->columnMap['name']) {
+                    if (is_string($value)) {
+                        $value = \App\Models\Barangay::normalizeLocationName($value);
+                        if ($operator === '=') {
+                            $operator = 'like';
+                        }
+                    }
                 }
-                return parent::where($column, $operator, $value, $boolean);
+
+                return parent::where($mappedCol, $operator, $value, $boolean);
             }
 
             public function whereIn($column, $values, $boolean = 'and', $not = false)
             {
-                if ($column === 'code') {
-                    $column = 'barangay_code';
+                $mappedCol = $this->columnMap[$column] ?? $column;
+
+                if ($column === 'name' || $column === $this->columnMap['name']) {
+                    $values = collect($values)->map(function ($val) {
+                        return is_string($val) ? \App\Models\Barangay::normalizeLocationName($val) : $val;
+                    })->all();
                 }
-                if ($column === 'name') {
-                    $column = 'barangay_name';
-                }
-                return parent::whereIn($column, $values, $boolean, $not);
+
+                return parent::whereIn($mappedCol, $values, $boolean, $not);
             }
 
             public function orderBy($column, $direction = 'asc')
             {
-                if ($column === 'name') {
-                    $column = 'barangay_name';
-                }
-                if ($column === 'code') {
-                    $column = 'barangay_code';
-                }
-                return parent::orderBy($column, $direction);
+                $mappedCol = $this->columnMap[$column] ?? $column;
+                return parent::orderBy($mappedCol, $direction);
             }
         };
     }

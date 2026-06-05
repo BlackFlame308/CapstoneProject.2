@@ -6,12 +6,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Traits\NormalizesLocationNames;
 
 class Province extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesLocationNames;
 
     public $timestamps = false;
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->timestamps = (config('database.default') === 'sqlite');
+    }
 
     protected $primaryKey = 'province_id';
     public $keyType = 'int';
@@ -39,7 +46,12 @@ class Province extends Model
 
     public function setNameAttribute($value): void
     {
-        $this->attributes['province_name'] = $value;
+        $normalized = static::normalizeLocationName($value);
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['name'] = $normalized;
+        } else {
+            $this->attributes['province_name'] = $normalized;
+        }
     }
 
     public function getCodeAttribute(): ?string
@@ -49,7 +61,11 @@ class Province extends Model
 
     public function setCodeAttribute($value): void
     {
-        $this->attributes['province_code'] = $value;
+        if (config('database.default') === 'sqlite') {
+            $this->attributes['code'] = $value;
+        } else {
+            $this->attributes['province_code'] = $value;
+        }
     }
 
     public function region(): BelongsTo
@@ -59,21 +75,36 @@ class Province extends Model
 
     public function cities(): HasMany
     {
-        return $this->hasMany(City::class, 'province_id', 'province_id')->orderBy('city_name');
+        $orderCol = (config('database.default') === 'sqlite') ? 'name' : 'city_name';
+        return $this->hasMany(City::class, 'province_id', 'province_id')->orderBy($orderCol);
     }
 
     public function newEloquentBuilder($query)
     {
-        return new class($query) extends \Illuminate\Database\Eloquent\Builder {
+        $isSqlite = (config('database.default') === 'sqlite');
+        $columnMap = [
+            'name' => $isSqlite ? 'name' : 'province_name',
+            'code' => $isSqlite ? 'code' : 'province_code',
+        ];
+
+        return new class($query, $columnMap) extends \Illuminate\Database\Eloquent\Builder {
+            protected $columnMap;
+
+            public function __construct($query, $columnMap)
+            {
+                parent::__construct($query);
+                $this->columnMap = $columnMap;
+            }
+
             public function select($columns = ['*'])
             {
                 $columns = is_array($columns) ? $columns : func_get_args();
                 foreach ($columns as &$column) {
                     if ($column === 'name') {
-                        $column = 'province_name as name';
+                        $column = $this->columnMap['name'] . ' as name';
                     }
                     if ($column === 'code') {
-                        $column = 'province_code as code';
+                        $column = $this->columnMap['code'] . ' as code';
                     }
                 }
                 return parent::select($columns);
@@ -87,35 +118,43 @@ class Province extends Model
                     }
                     return $this;
                 }
-                if ($column === 'code') {
-                    $column = 'province_code';
+
+                $mappedCol = $this->columnMap[$column] ?? $column;
+
+                if (func_num_args() === 2) {
+                    $value = $operator;
+                    $operator = '=';
                 }
-                if ($column === 'name') {
-                    $column = 'province_name';
+
+                if ($column === 'name' || $column === $this->columnMap['name']) {
+                    if (is_string($value)) {
+                        $value = \App\Models\Province::normalizeLocationName($value);
+                        if ($operator === '=') {
+                            $operator = 'like';
+                        }
+                    }
                 }
-                return parent::where($column, $operator, $value, $boolean);
+
+                return parent::where($mappedCol, $operator, $value, $boolean);
             }
 
             public function whereIn($column, $values, $boolean = 'and', $not = false)
             {
-                if ($column === 'code') {
-                    $column = 'province_code';
+                $mappedCol = $this->columnMap[$column] ?? $column;
+
+                if ($column === 'name' || $column === $this->columnMap['name']) {
+                    $values = collect($values)->map(function ($val) {
+                        return is_string($val) ? \App\Models\Province::normalizeLocationName($val) : $val;
+                    })->all();
                 }
-                if ($column === 'name') {
-                    $column = 'province_name';
-                }
-                return parent::whereIn($column, $values, $boolean, $not);
+
+                return parent::whereIn($mappedCol, $values, $boolean, $not);
             }
 
             public function orderBy($column, $direction = 'asc')
             {
-                if ($column === 'name') {
-                    $column = 'province_name';
-                }
-                if ($column === 'code') {
-                    $column = 'province_code';
-                }
-                return parent::orderBy($column, $direction);
+                $mappedCol = $this->columnMap[$column] ?? $column;
+                return parent::orderBy($mappedCol, $direction);
             }
         };
     }

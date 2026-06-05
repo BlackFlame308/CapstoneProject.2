@@ -67,9 +67,17 @@ class HouseholdAdminController extends Controller
             });
         }
         
-        if ($request->filled('barangay_id')) {
-            $query->whereHas('address', function ($q) use ($request) {
-                $q->where('barangay_id', $request->barangay_id);
+        $barangayId = $request->input('barangay_id');
+        if (empty($barangayId) && !$request->has('search') && !$request->has('purok_sitio')) {
+            $mambaling = Barangay::where('name', 'like', 'Mambaling')->first();
+            if ($mambaling) {
+                $barangayId = $mambaling->barangay_id;
+            }
+        }
+
+        if (!empty($barangayId)) {
+            $query->whereHas('address', function ($q) use ($barangayId) {
+                $q->where('barangay_id', $barangayId);
             });
         }
         
@@ -81,7 +89,11 @@ class HouseholdAdminController extends Controller
         return view('admin.households.index', [
             'households' => $households,
             'barangays' => $barangays,
-            'filters' => $request->only(['search', 'purok_sitio', 'barangay_id']),
+            'filters' => [
+                'search' => $request->input('search'),
+                'purok_sitio' => $request->input('purok_sitio'),
+                'barangay_id' => $barangayId,
+            ],
         ]);
     }
 

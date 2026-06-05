@@ -24,16 +24,22 @@ class AnalyticsAdminController extends Controller
         // Determine selected barangay
         $selectedBarangayId = $request->input('barangay_id');
         if (empty($selectedBarangayId)) {
-            // Default to the barangay with the most households in active database
-            $mostPopulated = DB::table('addresses')
-                ->join('households', 'addresses.address_id', '=', 'households.address_id')
-                ->whereNull('households.deleted_at')
-                ->groupBy('addresses.barangay_id')
-                ->select('addresses.barangay_id', DB::raw('COUNT(*) as count'))
-                ->orderByDesc('count')
-                ->first();
-                
-            $selectedBarangayId = $mostPopulated ? $mostPopulated->barangay_id : (Barangay::first()?->barangay_id ?? null);
+            // Focus on Mambaling barangay as the default
+            $mambaling = Barangay::where('name', 'like', 'Mambaling')->first();
+            if ($mambaling) {
+                $selectedBarangayId = $mambaling->barangay_id;
+            } else {
+                // Default to the barangay with the most households in active database
+                $mostPopulated = DB::table('addresses')
+                    ->join('households', 'addresses.address_id', '=', 'households.address_id')
+                    ->whereNull('households.deleted_at')
+                    ->groupBy('addresses.barangay_id')
+                    ->select('addresses.barangay_id', DB::raw('COUNT(*) as count'))
+                    ->orderByDesc('count')
+                    ->first();
+                    
+                $selectedBarangayId = $mostPopulated ? $mostPopulated->barangay_id : (Barangay::first()?->barangay_id ?? null);
+            }
         }
 
         $selectedBarangay = $selectedBarangayId ? Barangay::with('city')->find($selectedBarangayId) : null;
@@ -110,53 +116,79 @@ class AnalyticsAdminController extends Controller
         ]);
 
         // Civil status
-        $civilStatus = DB::table('household_members')
-            ->join('civil_statuses', 'household_members.civil_status_id', '=', 'civil_statuses.status_id')
-            ->join('households', 'household_members.household_id', '=', 'households.household_id')
-            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
-            ->select('civil_statuses.status_label as civil_status', DB::raw('COUNT(*) as count'))
-            ->whereNull('household_members.deleted_at')
-            ->whereNull('households.deleted_at')
-            ->where('addresses.barangay_id', $selectedBarangayId)
-            ->groupBy('civil_statuses.status_label')
-            ->get();
+        $memberTable = (new \App\Models\Member)->getTable();
+
+        if (config('database.default') === 'sqlite') {
+            $civilStatus = DB::table($memberTable)
+                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+                ->select("{$memberTable}.civil_status as civil_status", DB::raw('COUNT(*) as count'))
+                ->whereNull("{$memberTable}.deleted_at")
+                ->whereNull('households.deleted_at')
+                ->where('addresses.barangay_id', $selectedBarangayId)
+                ->groupBy("{$memberTable}.civil_status")
+                ->get();
+        } else {
+            $civilStatus = DB::table($memberTable)
+                ->join('civil_statuses', "{$memberTable}.civil_status_id", '=', 'civil_statuses.status_id')
+                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+                ->select('civil_statuses.status_label as civil_status', DB::raw('COUNT(*) as count'))
+                ->whereNull("{$memberTable}.deleted_at")
+                ->whereNull('households.deleted_at')
+                ->where('addresses.barangay_id', $selectedBarangayId)
+                ->groupBy('civil_statuses.status_label')
+                ->get();
+        }
 
         // Education level
-        $educationLevel = DB::table('household_members')
-            ->join('education_levels', 'household_members.education_level_id', '=', 'education_levels.education_level_id')
-            ->join('households', 'household_members.household_id', '=', 'households.household_id')
-            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
-            ->select('education_levels.education_level_label as education_level', DB::raw('COUNT(*) as count'))
-            ->whereNull('household_members.deleted_at')
-            ->whereNull('households.deleted_at')
-            ->where('addresses.barangay_id', $selectedBarangayId)
-            ->groupBy('education_levels.education_level_label')
-            ->get();
+        if (config('database.default') === 'sqlite') {
+            $educationLevel = DB::table($memberTable)
+                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+                ->select("{$memberTable}.education_level as education_level", DB::raw('COUNT(*) as count'))
+                ->whereNull("{$memberTable}.deleted_at")
+                ->whereNull('households.deleted_at')
+                ->where('addresses.barangay_id', $selectedBarangayId)
+                ->groupBy("{$memberTable}.education_level")
+                ->get();
+        } else {
+            $educationLevel = DB::table($memberTable)
+                ->join('education_levels', "{$memberTable}.education_level_id", '=', 'education_levels.education_level_id')
+                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+                ->select('education_levels.education_level_label as education_level', DB::raw('COUNT(*) as count'))
+                ->whereNull("{$memberTable}.deleted_at")
+                ->whereNull('households.deleted_at')
+                ->where('addresses.barangay_id', $selectedBarangayId)
+                ->groupBy('education_levels.education_level_label')
+                ->get();
+        }
 
         // Sitio distribution — leftJoin so members without address are still counted
         $ageExpr = $isSqlite 
-            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', household_members.birth_date) as integer), household_members.age)"
-            : "COALESCE(TIMESTAMPDIFF(YEAR, household_members.birth_date, CURDATE()), household_members.age)";
+            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$memberTable}.age)"
+            : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$memberTable}.age)";
 
-        $sitioDistribution = DB::table('household_members')
-            ->join('households', 'household_members.household_id', '=', 'households.household_id')
+        $sitioDistribution = DB::table($memberTable)
+            ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
             ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->select(
                 DB::raw("COALESCE(addresses.purok_sitio, 'No Sitio') as sitio_name"),
                 DB::raw('COUNT(DISTINCT households.household_id) as household_count'),
-                DB::raw('COUNT(household_members.member_id) as population'),
+                DB::raw("COUNT({$memberTable}.member_id) as population"),
                 DB::raw("SUM(CASE WHEN ({$ageExpr} < 18) THEN 1 ELSE 0 END) as children_count"),
                 DB::raw("SUM(CASE WHEN ({$ageExpr} >= 60) THEN 1 ELSE 0 END) as seniors_count"),
-                DB::raw('SUM(CASE WHEN household_members.is_pwd = 1 THEN 1 ELSE 0 END) as pwd_count'),
-                DB::raw('SUM(CASE WHEN household_members.is_pregnant = 1 THEN 1 ELSE 0 END) as pregnant_count'),
+                DB::raw("SUM(CASE WHEN {$memberTable}.is_pwd = 1 THEN 1 ELSE 0 END) as pwd_count"),
+                DB::raw("SUM(CASE WHEN {$memberTable}.is_pregnant = 1 THEN 1 ELSE 0 END) as pregnant_count"),
                 DB::raw("SUM(CASE WHEN (
-                    household_members.is_pwd = 1 OR 
-                    household_members.is_pregnant = 1 OR 
+                    {$memberTable}.is_pwd = 1 OR 
+                    {$memberTable}.is_pregnant = 1 OR 
                     ({$ageExpr} >= 60) OR 
                     ({$ageExpr} < 18)
                 ) THEN 1 ELSE 0 END) as vulnerable_count")
             )
-            ->whereNull('household_members.deleted_at')
+            ->whereNull("{$memberTable}.deleted_at")
             ->whereNull('households.deleted_at')
             ->where('addresses.barangay_id', $selectedBarangayId)
             ->groupBy('sitio_name')
