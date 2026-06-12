@@ -81,7 +81,7 @@ class AccountAdminController extends Controller
         abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to create accounts.');
 
         $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
+        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household'])->get()->unique(fn($r) => $r->name);
 
         return view('admin.accounts.create', [
             'households' => $households,
@@ -116,7 +116,7 @@ class AccountAdminController extends Controller
             // Map role name to the enum column value used by the system
             $roleEnum = match(strtolower($role->name)) {
                 'captain' => 'head',
-                'encoder' => 'encoder',
+                'encoder', 'moderator', 'personnel', 'personel' => 'encoder',
                 default   => 'resident',
             };
 
@@ -150,7 +150,7 @@ class AccountAdminController extends Controller
         abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to edit accounts.');
 
         $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
+        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household'])->get()->unique(fn($r) => $r->name);
 
         return view('admin.accounts.edit', [
             'user' => $user,

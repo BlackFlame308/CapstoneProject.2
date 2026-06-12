@@ -50,6 +50,7 @@ class CheckRole
             return $next($request);
         }
 
+
         if (!in_array($roleName, $allowed, true)) {
             return $request->expectsJson()
                 ? response()->json(['status' => 'error', 'message' => 'Forbidden: insufficient role.'], 403)

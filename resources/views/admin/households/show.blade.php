@@ -145,7 +145,7 @@
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                         <span style="color: #999;"><i class="fas fa-exclamation-triangle text-warning me-1"></i> No system account associated with this household.</span>
                         @if(auth()->user()?->canManageAccounts())
-                            <a href="{{ route('admin.accounts.create', ['household_id' => $household->id]) }}" class="btn btn-primary btn-sm">
+                            <a href="{{ route('admin.accounts.create', ['household_id' => $household->household_id]) }}" class="btn btn-primary btn-sm">
                                 <i class="fas fa-user-plus"></i> Create Account for Household
                             </a>
                         @endif

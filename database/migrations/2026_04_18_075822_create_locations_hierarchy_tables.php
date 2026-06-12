@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('regions', function (Blueprint $table) {
             $table->increments('region_id');
-            $table->string('name', 100);
-            $table->string('code', 50)->nullable()->unique();
+            $table->string('region_name', 100);
+            $table->string('region_code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
         });
@@ -19,8 +19,8 @@ return new class extends Migration
         Schema::create('provinces', function (Blueprint $table) {
             $table->increments('province_id');
             $table->unsignedInteger('region_id');
-            $table->string('name', 100);
-            $table->string('code', 50)->nullable()->unique();
+            $table->string('province_name', 100);
+            $table->string('province_code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
 
@@ -31,8 +31,8 @@ return new class extends Migration
         Schema::create('cities', function (Blueprint $table) {
             $table->increments('city_id');
             $table->unsignedInteger('province_id');
-            $table->string('name', 100);
-            $table->string('code', 50)->nullable()->unique();
+            $table->string('city_name', 100);
+            $table->string('city_code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
 
@@ -43,8 +43,8 @@ return new class extends Migration
         Schema::create('barangays', function (Blueprint $table) {
             $table->increments('barangay_id');
             $table->unsignedInteger('city_id');
-            $table->string('name', 100);
-            $table->string('code', 50)->nullable()->unique();
+            $table->string('barangay_name', 100);
+            $table->string('barangay_code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
 
@@ -55,8 +55,8 @@ return new class extends Migration
         Schema::create('sitios', function (Blueprint $table) {
             $table->increments('sitio_id');
             $table->unsignedInteger('barangay_id');
-            $table->string('name', 100);
-            $table->string('code', 50)->nullable()->unique();
+            $table->string('sitio_name', 100);
+            $table->string('sitio_code', 50)->nullable()->unique();
             $table->json('metadata')->nullable();
             $table->timestamps();
 

@@ -50,6 +50,10 @@
     overflow-wrap: anywhere;
 }
 
+.badge {
+    white-space: nowrap;
+}
+
 .card,
 .card-header,
 .card-body,

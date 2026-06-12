@@ -18,6 +18,11 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
         ]);
 
+        // Clean up any legacy duplicate users or incorrect mappings from previous seed/migration runs
+        User::where('email', 'encoder@safetrack.local')->delete();
+        User::where('email', 'rescuer@resqperation.local')->where('name', 'Data Encoder')->delete();
+        User::where('email', 'captain@safetrack.local')->delete();
+
         $captainRole = Role::where('name', 'Captain')->firstOrFail();
         $encoderRole = Role::where('name', 'Encoder')->firstOrFail();
 

@@ -80,11 +80,15 @@ class ReportAdminController extends Controller
             ->leftJoin('disaster_events', 'evacuation_records.event_id', '=', 'disaster_events.event_id')
             ->leftJoin('evacuation_centers', 'evacuation_records.center_id', '=', 'evacuation_centers.evacuation_center_id')
             ->leftJoin('households', 'evacuation_records.household_id', '=', 'households.household_id')
+            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->select(
                 'evacuation_records.*',
                 'disaster_events.name as event_name',
                 'evacuation_centers.name as center_name',
-                'households.household_name'
+                'households.household_name',
+                'households.household_code',
+                'addresses.purok_sitio',
+                'addresses.barangay_name'
             );
 
         if ($request->filled('date_from')) {

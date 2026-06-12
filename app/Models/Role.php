@@ -19,17 +19,28 @@ class Role extends Model
             if (empty($role->role_id)) {
                 $role->role_id = (static::max('role_id') ?? 0) + 1;
             }
-            if (config('database.default') !== 'sqlite' && empty($role->role_key)) {
-                $role->role_key = \Illuminate\Support\Str::slug($role->role_name ?? $role->name ?? 'role', '_');
+            if (empty($role->role_key)) {
+                $rawName = $role->attributes['role_name'] ?? $role->attributes['name'] ?? 'role';
+                $role->role_key = \Illuminate\Support\Str::slug($rawName, '_');
+            }
+        });
+
+        static::saving(function (Role $role) {
+            $table = $role->getTable();
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'name')) {
+                unset($role->attributes['name']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'role_name')) {
+                unset($role->attributes['role_name']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'role_key')) {
+                unset($role->attributes['role_key']);
             }
         });
     }
 
     public function getNameAttribute(): ?string
     {
-        if (config('database.default') === 'sqlite') {
-            return $this->attributes['name'] ?? null;
-        }
         $key = $this->attributes['role_key'] ?? null;
         $name = $this->attributes['role_name'] ?? $this->attributes['name'] ?? null;
         
@@ -39,7 +50,13 @@ class Role extends Model
             if (in_array($normalized, ['super_admin', 'super admin', 'admin', 'hq admin', 'hq_admin'])) {
                 return 'Captain';
             }
-            if (in_array($normalized, ['evac_admin', 'evac admin', 'evac_personnel', 'evac personnel', 'rescuer'])) {
+            if (in_array($normalized, ['evac_admin', 'evac admin', 'moderator'])) {
+                return 'Moderator';
+            }
+            if (in_array($normalized, ['evac_personnel', 'evac personnel', 'personnel', 'personel', 'rescuer'])) {
+                return 'personel';
+            }
+            if ($normalized === 'encoder') {
                 return 'Encoder';
             }
             if (in_array($normalized, ['household_resident', 'household resident'])) {
@@ -51,11 +68,8 @@ class Role extends Model
 
     public function setNameAttribute(?string $value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['name'] = $value;
-        } else {
-            $this->attributes['role_name'] = $value;
-        }
+        $this->attributes['role_name'] = $value;
+        $this->attributes['name'] = $value;
     }
 
     public function getRoleNameAttribute(): ?string
@@ -65,11 +79,8 @@ class Role extends Model
 
     public function setRoleNameAttribute(?string $value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['name'] = $value;
-        } else {
-            $this->attributes['role_name'] = $value;
-        }
+        $this->attributes['role_name'] = $value;
+        $this->attributes['name'] = $value;
     }
 
     public function users()
@@ -79,9 +90,6 @@ class Role extends Model
 
     public function newEloquentBuilder($query)
     {
-        if (config('database.default') === 'sqlite') {
-            return new \Illuminate\Database\Eloquent\Builder($query);
-        }
         return new class($query) extends \Illuminate\Database\Eloquent\Builder {
             public function select($columns = ['*'])
             {
@@ -113,22 +121,42 @@ class Role extends Model
 
                     if (is_string($val)) {
                         $lowerVal = strtolower(trim($val));
+                        
+                        if ($column === 'role_key') {
+                            $sluggedVal = \Illuminate\Support\Str::slug($lowerVal, '_');
+                            if ($value === null) {
+                                $operator = $sluggedVal;
+                            } else {
+                                $value = $sluggedVal;
+                            }
+                        }
+                        
                         $isNegation = in_array(trim((string)$operator), ['!=', '<>', 'not like'], true);
 
                         if ($lowerVal === 'captain') {
                             return $isNegation 
-                                ? parent::whereNotIn('role_key', ['super_admin', 'admin'], $boolean)
-                                : parent::whereIn('role_key', ['super_admin', 'admin'], $boolean);
+                                ? parent::whereNotIn('role_key', ['super_admin', 'admin', 'captain'], $boolean)
+                                : parent::whereIn('role_key', ['super_admin', 'admin', 'captain'], $boolean);
                         }
                         if ($lowerVal === 'encoder') {
                             return $isNegation
-                                ? parent::whereNotIn('role_key', ['evac_admin', 'evac_personnel', 'rescuer'], $boolean)
-                                : parent::whereIn('role_key', ['evac_admin', 'evac_personnel', 'rescuer'], $boolean);
+                                ? parent::whereNot('role_key', 'encoder', $boolean)
+                                : parent::where('role_key', 'encoder', $boolean);
+                        }
+                        if ($lowerVal === 'moderator') {
+                            return $isNegation
+                                ? parent::whereNotIn('role_key', ['evac_admin', 'moderator'], $boolean)
+                                : parent::whereIn('role_key', ['evac_admin', 'moderator'], $boolean);
+                        }
+                        if ($lowerVal === 'personnel' || $lowerVal === 'personel') {
+                            return $isNegation
+                                ? parent::whereNotIn('role_key', ['evac_personnel', 'personnel', 'personel', 'rescuer'], $boolean)
+                                : parent::whereIn('role_key', ['evac_personnel', 'personnel', 'personel', 'rescuer'], $boolean);
                         }
                         if ($lowerVal === 'household') {
                             return $isNegation
-                                ? parent::whereNotIn('role_key', ['household_resident'], $boolean)
-                                : parent::whereIn('role_key', ['household_resident'], $boolean);
+                                ? parent::whereNotIn('role_key', ['household_resident', 'household'], $boolean)
+                                : parent::whereIn('role_key', ['household_resident', 'household'], $boolean);
                         }
                     }
                 }
@@ -147,12 +175,20 @@ class Role extends Model
                         if ($lowerVal === 'captain') {
                             $newValues[] = 'super_admin';
                             $newValues[] = 'admin';
+                            $newValues[] = 'captain';
                         } elseif ($lowerVal === 'encoder') {
+                            $newValues[] = 'encoder';
+                        } elseif ($lowerVal === 'moderator') {
                             $newValues[] = 'evac_admin';
+                            $newValues[] = 'moderator';
+                        } elseif ($lowerVal === 'personnel' || $lowerVal === 'personel') {
                             $newValues[] = 'evac_personnel';
+                            $newValues[] = 'personnel';
+                            $newValues[] = 'personel';
                             $newValues[] = 'rescuer';
                         } elseif ($lowerVal === 'household') {
                             $newValues[] = 'household_resident';
+                            $newValues[] = 'household';
                         } else {
                             $newValues[] = $val;
                         }
@@ -167,15 +203,20 @@ class Role extends Model
             {
                 $sql = preg_replace('/\bname\b/i', 'role_key', $sql);
                 if (is_array($bindings)) {
-                    foreach ($bindings as &$binding) {
-                        if (is_string($binding)) {
-                            $lowerVal = strtolower(trim($binding));
+                    $isSqlite = config('database.default') === 'sqlite';
+                    foreach ($bindings as &$bindingsValue) {
+                        if (is_string($bindingsValue)) {
+                            $lowerVal = strtolower(trim($bindingsValue));
                             if ($lowerVal === 'captain') {
-                                $binding = 'admin';
+                                $bindingsValue = 'admin';
                             } elseif ($lowerVal === 'encoder') {
-                                $binding = 'evac_personnel';
+                                $bindingsValue = 'encoder';
+                            } elseif ($lowerVal === 'moderator') {
+                                $bindingsValue = $isSqlite ? 'moderator' : 'evac_admin';
+                            } elseif ($lowerVal === 'personnel' || $lowerVal === 'personel') {
+                                $bindingsValue = $isSqlite ? 'personel' : 'evac_personnel';
                             } elseif ($lowerVal === 'household') {
-                                $binding = 'household_resident';
+                                $bindingsValue = $isSqlite ? 'household' : 'household_resident';
                             }
                         }
                     }

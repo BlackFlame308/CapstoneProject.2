@@ -45,7 +45,7 @@ chk('barangays table has data',Barangay::count() > 0, Barangay::count() . ' bara
 chk('sitios table has data',   Sitio::count() > 0,    Sitio::count() . ' sitios');
 chk('roles table has data',    Role::count() >= 5,    Role::count() . ' roles');
 chk('users table has data',    User::count() >= 2,    User::count() . ' users');
-$requiredRoles = ['Captain','Encoder','Household'];
+$requiredRoles = ['Captain','Moderator','personel','Household'];
 foreach ($requiredRoles as $r) {
     chk("Role '{$r}' exists", Role::whereRaw('LOWER(name)=?',[strtolower($r)])->exists(), '');
 }
@@ -63,7 +63,7 @@ chk('Captain user exists', $captain !== null);
 chk('Encoder user exists', $encoder !== null);
 chk('Captain has user_id PK', !empty($captain?->user_id));
 chk('Captain role loaded', $captain?->role?->name === 'Captain', $captain?->role?->name ?? 'NULL');
-chk('Encoder role loaded', $encoder?->role?->name === 'Encoder', $encoder?->role?->name ?? 'NULL');
+chk('Encoder role loaded', in_array($encoder?->role?->name, ['Encoder', 'Moderator', 'personel'], true), $encoder?->role?->name ?? 'NULL');
 chk('Captain isCaptain()', $captain?->isCaptain() === true);
 chk('Encoder isEncoder()', $encoder?->isEncoder() === true);
 chk('Captain canManageAccounts()', $captain?->canManageAccounts() === true);
@@ -179,7 +179,7 @@ chk('member_count decremented after delete', $household->fresh()->member_count =
 section('6. ACCOUNT MANAGEMENT');
 // ─────────────────────────────────────────────────────────────────
 $householdRole = Role::whereRaw('LOWER(name)=?',['household'])->first();
-$encoderRole   = Role::whereRaw('LOWER(name)=?',['encoder'])->first();
+$encoderRole   = Role::whereRaw('LOWER(name)=?',['personel'])->first();
 $captainRole   = Role::whereRaw('LOWER(name)=?',['captain'])->first();
 
 // Manual account creation
@@ -189,7 +189,7 @@ $testUser = User::create([
     'is_active'=>true,'must_change_password'=>false,
 ]);
 chk('Manual account creation works', !empty($testUser->user_id));
-chk('Account role correctly set', $testUser->role?->name === 'Encoder', $testUser->role?->name ?? 'NULL');
+chk('Account role correctly set', in_array($testUser->role?->name, ['Encoder', 'Moderator', 'personel'], true), $testUser->role?->name ?? 'NULL');
 
 // Update account
 $testUser->update(['name'=>'Updated Encoder']);
@@ -254,10 +254,15 @@ chk('ImportLog has no error entries for this import', ImportLog::where('status',
 // ─────────────────────────────────────────────────────────────────
 section('9. ANALYTICS CALCULATIONS');
 // ─────────────────────────────────────────────────────────────────
+$isSqlite = DB::connection()->getDriverName() === 'sqlite';
+$ageRaw = $isSqlite
+    ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', birth_date) as integer), age)"
+    : "TIMESTAMPDIFF(YEAR, birth_date, CURDATE())";
+
 $totalHH  = Household::count();
 $totalMem = Member::count();
-$children = Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) < 18')->whereNotNull('birth_date')->count();
-$seniors  = Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) >= 60')->whereNotNull('birth_date')->count();
+$children = Member::whereRaw("({$ageRaw}) < 18")->whereNotNull('birth_date')->count();
+$seniors  = Member::whereRaw("({$ageRaw}) >= 60")->whereNotNull('birth_date')->count();
 $adults   = max(0, $totalMem - $children - $seniors);
 $males    = Member::whereRaw("LOWER(sex) IN ('m','male')")->count();
 $females  = Member::whereRaw("LOWER(sex) IN ('f','female')")->count();
@@ -270,12 +275,12 @@ chk('males + females = total (all have sex)', $males+$females === $totalMem,
     "m={$males}+f={$females}=" .($males+$females)." vs {$totalMem}");
 
 // Age bracket no-overlap
-$b05  = Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) BETWEEN 0 AND 5')->whereNotNull('birth_date')->count();
-$b612 = Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) BETWEEN 6 AND 12')->whereNotNull('birth_date')->count();
-$b1317= Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) BETWEEN 13 AND 17')->whereNotNull('birth_date')->count();
-$b1835= Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) BETWEEN 18 AND 35')->whereNotNull('birth_date')->count();
-$b3659= Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) BETWEEN 36 AND 59')->whereNotNull('birth_date')->count();
-$b60p = Member::whereRaw('TIMESTAMPDIFF(YEAR,birth_date,CURDATE()) >= 60')->whereNotNull('birth_date')->count();
+$b05  = Member::whereRaw("({$ageRaw}) BETWEEN 0 AND 5")->whereNotNull('birth_date')->count();
+$b612 = Member::whereRaw("({$ageRaw}) BETWEEN 6 AND 12")->whereNotNull('birth_date')->count();
+$b1317= Member::whereRaw("({$ageRaw}) BETWEEN 13 AND 17")->whereNotNull('birth_date')->count();
+$b1835= Member::whereRaw("({$ageRaw}) BETWEEN 18 AND 35")->whereNotNull('birth_date')->count();
+$b3659= Member::whereRaw("({$ageRaw}) BETWEEN 36 AND 59")->whereNotNull('birth_date')->count();
+$b60p = Member::whereRaw("({$ageRaw}) >= 60")->whereNotNull('birth_date')->count();
 $withDob = Member::whereNotNull('birth_date')->count();
 chk('Age brackets sum = members with birth_date (no overlap)', ($b05+$b612+$b1317+$b1835+$b3659+$b60p)===$withDob,
     "sum=".($b05+$b612+$b1317+$b1835+$b3659+$b60p)." dob={$withDob}");
@@ -483,7 +488,13 @@ echo str_repeat('=',60) . PHP_EOL;
 // CLEANUP
 // ─────────────────────────────────────────────────────────────────
 echo PHP_EOL . "Cleaning up test data..." . PHP_EOL;
-DB::statement('SET FOREIGN_KEY_CHECKS=0');
+$isSqlite = DB::connection()->getDriverName() === 'sqlite';
+if ($isSqlite) {
+    DB::statement('PRAGMA foreign_keys = OFF');
+} else {
+    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+}
+
 $member->forceDelete();
 Member::withTrashed()->where('member_id',$child->member_id)->forceDelete();
 User::where('household_id',$household->household_id)->forceDelete();
@@ -507,5 +518,10 @@ foreach ($ds as $d) {
     CsvUpload::where('data_source_id',$d->id)->delete();
     $d->delete();
 }
-DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+if ($isSqlite) {
+    DB::statement('PRAGMA foreign_keys = ON');
+} else {
+    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+}
 echo "Done." . PHP_EOL;

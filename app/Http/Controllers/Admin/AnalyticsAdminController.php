@@ -118,52 +118,28 @@ class AnalyticsAdminController extends Controller
         // Civil status
         $memberTable = (new \App\Models\Member)->getTable();
 
-        if (config('database.default') === 'sqlite') {
-            $civilStatus = DB::table($memberTable)
-                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
-                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
-                ->select("{$memberTable}.civil_status as civil_status", DB::raw('COUNT(*) as count'))
-                ->whereNull("{$memberTable}.deleted_at")
-                ->whereNull('households.deleted_at')
-                ->where('addresses.barangay_id', $selectedBarangayId)
-                ->groupBy("{$memberTable}.civil_status")
-                ->get();
-        } else {
-            $civilStatus = DB::table($memberTable)
-                ->join('civil_statuses', "{$memberTable}.civil_status_id", '=', 'civil_statuses.status_id')
-                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
-                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
-                ->select('civil_statuses.status_label as civil_status', DB::raw('COUNT(*) as count'))
-                ->whereNull("{$memberTable}.deleted_at")
-                ->whereNull('households.deleted_at')
-                ->where('addresses.barangay_id', $selectedBarangayId)
-                ->groupBy('civil_statuses.status_label')
-                ->get();
-        }
+        $civilStatus = DB::table($memberTable)
+            ->join('civil_statuses', "{$memberTable}.civil_status_id", '=', 'civil_statuses.status_id')
+            ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+            ->select('civil_statuses.status_label as civil_status', DB::raw('COUNT(*) as count'))
+            ->whereNull("{$memberTable}.deleted_at")
+            ->whereNull('households.deleted_at')
+            ->where('addresses.barangay_id', $selectedBarangayId)
+            ->groupBy('civil_statuses.status_label')
+            ->get();
 
         // Education level
-        if (config('database.default') === 'sqlite') {
-            $educationLevel = DB::table($memberTable)
-                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
-                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
-                ->select("{$memberTable}.education_level as education_level", DB::raw('COUNT(*) as count'))
-                ->whereNull("{$memberTable}.deleted_at")
-                ->whereNull('households.deleted_at')
-                ->where('addresses.barangay_id', $selectedBarangayId)
-                ->groupBy("{$memberTable}.education_level")
-                ->get();
-        } else {
-            $educationLevel = DB::table($memberTable)
-                ->join('education_levels', "{$memberTable}.education_level_id", '=', 'education_levels.education_level_id')
-                ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
-                ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
-                ->select('education_levels.education_level_label as education_level', DB::raw('COUNT(*) as count'))
-                ->whereNull("{$memberTable}.deleted_at")
-                ->whereNull('households.deleted_at')
-                ->where('addresses.barangay_id', $selectedBarangayId)
-                ->groupBy('education_levels.education_level_label')
-                ->get();
-        }
+        $educationLevel = DB::table($memberTable)
+            ->join('education_levels', "{$memberTable}.education_level_id", '=', 'education_levels.education_level_id')
+            ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+            ->select('education_levels.education_level_label as education_level', DB::raw('COUNT(*) as count'))
+            ->whereNull("{$memberTable}.deleted_at")
+            ->whereNull('households.deleted_at')
+            ->where('addresses.barangay_id', $selectedBarangayId)
+            ->groupBy('education_levels.education_level_label')
+            ->get();
 
         // Sitio distribution — leftJoin so members without address are still counted
         $ageExpr = $isSqlite 
@@ -179,11 +155,18 @@ class AnalyticsAdminController extends Controller
                 DB::raw("COUNT({$memberTable}.member_id) as population"),
                 DB::raw("SUM(CASE WHEN ({$ageExpr} < 18) THEN 1 ELSE 0 END) as children_count"),
                 DB::raw("SUM(CASE WHEN ({$ageExpr} >= 60) THEN 1 ELSE 0 END) as seniors_count"),
-                DB::raw("SUM(CASE WHEN {$memberTable}.is_pwd = 1 THEN 1 ELSE 0 END) as pwd_count"),
-                DB::raw("SUM(CASE WHEN {$memberTable}.is_pregnant = 1 THEN 1 ELSE 0 END) as pregnant_count"),
+                DB::raw("SUM(CASE WHEN EXISTS(
+                    SELECT 1 FROM member_vulnerable_groups mvg 
+                    JOIN vulnerable_groups vg ON mvg.vulnerable_group_id = vg.vulnerable_group_id 
+                    WHERE mvg.member_id = {$memberTable}.member_id AND vg.vulnerable_group_key = 'pwd'
+                ) THEN 1 ELSE 0 END) as pwd_count"),
+                DB::raw("SUM(CASE WHEN EXISTS(
+                    SELECT 1 FROM member_vulnerable_groups mvg 
+                    JOIN vulnerable_groups vg ON mvg.vulnerable_group_id = vg.vulnerable_group_id 
+                    WHERE mvg.member_id = {$memberTable}.member_id AND vg.vulnerable_group_key = 'pregnant'
+                ) THEN 1 ELSE 0 END) as pregnant_count"),
                 DB::raw("SUM(CASE WHEN (
-                    {$memberTable}.is_pwd = 1 OR 
-                    {$memberTable}.is_pregnant = 1 OR 
+                    EXISTS(SELECT 1 FROM member_vulnerable_groups WHERE member_vulnerable_groups.member_id = {$memberTable}.member_id) OR 
                     ({$ageExpr} >= 60) OR 
                     ({$ageExpr} < 18)
                 ) THEN 1 ELSE 0 END) as vulnerable_count")

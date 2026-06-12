@@ -92,8 +92,7 @@ class AdminDashboardController extends Controller
                     'addresses.purok_sitio',
                     DB::raw("COUNT({$memberTable}.member_id) as member_count"),
                     DB::raw("SUM(CASE WHEN (
-                        {$memberTable}.is_pwd = 1 OR 
-                        {$memberTable}.is_pregnant = 1 OR 
+                        EXISTS(SELECT 1 FROM member_vulnerable_groups WHERE member_vulnerable_groups.member_id = {$memberTable}.member_id) OR 
                         ({$ageExpr} >= 60) OR 
                         ({$ageExpr} < 18)
                     ) THEN 1 ELSE 0 END) as vulnerable_count")
@@ -117,12 +116,87 @@ class AdminDashboardController extends Controller
             ->limit(5)
             ->get();
         
-        // Dummy data for reports (placeholder for subsystems)
+        // Fetch actual report counts
+        $evacuationCount = \Illuminate\Support\Facades\Schema::hasTable('evacuation_records')
+            ? \Illuminate\Support\Facades\DB::table('evacuation_records')->count()
+            : 0;
+            
+        $rescueCount = \Illuminate\Support\Facades\Schema::hasTable('responder_assignments')
+            ? \Illuminate\Support\Facades\DB::table('responder_assignments')->count()
+            : 0;
+            
+        $logisticsCount = \Illuminate\Support\Facades\Schema::hasTable('resource_requests')
+            ? \Illuminate\Support\Facades\DB::table('resource_requests')->count()
+            : 0;
+
         $reportsData = [
-            'evacuation' => 0,
-            'rescue' => 0,
-            'logistics' => 0,
+            'evacuation' => $evacuationCount,
+            'rescue' => $rescueCount,
+            'logistics' => $logisticsCount,
         ];
+
+        // Fetch latest reports
+        $latestReports = collect([]);
+
+        if ($evacuationCount > 0) {
+            $evacuations = DB::table('evacuation_records')
+                ->leftJoin('disaster_events', 'evacuation_records.event_id', '=', 'disaster_events.event_id')
+                ->leftJoin('evacuation_centers', 'evacuation_records.center_id', '=', 'evacuation_centers.evacuation_center_id')
+                ->select('evacuation_records.created_at', 'disaster_events.name as event_name', 'evacuation_centers.name as center_name', 'evacuation_records.evacuated_count')
+                ->orderByDesc('evacuation_records.created_at')
+                ->limit(5)
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        'type' => 'Evacuation',
+                        'title' => $r->event_name ?? 'Disaster Incident',
+                        'detail' => ($r->center_name ? 'Evacuating to ' . $r->center_name : 'Evacuation incident') . ' (' . ($r->evacuated_count ?? 0) . ' residents)',
+                        'date' => $r->created_at,
+                        'badge' => 'bg-primary',
+                    ];
+                });
+            $latestReports = $latestReports->concat($evacuations);
+        }
+
+        if ($rescueCount > 0) {
+            $rescues = DB::table('responder_assignments')
+                ->leftJoin('rescue_teams', 'responder_assignments.team_id', '=', 'rescue_teams.team_id')
+                ->select('responder_assignments.assigned_at', 'rescue_teams.team_name', 'responder_assignments.status')
+                ->orderByDesc('responder_assignments.assigned_at')
+                ->limit(5)
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        'type' => 'Rescue',
+                        'title' => $r->team_name ?? 'Rescue Operation',
+                        'detail' => 'Team assigned. Status: ' . ($r->status ?? 'Assigned'),
+                        'date' => $r->assigned_at,
+                        'badge' => 'bg-success',
+                    ];
+                });
+            $latestReports = $latestReports->concat($rescues);
+        }
+
+        if ($logisticsCount > 0) {
+            $logistics = DB::table('resource_requests')
+                ->leftJoin('evacuation_centers', 'resource_requests.evacuation_center_id', '=', 'evacuation_centers.evacuation_center_id')
+                ->select('resource_requests.created_at', 'resource_requests.resource_type', 'resource_requests.quantity', 'evacuation_centers.name as center_name')
+                ->orderByDesc('resource_requests.created_at')
+                ->limit(5)
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        'type' => 'Logistics',
+                        'title' => $r->resource_type ?? 'Supply Request',
+                        'detail' => 'Requested ' . ($r->quantity ?? 1) . ' units for ' . ($r->center_name ?? 'Center'),
+                        'date' => $r->created_at,
+                        'badge' => 'bg-warning text-dark',
+                    ];
+                });
+            $latestReports = $latestReports->concat($logistics);
+        }
+
+        $latestReports = $latestReports->sortByDesc('date')->take(5)->values();
         
         return view('admin.dashboard', [
             'totalHouseholds' => $totalHouseholds,
@@ -135,6 +209,7 @@ class AdminDashboardController extends Controller
             'sitioRankings' => $sitioRankings,
             'recentHouseholds' => $recentHouseholds,
             'reportsData' => $reportsData,
+            'latestReports' => $latestReports,
         ]);
     }
 }

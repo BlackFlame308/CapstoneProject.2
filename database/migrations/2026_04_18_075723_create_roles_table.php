@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('roles', function (Blueprint $table) {
             $table->increments('role_id');
+            $table->string('role_key', 255)->nullable();
+            $table->string('role_name', 255)->nullable();
             $table->string('name', 50)->unique();
         });
     }

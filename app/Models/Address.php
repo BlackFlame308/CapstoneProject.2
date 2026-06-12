@@ -16,9 +16,6 @@ class Address extends Model
     protected static function booted()
     {
         static::creating(function ($address) {
-            if (config('database.default') === 'sqlite') {
-                return;
-            }
             if (empty($address->address_id)) {
                 try {
                     $address->address_id = (\Illuminate\Support\Facades\DB::table('addresses')->max('address_id') ?? 0) + 1;

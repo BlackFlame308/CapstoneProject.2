@@ -17,7 +17,7 @@ class City extends Model
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        $this->timestamps = (config('database.default') === 'sqlite');
+        $this->timestamps = false;
     }
 
     protected $primaryKey = 'city_id';
@@ -47,11 +47,7 @@ class City extends Model
     public function setNameAttribute($value): void
     {
         $normalized = static::normalizeLocationName($value);
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['name'] = $normalized;
-        } else {
-            $this->attributes['city_name'] = $normalized;
-        }
+        $this->attributes['city_name'] = $normalized;
     }
 
     public function getCodeAttribute(): ?string
@@ -61,11 +57,7 @@ class City extends Model
 
     public function setCodeAttribute($value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['code'] = $value;
-        } else {
-            $this->attributes['city_code'] = $value;
-        }
+        $this->attributes['city_code'] = $value;
     }
 
     public function province(): BelongsTo
@@ -75,16 +67,14 @@ class City extends Model
 
     public function barangays(): HasMany
     {
-        $orderCol = (config('database.default') === 'sqlite') ? 'name' : 'barangay_name';
-        return $this->hasMany(Barangay::class, 'city_id', 'city_id')->orderBy($orderCol);
+        return $this->hasMany(Barangay::class, 'city_id', 'city_id')->orderBy('barangay_name');
     }
 
     public function newEloquentBuilder($query)
     {
-        $isSqlite = (config('database.default') === 'sqlite');
         $columnMap = [
-            'name' => $isSqlite ? 'name' : 'city_name',
-            'code' => $isSqlite ? 'code' : 'city_code',
+            'name' => 'city_name',
+            'code' => 'city_code',
         ];
 
         return new class($query, $columnMap) extends \Illuminate\Database\Eloquent\Builder {

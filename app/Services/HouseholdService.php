@@ -134,7 +134,7 @@ class HouseholdService
                     }
                 }
 
-                $currentMemberIds = $household->members()->pluck('members.member_id')->toArray();
+                $currentMemberIds = $household->members()->pluck('member_id')->toArray();
                 $membersToDelete = array_diff($currentMemberIds, $allMembers);
                 if (!empty($membersToDelete)) {
                     Member::whereIn('member_id', $membersToDelete)->delete();

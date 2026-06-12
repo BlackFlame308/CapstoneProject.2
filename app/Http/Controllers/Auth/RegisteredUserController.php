@@ -22,9 +22,9 @@ class RegisteredUserController extends Controller
         if ($isFirstUser) {
             $roles = Role::where('name', 'Captain')->get();
         } elseif (auth()->user()->isCaptain()) {
-            $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Household'])->get();
+            $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household'])->get()->unique(fn($r) => $r->name);
         } else {
-            $roles = Role::whereIn('name', ['Encoder', 'Household'])->get();
+            $roles = Role::whereIn('name', ['Encoder', 'Moderator', 'personel', 'personnel', 'Household'])->get()->unique(fn($r) => $r->name);
         }
 
         return view('auth.register', [
@@ -62,8 +62,8 @@ class RegisteredUserController extends Controller
             $role = Role::find($validated['role_id']);
 
             $allowedRoles = auth()->user()->isCaptain()
-                ? ['Captain', 'Encoder', 'Household']
-                : ['Encoder', 'Household'];
+                ? ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household']
+                : ['Encoder', 'Moderator', 'personel', 'personnel', 'Household'];
 
             if (!in_array($role->name, $allowedRoles)) {
                 abort(403, 'You are not authorized to assign this role.');

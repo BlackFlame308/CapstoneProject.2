@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('members', function (Blueprint $table) {
-            if (!Schema::hasColumn('members', 'is_senior')) {
+        Schema::table('household_members', function (Blueprint $table) {
+            if (!Schema::hasColumn('household_members', 'is_senior')) {
                 $table->boolean('is_senior')->default(false)->after('is_graduate');
             }
         });
@@ -23,8 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('members', function (Blueprint $table) {
-            if (Schema::hasColumn('members', 'is_senior')) {
+        Schema::table('household_members', function (Blueprint $table) {
+            if (Schema::hasColumn('household_members', 'is_senior')) {
                 $table->dropColumn('is_senior');
             }
         });
