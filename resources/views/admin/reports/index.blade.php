@@ -56,18 +56,33 @@
 <!-- API Integration Notice -->
 <div class="row">
     <div class="col-12">
-        <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none; border-left: 4px solid #ffc107;">
-            <div class="card-body" style="padding: 30px; text-align: center;">
-                <i class="fas fa-info-circle" style="font-size: 40px; color: #ffc107; margin-bottom: 15px; display: block;"></i>
-                <h5 style="margin: 0 0 10px 0; color: #333;">Reports Not Yet Available</h5>
-                <p style="margin: 0 0 15px 0; color: #999;">
-                    Reports will appear here once subsystems are connected via API integration.
-                </p>
-                <small style="color: #bbb;">
-                    This is currently a placeholder. API endpoints for evacuation, rescue, and logistics systems need to be configured.
-                </small>
+        @if($evacuationCount == 0 && $rescueCount == 0 && $logisticsCount == 0)
+            <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none; border-left: 4px solid #ffc107;">
+                <div class="card-body" style="padding: 30px; text-align: center;">
+                    <i class="fas fa-info-circle" style="font-size: 40px; color: #ffc107; margin-bottom: 15px; display: block;"></i>
+                    <h5 style="margin: 0 0 10px 0; color: #333;">Reports Not Yet Available</h5>
+                    <p style="margin: 0 0 15px 0; color: #999;">
+                        Reports will appear here once subsystems are connected via API integration.
+                    </p>
+                    <small style="color: #bbb;">
+                        This is currently a placeholder. API endpoints for evacuation, rescue, and logistics systems need to be configured.
+                    </small>
+                </div>
             </div>
-        </div>
+        @else
+            <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none; border-left: 4px solid #10b981;">
+                <div class="card-body" style="padding: 30px; text-align: center;">
+                    <i class="fas fa-check-circle" style="font-size: 40px; color: #10b981; margin-bottom: 15px; display: block;"></i>
+                    <h5 style="margin: 0 0 10px 0; color: #333; font-weight: 600;">Subsystem Integrations Connected</h5>
+                    <p style="margin: 0 0 10px 0; color: #666; font-size: 15px;">
+                        Evacuation, Rescue, and Logistics subsystem APIs are active and reporting data.
+                    </p>
+                    <small style="color: #999;">
+                        All data is synchronized and available. Select any category card above to view detailed reports.
+                    </small>
+                </div>
+            </div>
+        @endif
     </div>
 </div>
 

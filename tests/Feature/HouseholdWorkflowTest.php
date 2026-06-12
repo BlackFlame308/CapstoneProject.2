@@ -18,8 +18,8 @@ class HouseholdWorkflowTest extends TestCase
 
     public function test_manual_household_create_and_update_keeps_members_and_credentials(): void
     {
-        $captainRole = Role::create(['name' => 'Captain']);
-        Role::create(['name' => 'Household']);
+        $captainRole = Role::create(['name' => 'Captain', 'role_key' => 'admin']);
+        Role::create(['name' => 'Household', 'role_key' => 'household_resident']);
 
         $captain = User::create([
             'name' => 'Captain Test',

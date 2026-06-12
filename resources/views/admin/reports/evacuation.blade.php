@@ -73,10 +73,23 @@
                         <tr style="border-bottom: 1px solid #f1f1f1;">
                             <td style="padding: 15px; color: #333; font-weight: 500;">{{ $report->event_name ?? 'N/A' }}</td>
                             <td style="padding: 15px; color: #555;">{{ $report->center_name ?? 'N/A' }}</td>
-                            <td style="padding: 15px; color: #555;">{{ $report->household_name ?? 'N/A' }}</td>
+                            <td style="padding: 15px; color: #555;">
+                                <div>
+                                    <strong>{{ $report->household_name ?? 'N/A' }}</strong> 
+                                    @if(!empty($report->household_code))
+                                        <span class="text-muted" style="font-size: 12px; margin-left: 4px;">({{ $report->household_code }})</span>
+                                    @endif
+                                </div>
+                                @if(!empty($report->purok_sitio) || !empty($report->barangay_name))
+                                    <small style="color: #6c757d; display: block; margin-top: 4px; font-size: 11px;">
+                                        <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                        {{ trim(($report->purok_sitio ? $report->purok_sitio . ', ' : '') . ($report->barangay_name ?? '')) }}
+                                    </small>
+                                @endif
+                            </td>
                             <td style="padding: 15px; text-align: right; font-weight: 600; color: #4f46e5;">{{ $report->evacuated_count ?? 0 }}</td>
                             <td style="padding: 15px;">
-                                <span class="badge {{ $report->method === 'qr' ? 'bg-success' : 'bg-secondary' }}">
+                                <span class="badge {{ $report->method === 'qr' ? 'bg-success' : 'bg-secondary' }}" style="white-space: nowrap;">
                                     {{ strtoupper($report->method ?? 'manual') }}
                                 </span>
                             </td>

@@ -126,8 +126,8 @@
                                 id="household_id" name="household_id">
                             <option value="">-- None (For Admin Users) --</option>
                             @foreach($households as $household)
-                                <option value="{{ $household->id }}"
-                                    @if(old('household_id') == $household->id) selected @endif>
+                                <option value="{{ $household->household_id }}"
+                                    @if(old('household_id') == $household->household_id) selected @endif>
                                     {{ $household->household_code }} - {{ $household->household_name }}
                                 </option>
                             @endforeach

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Traits\NormalizesLocationNames;
 
@@ -17,7 +16,7 @@ class Region extends Model
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        $this->timestamps = (config('database.default') === 'sqlite');
+        $this->timestamps = false;
     }
 
     protected $primaryKey = 'region_id';
@@ -47,11 +46,7 @@ class Region extends Model
     public function setNameAttribute($value): void
     {
         $normalized = static::normalizeLocationName($value);
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['name'] = $normalized;
-        } else {
-            $this->attributes['region_name'] = $normalized;
-        }
+        $this->attributes['region_name'] = $normalized;
     }
 
     public function getCodeAttribute(): ?string
@@ -61,25 +56,19 @@ class Region extends Model
 
     public function setCodeAttribute($value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['code'] = $value;
-        } else {
-            $this->attributes['region_code'] = $value;
-        }
+        $this->attributes['region_code'] = $value;
     }
 
     public function provinces(): HasMany
     {
-        $orderCol = (config('database.default') === 'sqlite') ? 'name' : 'province_name';
-        return $this->hasMany(Province::class, 'region_id', 'region_id')->orderBy($orderCol);
+        return $this->hasMany(Province::class, 'region_id', 'region_id')->orderBy('province_name');
     }
 
     public function newEloquentBuilder($query)
     {
-        $isSqlite = (config('database.default') === 'sqlite');
         $columnMap = [
-            'name' => $isSqlite ? 'name' : 'region_name',
-            'code' => $isSqlite ? 'code' : 'region_code',
+            'name' => 'region_name',
+            'code' => 'region_code',
         ];
 
         return new class($query, $columnMap) extends \Illuminate\Database\Eloquent\Builder {

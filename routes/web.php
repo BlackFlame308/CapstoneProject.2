@@ -157,6 +157,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // API Tokens
     Route::get('/tokens', [App\Http\Controllers\TokenController::class, 'index'])->name('tokens.index');
+    Route::post('/tokens', [App\Http\Controllers\TokenController::class, 'store'])->name('tokens.store');
+    Route::delete('/tokens/{id}', [App\Http\Controllers\TokenController::class, 'destroy'])->name('tokens.destroy');
     Route::get('/reports/evacuation', [App\Http\Controllers\Admin\ReportAdminController::class, 'evacuation'])->name('reports.evacuation');
     Route::get('/reports/rescue', [App\Http\Controllers\Admin\ReportAdminController::class, 'rescue'])->name('reports.rescue');
     Route::get('/reports/logistics', [App\Http\Controllers\Admin\ReportAdminController::class, 'logistics'])->name('reports.logistics');

@@ -28,9 +28,15 @@ try {
         echo "[~] Backfilling 'name' column in 'roles' table...\n";
         DB::statement("UPDATE roles SET name = role_name WHERE name IS NULL OR name = ''");
         
-        // Add name mapping to Captain/Encoder/Household if needed
+        // Rename evac_admin to moderator and evac_personnel to personel if they exist
+        echo "[~] Renaming evac roles to moderator and personel in database...\n";
+        DB::statement("UPDATE roles SET role_key = 'moderator', role_name = 'Moderator', name = 'Moderator' WHERE role_key = 'evac_admin'");
+        DB::statement("UPDATE roles SET role_key = 'personel', role_name = 'personel', name = 'personel' WHERE role_key = 'evac_personnel' OR role_key = 'evac_personel'");
+
+        // Add name mapping to Captain/Moderator/personel/Household if needed
         DB::statement("UPDATE roles SET name = 'Captain' WHERE role_key = 'super_admin' OR role_key = 'admin'");
-        DB::statement("UPDATE roles SET name = 'Encoder' WHERE role_key = 'evac_personnel' OR role_key = 'rescuer'");
+        DB::statement("UPDATE roles SET name = 'Moderator' WHERE role_key = 'moderator'");
+        DB::statement("UPDATE roles SET name = 'personel' WHERE role_key = 'personel' OR role_key = 'rescuer'");
         DB::statement("UPDATE roles SET name = 'Household' WHERE role_key = 'household_resident'");
     }
 

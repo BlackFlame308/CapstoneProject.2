@@ -10,19 +10,17 @@ class Member extends Model
 {
     use SoftDeletes;
 
+    public ?bool $tempIsPwd = null;
+    public ?bool $tempIsPregnant = null;
+
     protected $table = 'household_members';
     public $timestamps = false;
 
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        if (config('database.default') === 'sqlite') {
-            $this->setTable('members');
-            $this->timestamps = true;
-        } else {
-            $this->setTable('household_members');
-            $this->timestamps = false;
-        }
+        $this->setTable('household_members');
+        $this->timestamps = false;
     }
 
     protected $primaryKey = 'member_id';
@@ -44,15 +42,14 @@ class Member extends Model
         'civil_status',
         'education_level',
         'occupation',
-        'is_pwd',
-        'is_senior',
-        'is_pregnant',
         'special_needs',
         'is_graduate',
         'gender_id',
         'relationship_id',
         'civil_status_id',
         'education_level_id',
+        'is_pwd',
+        'is_pregnant',
     ];
 
     protected $casts = [
@@ -80,12 +77,9 @@ class Member extends Model
         });
 
         static::saved(function (Member $member) {
-            if (config('database.default') === 'sqlite') {
-                return;
-            }
             // Sync PWD vulnerability group
-            if (isset($member->attributes['is_pwd'])) {
-                $isPwd = (bool)$member->attributes['is_pwd'];
+            if ($member->tempIsPwd !== null) {
+                $isPwd = $member->tempIsPwd;
                 $pwdGroup = \Illuminate\Support\Facades\DB::table('vulnerable_groups')->where('vulnerable_group_key', 'pwd')->first();
                 if ($pwdGroup) {
                     if ($isPwd) {
@@ -103,8 +97,8 @@ class Member extends Model
             }
 
             // Sync Pregnant vulnerability group
-            if (isset($member->attributes['is_pregnant'])) {
-                $isPregnant = (bool)$member->attributes['is_pregnant'];
+            if ($member->tempIsPregnant !== null) {
+                $isPregnant = $member->tempIsPregnant;
                 $pregGroup = \Illuminate\Support\Facades\DB::table('vulnerable_groups')->where('vulnerable_group_key', 'pregnant')->first();
                 if ($pregGroup) {
                     if ($isPregnant) {
@@ -123,11 +117,8 @@ class Member extends Model
         });
 
         static::deleting(function (Member $member) {
-            if (config('database.default') === 'sqlite') {
-                return;
-            }
             $occId = $member->attributes['occupation'] ?? null;
-            if ($occId) {
+            if ($occId && is_numeric($occId)) {
                 try {
                     \Illuminate\Support\Facades\DB::table('occupations')
                         ->where('occuaption_id', $occId)
@@ -182,8 +173,8 @@ class Member extends Model
 
     public function getIsPwdAttribute(): bool
     {
-        if (config('database.default') === 'sqlite' || isset($this->attributes['is_pwd'])) {
-            return (bool)($this->attributes['is_pwd'] ?? false);
+        if ($this->tempIsPwd !== null) {
+            return $this->tempIsPwd;
         }
 
         return \Illuminate\Support\Facades\DB::table('member_vulnerable_groups')
@@ -195,28 +186,23 @@ class Member extends Model
 
     public function setIsPwdAttribute($value): void
     {
-        $this->attributes['is_pwd'] = $value ? 1 : 0;
+        $this->tempIsPwd = (bool)$value;
     }
 
     public function getIsSeniorAttribute(): bool
     {
-        if (config('database.default') === 'sqlite') {
-            return (bool)($this->attributes['is_senior'] ?? false);
-        }
         return $this->age >= 60;
     }
 
     public function setIsSeniorAttribute($value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['is_senior'] = $value ? 1 : 0;
-        }
+        // Dynamic based on age, no-op
     }
 
     public function getIsPregnantAttribute(): bool
     {
-        if (config('database.default') === 'sqlite' || isset($this->attributes['is_pregnant'])) {
-            return (bool)($this->attributes['is_pregnant'] ?? false);
+        if ($this->tempIsPregnant !== null) {
+            return $this->tempIsPregnant;
         }
 
         return \Illuminate\Support\Facades\DB::table('member_vulnerable_groups')
@@ -228,7 +214,7 @@ class Member extends Model
 
     public function setIsPregnantAttribute($value): void
     {
-        $this->attributes['is_pregnant'] = $value ? 1 : 0;
+        $this->tempIsPregnant = (bool)$value;
     }
 
     public function getSexAttribute(): ?string
@@ -237,26 +223,17 @@ class Member extends Model
         if ($sex) {
             return strtoupper($sex); // returns M or F
         }
-        if (config('database.default') !== 'sqlite') {
-            $genderId = $this->attributes['gender_id'] ?? null;
-            if ($genderId == 1) return 'M';
-            if ($genderId == 2) return 'F';
-        }
+        $genderId = $this->attributes['gender_id'] ?? null;
+        if ($genderId == 1) return 'M';
+        if ($genderId == 2) return 'F';
         return null;
     }
 
     public function setSexAttribute($value): void
     {
         $val = strtolower(trim((string)$value));
-        $sexVal = ($val === 'm' || $val === 'male') ? 'M' : 'F';
-        $genderVal = ($val === 'm' || $val === 'male') ? 'Male' : 'Female';
         $genderId = ($val === 'm' || $val === 'male') ? 1 : 2;
-
-        $this->attributes['sex'] = $sexVal;
-        $this->attributes['gender'] = $genderVal;
-        if (config('database.default') !== 'sqlite') {
-            $this->attributes['gender_id'] = $genderId;
-        }
+        $this->attributes['gender_id'] = $genderId;
     }
 
     public function getGenderAttribute(): ?string
@@ -276,7 +253,7 @@ class Member extends Model
     public function getRelationAttribute(): ?string
     {
         $val = $this->attributes['relation'] ?? null;
-        if (!$val && config('database.default') !== 'sqlite') {
+        if (!$val) {
             $relId = $this->attributes['relationship_id'] ?? null;
             if ($relId) {
                 $rel = \Illuminate\Support\Facades\DB::table('relationships')->where('relationship_id', $relId)->first();
@@ -300,11 +277,6 @@ class Member extends Model
     public function setRelationAttribute($value): void
     {
         $val = trim((string)$value);
-        $this->attributes['relation'] = $val;
-
-        if (config('database.default') === 'sqlite') {
-            return;
-        }
 
         $mapped = $val;
         if (strtolower($val) === 'head') {
@@ -324,7 +296,7 @@ class Member extends Model
     public function getCivilStatusAttribute(): ?string
     {
         $val = $this->attributes['civil_status'] ?? null;
-        if (!$val && config('database.default') !== 'sqlite') {
+        if (!$val) {
             $statusId = $this->attributes['civil_status_id'] ?? null;
             if ($statusId) {
                 $status = \Illuminate\Support\Facades\DB::table('civil_statuses')->where('status_id', $statusId)->first();
@@ -337,11 +309,6 @@ class Member extends Model
     public function setCivilStatusAttribute($value): void
     {
         $val = trim((string)$value);
-        $this->attributes['civil_status'] = $val;
-
-        if (config('database.default') === 'sqlite') {
-            return;
-        }
 
         $status = \Illuminate\Support\Facades\DB::table('civil_statuses')
             ->where('status_label', 'like', $val)
@@ -354,7 +321,7 @@ class Member extends Model
     public function getEducationLevelAttribute(): ?string
     {
         $val = $this->attributes['education_level'] ?? null;
-        if (!$val && config('database.default') !== 'sqlite') {
+        if (!$val) {
             $elId = $this->attributes['education_level_id'] ?? null;
             if ($elId) {
                 $el = \Illuminate\Support\Facades\DB::table('education_levels')->where('education_level_id', $elId)->first();
@@ -367,11 +334,6 @@ class Member extends Model
     public function setEducationLevelAttribute($value): void
     {
         $val = trim((string)$value);
-        $this->attributes['education_level'] = $val;
-
-        if (config('database.default') === 'sqlite') {
-            return;
-        }
 
         $el = \Illuminate\Support\Facades\DB::table('education_levels')
             ->where('education_level_label', 'like', $val)
@@ -384,7 +346,7 @@ class Member extends Model
     public function getOccupationAttribute(): ?string
     {
         $val = $this->attributes['occupation'] ?? null;
-        if (is_numeric($val) && config('database.default') !== 'sqlite') {
+        if (is_numeric($val)) {
             $occ = \Illuminate\Support\Facades\DB::table('occupations')->where('occuaption_id', (int)$val)->first();
             return $occ ? $occ->occupation_name : null;
         }
@@ -395,10 +357,6 @@ class Member extends Model
     {
         $val = trim((string)$value);
         $this->attributes['occupation'] = $val;
-
-        if (config('database.default') === 'sqlite') {
-            return;
-        }
 
         if (empty($val)) {
             return;
@@ -434,9 +392,6 @@ class Member extends Model
 
     public function newEloquentBuilder($query)
     {
-        if (config('database.default') === 'sqlite') {
-            return new \Illuminate\Database\Eloquent\Builder($query);
-        }
         return new class($query) extends \Illuminate\Database\Eloquent\Builder {
             public function whereRaw($sql, $bindings = [], $boolean = 'and')
             {
@@ -495,6 +450,22 @@ class Member extends Model
                     $v = strtolower(trim((string)$val));
                     $genderId = ($v === 'm' || $v === 'male') ? 1 : 2;
                     return $this->where('gender_id', '=', $genderId, $boolean);
+                }
+
+                if ($column === 'relation') {
+                    $val = func_num_args() === 2 ? $operator : $value;
+                    $boolean = func_num_args() === 4 ? $boolean : 'and';
+                    $mapped = trim((string)$val);
+                    if (strtolower($mapped) === 'head') {
+                        $mapped = 'Head of Household';
+                    } elseif (strtolower($mapped) === 'others' || strtolower($mapped) === 'other' || strtolower($mapped) === 'grandchild') {
+                        $mapped = 'Other Relative';
+                    }
+                    $rel = \Illuminate\Support\Facades\DB::table('relationships')
+                        ->where('relationship_label', 'like', $mapped)
+                        ->first();
+                    $relId = $rel ? $rel->relationship_id : 0;
+                    return $this->where('relationship_id', '=', $relId, $boolean);
                 }
 
                 if ($column === 'civil_status') {

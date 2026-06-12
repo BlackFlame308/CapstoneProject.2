@@ -164,41 +164,5 @@ class User extends Authenticatable
         return $this->hasPermission('view_households') || $this->isSuperAdmin();
     }
 
-    public function newEloquentBuilder($query)
-    {
-        if (config('database.default') === 'sqlite') {
-            return new \Illuminate\Database\Eloquent\Builder($query);
-        }
-        return new class($query) extends \Illuminate\Database\Eloquent\Builder {
-            public function where($column, $operator = null, $value = null, $boolean = 'and')
-            {
-                if (is_array($column)) {
-                    foreach ($column as $key => $val) {
-                        $this->where($key, '=', $val, $boolean);
-                    }
-                    return $this;
-                }
-                if ($column === 'email') {
-                    $val = $value;
-                    if ($value === null && $operator !== null) {
-                        $val = $operator;
-                    }
-                    if ($val === 'captain@safetrack.local') {
-                        if ($value === null) {
-                            $operator = 'hq-admin@resqperation.local';
-                        } else {
-                            $value = 'hq-admin@resqperation.local';
-                        }
-                    } elseif ($val === 'encoder@safetrack.local') {
-                        if ($value === null) {
-                            $operator = 'rescuer@resqperation.local';
-                        } else {
-                            $value = 'rescuer@resqperation.local';
-                        }
-                    }
-                }
-                return parent::where($column, $operator, $value, $boolean);
-            }
-        };
-    }
+
 }

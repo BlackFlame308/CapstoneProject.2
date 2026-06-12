@@ -27,9 +27,10 @@ class AdminBladeSmokeTest extends TestCase
     {
         parent::setUp();
 
-        $captainRole = Role::create(['name' => 'Captain']);
-        Role::create(['name' => 'Encoder']);
-        Role::create(['name' => 'Household']);
+        $captainRole = Role::create(['name' => 'Captain', 'role_key' => 'admin']);
+        Role::create(['name' => 'Moderator', 'role_key' => 'moderator']);
+        Role::create(['name' => 'personel', 'role_key' => 'personel']);
+        Role::create(['name' => 'Household', 'role_key' => 'household_resident']);
 
         $this->captain = User::create([
             'name' => 'Captain Test',
@@ -198,7 +199,7 @@ class AdminBladeSmokeTest extends TestCase
 
     public function test_admin_account_form_actions_work(): void
     {
-        $encoderRole = Role::where('name', 'Encoder')->firstOrFail();
+        $encoderRole = Role::where('name', 'personel')->firstOrFail();
 
         $this->actingAs($this->captain)
             ->post(route('admin.accounts.store'), [

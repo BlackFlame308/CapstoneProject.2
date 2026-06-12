@@ -17,7 +17,7 @@ class Sitio extends Model
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        $this->timestamps = (config('database.default') === 'sqlite');
+        $this->timestamps = false;
     }
 
     protected $primaryKey = 'sitio_id';
@@ -47,26 +47,17 @@ class Sitio extends Model
     public function setNameAttribute($value): void
     {
         $normalized = static::normalizeLocationName($value);
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['name'] = $normalized;
-        } else {
-            $this->attributes['sitio_name'] = $normalized;
-        }
+        $this->attributes['sitio_name'] = $normalized;
     }
 
     public function getCodeAttribute(): ?string
     {
-        if (config('database.default') === 'sqlite') {
-            return $this->attributes['code'] ?? null;
-        }
-        return null;
+        return $this->attributes['sitio_code'] ?? $this->attributes['code'] ?? null;
     }
 
     public function setCodeAttribute($value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['code'] = $value;
-        }
+        $this->attributes['sitio_code'] = $value;
     }
 
     public function barangay(): BelongsTo
@@ -81,9 +72,9 @@ class Sitio extends Model
 
     public function newEloquentBuilder($query)
     {
-        $isSqlite = (config('database.default') === 'sqlite');
         $columnMap = [
-            'name' => $isSqlite ? 'name' : 'sitio_name',
+            'name' => 'sitio_name',
+            'code' => 'sitio_code',
         ];
 
         return new class($query, $columnMap) extends \Illuminate\Database\Eloquent\Builder {
@@ -101,6 +92,9 @@ class Sitio extends Model
                 foreach ($columns as &$column) {
                     if ($column === 'name') {
                         $column = $this->columnMap['name'] . ' as name';
+                    }
+                    if ($column === 'code') {
+                        $column = $this->columnMap['code'] . ' as code';
                     }
                 }
                 return parent::select($columns);

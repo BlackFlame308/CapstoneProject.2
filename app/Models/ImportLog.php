@@ -24,6 +24,24 @@ class ImportLog extends Model
         'row_num'        => 'integer',
     ];
 
+    protected static $rowNumColumn = null;
+
+    public static function getRowNumColumn()
+    {
+        if (self::$rowNumColumn === null) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('import_logs', 'row_num')) {
+                    self::$rowNumColumn = 'row_num';
+                } else {
+                    self::$rowNumColumn = 'row_number';
+                }
+            } catch (\Throwable $e) {
+                self::$rowNumColumn = 'row_number';
+            }
+        }
+        return self::$rowNumColumn;
+    }
+
     protected static function booted(): void
     {
         static::creating(function (ImportLog $log) {
@@ -37,6 +55,13 @@ class ImportLog extends Model
         });
 
         static::saving(function (ImportLog $log) {
+            $col = self::getRowNumColumn();
+            if ($col === 'row_num') {
+                unset($log->attributes['row_number']);
+            } else {
+                unset($log->attributes['row_num']);
+            }
+
             $allowed = ['success', 'failed'];
             if (!in_array($log->status, $allowed, true)) {
                 throw new \InvalidArgumentException(
@@ -49,12 +74,20 @@ class ImportLog extends Model
 
     public function getRowNumberAttribute(): ?int
     {
-        return $this->attributes['row_num'] ?? null;
+        $col = self::getRowNumColumn();
+        return $this->attributes[$col] ?? $this->attributes['row_num'] ?? $this->attributes['row_number'] ?? null;
     }
 
     public function setRowNumberAttribute($value): void
     {
-        $this->attributes['row_num'] = $value;
+        $col = self::getRowNumColumn();
+        $this->attributes[$col] = $value;
+        if ($col !== 'row_num') {
+            unset($this->attributes['row_num']);
+        }
+        if ($col !== 'row_number') {
+            unset($this->attributes['row_number']);
+        }
     }
 
     public function newEloquentBuilder($query)
@@ -62,10 +95,18 @@ class ImportLog extends Model
         return new class($query) extends \Illuminate\Database\Eloquent\Builder {
             public function where($column, $operator = null, $value = null, $boolean = 'and')
             {
-                if ($column === 'row_number') {
-                    $column = 'row_num';
+                if ($column === 'row_number' || $column === 'row_num') {
+                    $column = \App\Models\ImportLog::getRowNumColumn();
                 }
                 return parent::where($column, $operator, $value, $boolean);
+            }
+
+            public function orderBy($column, $direction = 'asc')
+            {
+                if ($column === 'row_number' || $column === 'row_num') {
+                    $column = \App\Models\ImportLog::getRowNumColumn();
+                }
+                return parent::orderBy($column, $direction);
             }
         };
     }

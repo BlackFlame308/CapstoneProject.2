@@ -17,7 +17,7 @@ class Barangay extends Model
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        $this->timestamps = (config('database.default') === 'sqlite');
+        $this->timestamps = false;
     }
 
     protected $primaryKey = 'barangay_id';
@@ -47,11 +47,7 @@ class Barangay extends Model
     public function setNameAttribute($value): void
     {
         $normalized = static::normalizeLocationName($value);
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['name'] = $normalized;
-        } else {
-            $this->attributes['barangay_name'] = $normalized;
-        }
+        $this->attributes['barangay_name'] = $normalized;
     }
 
     public function getCodeAttribute(): ?string
@@ -61,11 +57,7 @@ class Barangay extends Model
 
     public function setCodeAttribute($value): void
     {
-        if (config('database.default') === 'sqlite') {
-            $this->attributes['code'] = $value;
-        } else {
-            $this->attributes['barangay_code'] = $value;
-        }
+        $this->attributes['barangay_code'] = $value;
     }
 
     public function city(): BelongsTo
@@ -75,8 +67,7 @@ class Barangay extends Model
 
     public function sitios(): HasMany
     {
-        $orderCol = (config('database.default') === 'sqlite') ? 'name' : 'sitio_name';
-        return $this->hasMany(Sitio::class, 'barangay_id', 'barangay_id')->orderBy($orderCol);
+        return $this->hasMany(Sitio::class, 'barangay_id', 'barangay_id')->orderBy('sitio_name');
     }
 
     public function addresses(): HasMany
@@ -91,10 +82,9 @@ class Barangay extends Model
 
     public function newEloquentBuilder($query)
     {
-        $isSqlite = (config('database.default') === 'sqlite');
         $columnMap = [
-            'name' => $isSqlite ? 'name' : 'barangay_name',
-            'code' => $isSqlite ? 'code' : 'barangay_code',
+            'name' => 'barangay_name',
+            'code' => 'barangay_code',
         ];
 
         return new class($query, $columnMap) extends \Illuminate\Database\Eloquent\Builder {
