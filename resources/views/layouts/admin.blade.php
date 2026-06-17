@@ -664,6 +664,7 @@
 
 
 
+
             @if($canManageAccounts)
                 <li>
                     <a href="{{ route('admin.accounts.index') }}" class="@if(Request::routeIs('admin.accounts.*')) active @endif">
@@ -678,13 +679,6 @@
                     <a href="{{ route('admin.analytics.index') }}" class="@if(Request::routeIs('admin.analytics.*')) active @endif">
                         <i class="fas fa-chart-pie"></i>
                         <span>Analytics View</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a href="{{ route('admin.reports.index') }}" class="@if(Request::routeIs('admin.reports.*')) active @endif">
-                        <i class="fas fa-clipboard-list"></i>
-                        <span>Reports View</span>
                     </a>
                 </li>
             @endif

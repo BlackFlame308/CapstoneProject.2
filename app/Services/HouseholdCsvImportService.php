@@ -29,29 +29,30 @@ class HouseholdCsvImportService
      */
     public function import(string $filePath, string $uploadedBy): array
     {
+        // Extend execution limit to prevent timeout during user account password hashing
+        @set_time_limit(300);
+
         if (!file_exists($filePath)) {
             throw new \Exception('CSV file not found at specified path');
         }
 
-        DB::transaction(function () use ($filePath, $uploadedBy) {
-            $this->dataSource = DataSource::create([
-                'type'        => 'csv',
-                'uploaded_by' => $uploadedBy,
-            ]);
+        $this->dataSource = DataSource::create([
+            'type'        => 'csv',
+            'uploaded_by' => $uploadedBy,
+        ]);
 
-            $this->csvUpload = CsvUpload::create([
-                'data_source_id' => $this->dataSource->id,
-                'file_name'      => basename($filePath),
-            ]);
+        $this->csvUpload = CsvUpload::create([
+            'data_source_id' => $this->dataSource->id,
+            'file_name'      => basename($filePath),
+        ]);
 
-            $this->processCsv($filePath, $uploadedBy);
+        $this->processCsv($filePath, $uploadedBy);
 
-            $this->csvUpload->update([
-                'total_records'      => $this->totalRecords,
-                'successful_records' => $this->successfulRecords,
-                'failed_records'     => $this->failedRecords,
-            ]);
-        });
+        $this->csvUpload->update([
+            'total_records'      => $this->totalRecords,
+            'successful_records' => $this->successfulRecords,
+            'failed_records'     => $this->failedRecords,
+        ]);
 
         \Log::info("CSV Import done: total={$this->totalRecords} success={$this->successfulRecords} failed={$this->failedRecords}");
 
