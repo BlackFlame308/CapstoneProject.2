@@ -5,7 +5,7 @@
     border-radius: 8px;
     padding: 25px;
     border: none;
-    border-top: 4px solid #3B82F6;
+    border-top: 4px solid #18181b;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
     height: 100%;
@@ -20,7 +20,7 @@
 .stat-icon {
     font-size: 40px;
     margin-bottom: 15px;
-    color: #3B82F6;
+    color: #18181b;
 }
 
 .stat-value {
@@ -57,14 +57,14 @@
 
 .admin-sidebar a:hover {
     background-color: rgba(255, 255, 255, 0.05);
-    border-left-color: #3498db;
+    border-left-color: #a1a1aa;
     color: #fff;
 }
 
 .admin-sidebar a.active {
-    background-color: rgba(52, 152, 219, 0.15);
-    border-left-color: #3498db;
-    color: #3498db;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left-color: #ffffff;
+    color: #ffffff;
     font-weight: 600;
 }
 
@@ -82,8 +82,8 @@
 
 .form-control:focus,
 .form-select:focus {
-    border-color: #3498db;
-    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    border-color: #000000;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.08);
 }
 
 /* Badge Styling */
@@ -121,12 +121,12 @@
 
 /* Button Styling */
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #18181b 0%, #000000 100%);
     border: none;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #5568d3 0%, #6a3f91 100%);
+    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
 }
 
 .btn-secondary {

@@ -20,7 +20,7 @@
         body {
             display: flex;
             min-height: 100vh;
-            background-color: #f5f7fa;
+            background-color: #edf0f5;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-x: hidden;
         }
@@ -28,7 +28,7 @@
         /* Sidebar */
         .sidebar {
             width: 280px;
-            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+            background: linear-gradient(180deg, #09090b 0%, #18181b 50%, #27272a 100%);
             padding: 0;
             position: fixed;
             height: 100vh;
@@ -159,8 +159,7 @@
             padding: 20px;
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
             border: none;
-            transition: all 0.3s ease;
-            border-top: 4px solid #3b82f6;
+            border-top: 4px solid #18181b;
             height: 100%;
         }
 
@@ -172,7 +171,7 @@
         .stat-card .stat-icon {
             font-size: 28px;
             margin-bottom: 10px;
-            color: #3b82f6;
+            color: #18181b;
         }
 
         .stat-card .stat-value {
@@ -264,7 +263,7 @@
             </div>
 
             <div class="user-profile">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #18181b 0%, #09090b 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
                 <div class="user-info">

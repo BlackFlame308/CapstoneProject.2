@@ -6,7 +6,7 @@
 <!-- Reassuring Greeting & Safety Banner -->
 <div class="row mb-4">
     <div class="col-12">
-        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); border-radius: 16px; padding: 30px; color: white; box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div style="background: linear-gradient(135deg, #09090b 0%, #18181b 100%); border-radius: 16px; padding: 30px; color: white; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
             <div>
                 <h2 style="font-weight: 700; margin-bottom: 5px;">Hello, {{ $household->household_name ?? 'Household Head' }}!</h2>
                 <p style="margin: 0; opacity: 0.9; font-size: 15px;">
@@ -52,7 +52,7 @@
 <!-- Basic Demographics Analytics (Cards) -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stat-card" style="border-top-color: #3b82f6;">
+        <div class="stat-card" style="border-top-color: #18181b;">
             <div class="stat-icon"><i class="fas fa-users"></i></div>
             <div class="stat-value">{{ $totalMembers }}</div>
             <div class="stat-label">Total Family Members</div>
@@ -110,7 +110,7 @@
                     </div>
                     <div>
                         <small style="color: #999; display: block; margin-bottom: 3px; font-weight: 600; text-transform: uppercase; font-size: 11px;">Vulnerability Rating</small>
-                        <span class="badge" style="background-color: @if($household->vulnerability_badge === 'Critical') #fecaca @elseif($household->vulnerability_badge === 'High') #ffedd5 @else #dbeafe @endif; color: @if($household->vulnerability_badge === 'Critical') #dc2626 @elseif($household->vulnerability_badge === 'High') #d97706 @else #2563eb @endif; font-weight: 600;">
+                        <span class="badge" style="background-color: @if($household->vulnerability_badge === 'Critical') #fecaca @elseif($household->vulnerability_badge === 'High') #ffedd5 @else #f4f4f5 @endif; color: @if($household->vulnerability_badge === 'Critical') #dc2626 @elseif($household->vulnerability_badge === 'High') #d97706 @else #18181b @endif; font-weight: 600;">
                             {{ $household->vulnerability_badge }} (Score: {{ $household->vulnerability_score }})
                         </span>
                     </div>
@@ -137,7 +137,7 @@
             </div>
             <div class="card-body" style="padding: 20px;">
                 <div style="display: flex; gap: 15px; align-items: start;">
-                    <div style="font-size: 32px; color: #1e40af;"><i class="fas fa-school"></i></div>
+                    <div style="font-size: 32px; color: #18181b;"><i class="fas fa-school"></i></div>
                     <div>
                         <h6 style="margin: 0 0 5px 0; font-weight: 600; color: #333;">Barangay Sports Complex & High School Gym</h6>
                         <p style="margin: 0 0 10px 0; color: #666; font-size: 13px;">Zone 2, Main Highway road, Cebu Province</p>
@@ -176,7 +176,7 @@
                                     <td style="padding: 15px;">
                                         <span class="badge bg-light text-dark" style="border: 1px solid #ddd; font-weight: 500;">{{ $member->relation ?? 'Member' }}</span>
                                     </td>
-                                    <td style="padding: 15px; text-align: center; font-weight: 600; color: #1e3a8a;">
+                                    <td style="padding: 15px; text-align: center; font-weight: 600; color: #18181b;">
                                         {{ $member->age ?? 'N/A' }}
                                     </td>
                                     <td style="padding: 15px;">
@@ -223,7 +223,7 @@
             </div>
             <div class="card-body" style="padding: 30px; text-align: center;">
                 <div style="color: #888;">
-                    <i class="fas fa-satellite-dish" style="font-size: 32px; color: #3b82f6; margin-bottom: 15px; display: block;"></i>
+                    <i class="fas fa-satellite-dish" style="font-size: 32px; color: #18181b; margin-bottom: 15px; display: block;"></i>
                     <h6 style="font-weight: 600; color: #333;">No active emergency advisories from the Subsystems</h6>
                     <p style="margin: 0 auto; max-width: 500px; font-size: 13px; color: #999;">
                         When real-time updates are published by the evacuation, logistics, or rescue modules, they will securely display here in read-only format for your guidance.

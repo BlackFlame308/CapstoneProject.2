@@ -7,7 +7,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
+            background: linear-gradient(135deg, #09090b 0%, #27272a 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -25,26 +25,31 @@
         }
         .hero-text {
             text-align: center;
-            color: #000000;
+            color: #ffffff;
             margin-bottom: 40px;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
-            border: none;
+            background: linear-gradient(135deg, #09090b 0%, #27272a 100%);
+            border: 1px solid rgba(255,255,255,0.15);
             color: #F7F9FB;
+            transition: all 0.2s ease;
         }
         .btn-primary:hover {
-            background: linear-gradient(135deg, #EF4444 0%, #3B82F6 100%);
+            background: linear-gradient(135deg, #27272a 0%, #09090b 100%);
             color: #F7F9FB;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .btn-outline-light {
-            color: #3B82F6;
-            border-color: #3B82F6;
-            background: linear-gradient(135deg, #F7F9FB 0%, #3B82F6 50%);
+            color: #09090b;
+            border-color: #cbd5e1;
+            background: #ffffff;
+            transition: all 0.2s ease;
         }
         .btn-outline-light:hover {
-            background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
-            color: #F7F9FB;
+            background: #cbd5e1;
+            color: #09090b;
+            transform: translateY(-1px);
         }
         .hero-text h1 {
             font-size: 48px;
