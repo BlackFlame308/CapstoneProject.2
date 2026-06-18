@@ -356,11 +356,11 @@ class Member extends Model
     public function setOccupationAttribute($value): void
     {
         $val = trim((string)$value);
-        $this->attributes['occupation'] = $val;
-
-        if (empty($val)) {
+        if ($val === '') {
+            $this->attributes['occupation'] = null;
             return;
         }
+        $this->attributes['occupation'] = $val;
 
         $occ = \Illuminate\Support\Facades\DB::table('occupations')->where('occupation_name', 'like', $val)->first();
         if ($occ) {

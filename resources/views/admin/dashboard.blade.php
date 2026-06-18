@@ -167,64 +167,6 @@
     </div>
 </div>
 
-<!-- Latest Reports Section -->
-<div class="row">
-    <div class="col-12 mb-4">
-        <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: none;">
-            <div class="card-header" style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h6 style="margin: 0; font-weight: 600; color: #333;">
-                        <i class="fas fa-file-alt"></i> Latest Reports from Subsystems
-                    </h6>
-                    <a href="{{ route('admin.reports.index') }}" class="btn btn-sm btn-primary" style="text-decoration: none;">
-                        View All <i class="fas fa-arrow-right ms-2"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="card-body" style="padding: 20px;">
-                @if($latestReports->count() > 0)
-                    <div class="list-group list-group-flush">
-                        @foreach($latestReports as $report)
-                            <div class="list-group-item" style="padding: 12px 0; border: none; border-bottom: 1px solid #f1f1f1; display: flex; justify-content: space-between; align-items: center; background: transparent;">
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                        <span class="badge {{ $report['badge'] }}" style="font-size: 10px; padding: 4px 6px; border-radius: 4px;">
-                                            {{ $report['type'] }}
-                                        </span>
-                                        <h6 style="margin: 0; font-weight: 600; color: #333; font-size: 13.5px;">
-                                            {{ $report['title'] }}
-                                        </h6>
-                                    </div>
-                                    <small style="color: #666; font-size: 12.5px;">
-                                        {{ $report['detail'] }}
-                                    </small>
-                                </div>
-                                <small style="color: #999; font-size: 11.5px; white-space: nowrap;">
-                                    <i class="far fa-clock me-1"></i>
-                                    {{ \Carbon\Carbon::parse($report['date'])->diffForHumans() }}
-                                </small>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div style="color: #999; text-align: center; padding: 20px;">
-                        <i class="fas fa-info-circle" style="font-size: 32px; margin-bottom: 15px; display: block;"></i>
-                        <h5>No subsystem data available yet</h5>
-                        <p style="margin-bottom: 0;">Waiting for API integration with:</p>
-                        <ul style="list-style: none; padding: 0; margin-top: 10px;">
-                            <li><i class="fas fa-check text-success me-1"></i> EvaTrack Module</li>
-                            <li><i class="fas fa-check text-success me-1"></i> ResQperations Module</li>
-                            <li><i class="fas fa-check text-success me-1"></i> Logistics System</li>
-                        </ul>
-                        <small style="display: block; margin-top: 15px; color: #bbb;">
-                            Reports will appear here once subsystems are connected via API.
-                        </small>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Quick Actions -->
 <div class="row">
