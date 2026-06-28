@@ -159,6 +159,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/tokens', [App\Http\Controllers\TokenController::class, 'index'])->name('tokens.index');
     Route::post('/tokens', [App\Http\Controllers\TokenController::class, 'store'])->name('tokens.store');
     Route::delete('/tokens/{id}', [App\Http\Controllers\TokenController::class, 'destroy'])->name('tokens.destroy');
+
+    // Settings (unified page: Change Password + API Token Management)
+    Route::get('/settings', [App\Http\Controllers\Admin\AdminSettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/password', [App\Http\Controllers\Admin\AdminSettingsController::class, 'updatePassword'])->name('settings.update-password');
+    Route::post('/settings/tokens', [App\Http\Controllers\Admin\AdminSettingsController::class, 'storeToken'])->name('settings.store-token');
+    Route::delete('/settings/tokens/{id}', [App\Http\Controllers\Admin\AdminSettingsController::class, 'destroyToken'])->name('settings.destroy-token');
+
     Route::get('/reports/evacuation', [App\Http\Controllers\Admin\ReportAdminController::class, 'evacuation'])->name('reports.evacuation');
     Route::get('/reports/rescue', [App\Http\Controllers\Admin\ReportAdminController::class, 'rescue'])->name('reports.rescue');
     Route::get('/reports/logistics', [App\Http\Controllers\Admin\ReportAdminController::class, 'logistics'])->name('reports.logistics');

@@ -1067,21 +1067,14 @@
                 </li>
             @endif
 
-            @if($canDelete)
-                <li>
-                    <a href="{{ route('admin.tokens.index') }}" class="@if(Request::routeIs('admin.tokens.*')) active @endif">
-                        <i class="fas fa-key"></i>
-                        <span>API Token Management</span>
-                    </a>
-                </li>
-            @endif
+            {{-- API Token Management & Change Password moved to unified Settings page --}}
 
             <span class="menu-section-label">Account</span>
 
             <li>
-                <a href="{{ route('password.change') }}" class="@if(Request::routeIs('password.change')) active @endif">
-                    <i class="fas fa-lock"></i>
-                    <span>Change Password</span>
+                <a href="{{ route('admin.settings.index') }}" class="@if(Request::routeIs('admin.settings.*')) active @endif">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
                 </a>
             </li>
 
