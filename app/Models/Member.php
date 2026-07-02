@@ -232,7 +232,9 @@ class Member extends Model
     public function setSexAttribute($value): void
     {
         $val = strtolower(trim((string)$value));
+        $sexVal = ($val === 'm' || $val === 'male') ? 'M' : 'F';
         $genderId = ($val === 'm' || $val === 'male') ? 1 : 2;
+        $this->attributes['sex'] = $sexVal;
         $this->attributes['gender_id'] = $genderId;
     }
 
@@ -291,6 +293,7 @@ class Member extends Model
         if ($rel) {
             $this->attributes['relationship_id'] = $rel->relationship_id;
         }
+        $this->attributes['relation'] = $val;
     }
 
     public function getCivilStatusAttribute(): ?string
@@ -316,6 +319,7 @@ class Member extends Model
         if ($status) {
             $this->attributes['civil_status_id'] = $status->status_id;
         }
+        $this->attributes['civil_status'] = $val;
     }
 
     public function getEducationLevelAttribute(): ?string
@@ -341,6 +345,7 @@ class Member extends Model
         if ($el) {
             $this->attributes['education_level_id'] = $el->education_level_id;
         }
+        $this->attributes['education_level'] = $val;
     }
 
     public function getOccupationAttribute(): ?string

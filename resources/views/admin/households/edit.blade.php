@@ -94,7 +94,8 @@
                         <label for="purok_sitio" class="form-label">Purok/Sitio</label>
                         <input type="text" class="form-control @error('purok_sitio') is-invalid @enderror"
                                id="purok_sitio" name="purok_sitio"
-                               value="{{ old('purok_sitio', $household->address?->purok_sitio) }}">
+                               value="{{ old('purok_sitio', $household->address?->purok_sitio) }}" list="sitio_list" autocomplete="off">
+                        <datalist id="sitio_list"></datalist>
                         @error('purok_sitio')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -173,6 +174,27 @@
     var prePopCityId     = {{ $household->address?->barangay?->city_id ?? 'null' }};
     var prePopBarangayId = {{ $household->address?->barangay_id ?? 'null' }};
 
+    function fetchSitios(barangayId) {
+        if (!barangayId) {
+            document.getElementById('sitio_list').innerHTML = '';
+            return;
+        }
+        fetch('/locations/sitios/' + barangayId)
+            .then(response => response.json())
+            .then(data => {
+                var datalist = document.getElementById('sitio_list');
+                datalist.innerHTML = '';
+                if (data && data.data) {
+                    data.data.forEach(function(item) {
+                        var option = document.createElement('option');
+                        option.value = item.name;
+                        datalist.appendChild(option);
+                    });
+                }
+            })
+            .catch(function(error) { console.error('Sitio fetch error:', error); });
+    }
+
     function fetchLocationData(url, selectId, preSelectId) {
         fetch(url)
             .then(response => response.json())
@@ -201,6 +223,13 @@
                 if (selectId === 'city_id' && prePopCityId) {
                     fetchLocationData('/locations/barangays/' + prePopCityId, 'barangay_id', prePopBarangayId);
                 }
+                // Load sitios after barangay loads
+                if (selectId === 'barangay_id') {
+                    var selectedBarangayId = prePopBarangayId || select.value;
+                    if (selectedBarangayId) {
+                        fetchSitios(selectedBarangayId);
+                    }
+                }
             })
             .catch(function(error) { console.error('Location fetch error:', error); });
     }
@@ -208,23 +237,36 @@
     // On manual region change
     document.getElementById('region_id').addEventListener('change', function() {
         if (this.value) {
+            prePopProvinceId = null;
+            prePopCityId = null;
+            prePopBarangayId = null;
             fetchLocationData('/locations/provinces/' + this.value, 'province_id', null);
             document.getElementById('city_id').innerHTML     = '<option value="">-- Select City --</option>';
             document.getElementById('barangay_id').innerHTML = '<option value="">-- Select Barangay --</option>';
+            document.getElementById('sitio_list').innerHTML   = '';
         }
     });
 
     document.getElementById('province_id').addEventListener('change', function() {
         if (this.value) {
+            prePopCityId = null;
+            prePopBarangayId = null;
             fetchLocationData('/locations/cities/' + this.value, 'city_id', null);
             document.getElementById('barangay_id').innerHTML = '<option value="">-- Select Barangay --</option>';
+            document.getElementById('sitio_list').innerHTML   = '';
         }
     });
 
     document.getElementById('city_id').addEventListener('change', function() {
         if (this.value) {
+            prePopBarangayId = null;
             fetchLocationData('/locations/barangays/' + this.value, 'barangay_id', null);
+            document.getElementById('sitio_list').innerHTML   = '';
         }
+    });
+
+    document.getElementById('barangay_id').addEventListener('change', function() {
+        fetchSitios(this.value);
     });
 
     // On page load: auto-populate cascade if household already has an address
@@ -232,6 +274,9 @@
         var regionSelect = document.getElementById('region_id');
         if (regionSelect.value && prePopProvinceId) {
             fetchLocationData('/locations/provinces/' + regionSelect.value, 'province_id', prePopProvinceId);
+        } else if (prePopBarangayId) {
+            // Fallback: if barangay is already set but region is not loaded, fetch sitios directly
+            fetchSitios(prePopBarangayId);
         }
     })();
 </script>

@@ -214,10 +214,14 @@ class AccountAdminController extends Controller
 
     /**
      * Delete user account
+     * 
+     * RBAC Check:
+     * - Only Captains or Super Admins are allowed to delete accounts.
+     * - Encoders can manage but not delete.
      */
     public function destroy(User $user)
     {
-        abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to delete accounts.');
+        abort_unless(auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin(), 403, 'You do not have permission to delete accounts.');
         abort_if($user->is(auth()->user()), 403, 'You cannot delete your own account.');
 
         try {

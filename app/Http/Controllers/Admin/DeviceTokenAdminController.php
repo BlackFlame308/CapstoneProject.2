@@ -55,9 +55,15 @@ class DeviceTokenAdminController extends Controller
 
     /**
      * Delete device token
+     * 
+     * RBAC Check:
+     * - Only Captains or Super Admins are allowed to delete device tokens.
+     * - Encoders can list and view but not delete.
      */
     public function destroy(DeviceToken $deviceToken)
     {
+        abort_unless(auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin(), 403, 'You do not have permission to delete device tokens.');
+
         try {
             $playerId = $deviceToken->player_id;
             $deviceToken->delete();

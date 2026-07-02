@@ -153,9 +153,15 @@ class NotificationManagementController extends Controller
 
     /**
      * Delete notification
+     * 
+     * RBAC Check:
+     * - Only Captains or Super Admins are allowed to delete notifications.
+     * - Encoders can manage notifications (create, view) but not delete.
      */
     public function destroy(Notification $notification)
     {
+        abort_unless(auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin(), 403, 'You do not have permission to delete notifications.');
+
         try {
             $notification->delete();
             return back()->with('success', 'Notification deleted');

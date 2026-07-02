@@ -42,4 +42,9 @@ Route::middleware(['auth:sanctum', 'role:Captain|Encoder'])->group(function () {
     Route::put('members/{member}', [MemberController::class, 'update'])->name('api.members.update');
     Route::delete('members/{member}', [MemberController::class, 'destroy'])
         ->middleware('role:Captain');
+
+    // Reports API - Exposing evacuation, rescue, and logistics subsystems with handshake verification
+    Route::get('reports/evacuation', [App\Http\Controllers\API\ReportController::class, 'evacuation'])->name('api.reports.evacuation');
+    Route::get('reports/rescue', [App\Http\Controllers\API\ReportController::class, 'rescue'])->name('api.reports.rescue');
+    Route::get('reports/logistics', [App\Http\Controllers\API\ReportController::class, 'logistics'])->name('api.reports.logistics');
 });

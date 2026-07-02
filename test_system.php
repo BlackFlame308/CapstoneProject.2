@@ -104,9 +104,41 @@ chk('Barangay id is integer', is_int($barangays->first()->id), 'id=' . $barangay
 $sitios = Sitio::where('barangay_id',$firstBarangay->barangay_id)->select('sitio_id as id','name')->get();
 chk('Sitios for barangay populated', $sitios->count() > 0, $sitios->count() . ' sitios');
 
-// ─────────────────────────────────────────────────────────────────
-section('4. HOUSEHOLD CRUD');
-// ─────────────────────────────────────────────────────────────────
+// Clean pre-existing test data from previous runs to ensure tests pass on persistent/remote databases
+$isSqlite = DB::connection()->getDriverName() === 'sqlite';
+if ($isSqlite) {
+    DB::statement('PRAGMA foreign_keys = OFF');
+} else {
+    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+}
+// 1. Clean households
+$testHHs = Household::withTrashed()
+    ->whereIn('household_code', ['SYSTEST-HH-001', 'reyesfamily@test.local', 'santosfamily@test.local'])
+    ->orWhereIn('household_name', ['System Test Family', 'Updated Test Family', 'Reyes Family', 'Santos Family'])
+    ->get();
+foreach ($testHHs as $thh) {
+    User::where('household_id', $thh->household_id)->forceDelete();
+    Member::withTrashed()->where('household_id', $thh->household_id)->forceDelete();
+    $thh->forceDelete();
+}
+// 2. Clean users
+User::whereIn('username', ['test_enc_sys', 'reyesfamily_test_local', 'santosfamily_test_local', 'mamb_hh_0001', 'mamb_hh_0002'])->forceDelete();
+User::whereIn('email', ['testenc_sys@safetrack.local', 'reyesfamily@test.local', 'santosfamily@test.local'])->forceDelete();
+// 3. Clean data sources and uploads by test captain
+if ($captain) {
+    $ds = DataSource::where('uploaded_by', $captain->user_id)->get();
+    foreach ($ds as $d) {
+        ImportLog::where('data_source_id', $d->id)->delete();
+        CsvUpload::where('data_source_id', $d->id)->delete();
+        $d->delete();
+    }
+}
+if ($isSqlite) {
+    DB::statement('PRAGMA foreign_keys = ON');
+} else {
+    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+}
+
 $addr = Address::create(['barangay_id'=>$firstBarangay->barangay_id,'purok_sitio'=>'Purok Test','street'=>'Test St']);
 $hCode = 'SYSTEST-HH-001';
 $household = Household::create([
@@ -222,6 +254,17 @@ chk('Only 1 user linked to household', User::where('household_id',$household->ho
 // ─────────────────────────────────────────────────────────────────
 section('8. CSV IMPORT SERVICE');
 // ─────────────────────────────────────────────────────────────────
+// Clean pre-existing test households/users from previous runs
+foreach(['Reyes Family','Santos Family'] as $n) {
+    $h = Household::withTrashed()->where('household_name',$n)->orWhere('household_code', 'reyesfamily@test.local')->first();
+    if ($h) {
+        User::where('household_id',$h->household_id)->forceDelete();
+        Member::withTrashed()->where('household_id',$h->household_id)->forceDelete();
+        $h->forceDelete();
+    }
+}
+User::where('email', 'reyesfamily@test.local')->orWhere('username', 'reyesfamily_test_local')->forceDelete();
+
 $csvContent = "head_first_name,head_last_name,household_name,email,contact_number,barangay\n";
 $csvContent .= "Pedro,Reyes,Reyes Family,reyesfamily@test.local,09181234567,{$firstBarangay->name}\n";
 $csvContent .= "Ana,Santos,Santos Family,,09182345678,{$firstBarangay->name}\n";
@@ -271,6 +314,16 @@ chk('totalHouseholds > 0', $totalHH > 0, "count={$totalHH}");
 chk('totalPopulation > 0', $totalMem > 0, "count={$totalMem}");
 chk('children + seniors + adults = total', ($children+$seniors+$adults) === $totalMem,
     "c={$children}+s={$seniors}+a={$adults}=".($children+$seniors+$adults)." vs {$totalMem}");
+if ($males+$females !== $totalMem) {
+    echo "DEBUG GENDERS:" . PHP_EOL;
+    foreach (DB::table('household_members')->whereNull('deleted_at')->get() as $m) {
+        $s = strtolower($m->sex ?? '');
+        $g = $m->gender_id ?? null;
+        if (!in_array($s, ['m','male','f','female'], true) || ($g != 1 && $g != 2)) {
+            echo "  - Member: {$m->member_id} | {$m->name} | raw_sex=" . json_encode($m->sex) . " | raw_gender_id=" . json_encode($g) . PHP_EOL;
+        }
+    }
+}
 chk('males + females = total (all have sex)', $males+$females === $totalMem,
     "m={$males}+f={$females}=" .($males+$females)." vs {$totalMem}");
 

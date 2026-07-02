@@ -88,9 +88,15 @@ class CSVImportDashboardController extends Controller
 
     /**
      * Delete import record
+     * 
+     * RBAC Check:
+     * - Only Captains or Super Admins are allowed to delete CSV import records.
+     * - Encoders can view and retry but not delete.
      */
     public function destroy(CsvUpload $csvUpload)
     {
+        abort_unless(auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin(), 403, 'You do not have permission to delete CSV import records.');
+
         try {
             // Delete related logs
             ImportLog::where('data_source_id', $csvUpload->data_source_id)->delete();

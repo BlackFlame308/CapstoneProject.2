@@ -1065,6 +1065,12 @@
                         <span>Analytics View</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('admin.reports.index') }}" class="@if(Request::routeIs('admin.reports.*')) active @endif">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Subsystem Reports</span>
+                    </a>
+                </li>
             @endif
 
             {{-- API Token Management & Change Password moved to unified Settings page --}}
