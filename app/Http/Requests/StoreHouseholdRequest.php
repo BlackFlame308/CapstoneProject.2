@@ -24,7 +24,7 @@ class StoreHouseholdRequest extends FormRequest
             'street'                     => 'nullable|string|max:255',
             'purok_sitio'                => 'nullable|string|max:150',
             'full_address'               => 'nullable|string|max:500',
-            'barangay_id'                => 'required|exists:barangays,id',
+            'barangay_id'                => 'required|exists:barangays,barangay_id',
 
             // Household head (required)
             'head_first_name'            => 'required|string|max:100',

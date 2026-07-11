@@ -7,7 +7,6 @@ use App\Http\Controllers\API\HouseholdController;
 use App\Http\Controllers\API\MemberController;
 
 // Public routes
-Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
 // Location hierarchy now served via web routes.
@@ -16,6 +15,7 @@ Route::post('login', [AuthController::class, 'login']);
 
 // Protected routes
 Route::middleware(['auth:sanctum', 'role:Captain|Encoder'])->group(function () {
+    Route::post('register', [AuthController::class, 'register']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('change-password', [AuthController::class, 'changePassword']);
 

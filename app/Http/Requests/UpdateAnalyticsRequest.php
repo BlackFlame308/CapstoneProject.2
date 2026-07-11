@@ -16,7 +16,7 @@ class UpdateAnalyticsRequest extends FormRequest
     {
         return [
             'location_ids'   => 'sometimes|array',
-            'location_ids.*' => 'string|exists:barangays,id',
+            'location_ids.*' => 'string|exists:barangays,barangay_id',
         ];
     }
 }

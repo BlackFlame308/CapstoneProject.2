@@ -7,91 +7,55 @@ use App\Models\Household;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 
 /**
  * AccountAdminController
- * 
- * Manages user accounts in the system
- * 
- * FEATURES:
- * - View all user accounts
- * - Create new account (for Household role only)
- * - Edit account
- * - Delete account
- * - Assign roles
- * 
- * ACCOUNT TYPES:
- * - Household: Regular household member/head
- * 
- * NOTE: Does NOT create Responder or Officer accounts
- * Those are managed separately by their respective systems
- * 
- * ROLES AVAILABLE:
- * - 'head': Barangay Head (full access to admin dashboard)
- * - 'encoder': Encoder (can create/view/edit, cannot delete)
- * - 'household': Household user (can view own household)
+ *
+ * Manages user accounts in the admin dashboard.
+ * Only Captains can delete accounts; Encoders can create and edit.
  */
 class AccountAdminController extends Controller
 {
-    /**
-     * List all user accounts
-     */
+    /** Roles visible in create/edit dropdowns */
+    private const MANAGEABLE_ROLES = ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household'];
+
     public function index(Request $request)
     {
         abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to manage accounts.');
 
         $query = User::with(['role', 'household']);
 
-        // Filter by role
         if ($request->filled('role')) {
-            $query->whereHas('role', function($q) use ($request) {
-                $q->where('name', $request->role);
-            });
+            $query->whereHas('role', fn($q) => $q->where('name', $request->role));
         }
 
-        // Search by name, email, or username
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
-            });
+            $query->where(fn($q) => $q
+                ->where('name',     'like', "%{$search}%")
+                ->orWhere('email',    'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
+            );
         }
 
-        $users = $query->latest()->paginate(15)->withQueryString();
-        
-        // Get roles for filter
-        $roles = Role::where('name', '!=', 'Household')->orderBy('name')->get();
-
         return view('admin.accounts.index', [
-            'users' => $users,
-            'roles' => $roles,
+            'users'   => $query->latest()->paginate(15)->withQueryString(),
+            'roles'   => Role::where('name', '!=', 'Household')->orderBy('name')->get(),
             'filters' => $request->only(['search', 'role']),
         ]);
     }
 
-    /**
-     * Show form to create new account
-     */
     public function create()
     {
         abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to create accounts.');
 
-        $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household'])->get()->unique(fn($r) => $r->name);
-
         return view('admin.accounts.create', [
-            'households' => $households,
-            'roles' => $roles,
+            'households' => Household::orderBy('household_code')->get(),
+            'roles'      => $this->manageableRoles(),
         ]);
     }
 
-    /**
-     * Store new user account
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -106,19 +70,7 @@ class AccountAdminController extends Controller
 
         try {
             $role = Role::findOrFail($validated['role_id']);
-
-            // If the role is 'household', a household must be selected
-            if (strtolower($role->name) === 'household' && empty($validated['household_id'])) {
-                return back()->withInput()
-                    ->with('error', 'Please select a household for this Household account.');
-            }
-
-            // Map role name to the enum column value used by the system
-            $roleEnum = match(strtolower($role->name)) {
-                'captain' => 'head',
-                'encoder', 'moderator', 'personnel', 'personel' => 'encoder',
-                default   => 'resident',
-            };
+            $this->assertHouseholdAssigned($role, $validated);
 
             User::create([
                 'name'                 => $validated['name'],
@@ -134,70 +86,54 @@ class AccountAdminController extends Controller
 
             return redirect()->route('admin.accounts.index')
                 ->with('success', "Account for '{$validated['name']}' created successfully!");
-
         } catch (\Exception $e) {
             \Log::error('Account creation error: ' . $e->getMessage());
-            return back()->withInput()
-                ->with('error', 'Failed to create account: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to create account: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Show edit form for account
-     */
     public function edit(User $user)
     {
         abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to edit accounts.');
 
-        $households = Household::orderBy('household_code')->get();
-        $roles = Role::whereIn('name', ['Captain', 'Encoder', 'Moderator', 'personel', 'personnel', 'Household'])->get()->unique(fn($r) => $r->name);
-
         return view('admin.accounts.edit', [
-            'user' => $user,
-            'households' => $households,
-            'roles' => $roles,
+            'user'       => $user,
+            'households' => Household::orderBy('household_code')->get(),
+            'roles'      => $this->manageableRoles(),
         ]);
     }
 
-    /**
-     * Update user account
-     */
     public function update(Request $request, User $user)
     {
         abort_unless(auth()->user()?->canManageAccounts(), 403, 'You are not authorized to update accounts.');
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|max:100|unique:users,username,' . $user->user_id . ',user_id',
-            'email' => 'required|email|unique:users,email,' . $user->user_id . ',user_id',
+            'name'           => 'required|string|max:255',
+            'username'       => 'required|string|max:100|unique:users,username,' . $user->user_id . ',user_id',
+            'email'          => 'required|email|unique:users,email,' . $user->user_id . ',user_id',
             'contact_number' => 'nullable|string|max:20',
-                        'role_id' => 'required|integer|exists:roles,role_id',
-            'household_id' => 'nullable|string|exists:households,household_id',
-            'is_active' => 'boolean',
-            'password' => 'nullable|string|min:8|confirmed',
+            'role_id'        => 'required|integer|exists:roles,role_id',
+            'household_id'   => 'nullable|string|exists:households,household_id',
+            'is_active'      => 'boolean',
+            'password'       => 'nullable|string|min:8|confirmed',
         ]);
 
         try {
             $role = Role::find($validated['role_id']);
-            if (strtolower($role?->name ?? '') === 'household' && empty($validated['household_id'])) {
-                return back()->withInput()
-                    ->with('error', 'Household user must be assigned to a household.');
-            }
+            $this->assertHouseholdAssigned($role, $validated);
 
-            // Prepare update data
             $updateData = [
-                'name' => $validated['name'],
-                'username' => $validated['username'],
-                'email' => $validated['email'],
+                'name'           => $validated['name'],
+                'username'       => $validated['username'],
+                'email'          => $validated['email'],
                 'contact_number' => $validated['contact_number'] ?? null,
-                'role_id' => $validated['role_id'],
-                'household_id' => $validated['household_id'] ?? null,
-                'is_active' => $validated['is_active'] ?? true,
+                'role_id'        => $validated['role_id'],
+                'household_id'   => $validated['household_id'] ?? null,
+                'is_active'      => $validated['is_active'] ?? true,
             ];
 
-            // Update password if provided
             if (!empty($validated['password'])) {
-                $updateData['password'] = Hash::make($validated['password']);
+                $updateData['password']             = Hash::make($validated['password']);
                 $updateData['must_change_password'] = false;
             }
 
@@ -207,32 +143,43 @@ class AccountAdminController extends Controller
                 ->with('success', "Account for '{$user->name}' updated successfully!");
         } catch (\Exception $e) {
             report($e);
-            return back()->withInput()
-                ->with('error', 'Failed to update account. ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to update account. ' . $e->getMessage());
         }
     }
 
-    /**
-     * Delete user account
-     * 
-     * RBAC Check:
-     * - Only Captains or Super Admins are allowed to delete accounts.
-     * - Encoders can manage but not delete.
-     */
     public function destroy(User $user)
     {
-        abort_unless(auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin(), 403, 'You do not have permission to delete accounts.');
+        abort_unless(
+            auth()->user()?->isCaptain() || auth()->user()?->isSuperAdmin(),
+            403,
+            'You do not have permission to delete accounts.'
+        );
         abort_if($user->is(auth()->user()), 403, 'You cannot delete your own account.');
 
         try {
             $name = $user->name;
             $user->delete();
-
             return redirect()->route('admin.accounts.index')
                 ->with('success', "Account for '{$name}' deleted successfully!");
         } catch (\Exception $e) {
             report($e);
             return back()->with('error', 'Failed to delete account. ' . $e->getMessage());
+        }
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private function manageableRoles()
+    {
+        return Role::whereIn('name', self::MANAGEABLE_ROLES)
+            ->get()
+            ->unique(fn($r) => $r->name);
+    }
+
+    private function assertHouseholdAssigned(?Role $role, array $validated): void
+    {
+        if (strtolower($role?->name ?? '') === 'household' && empty($validated['household_id'])) {
+            abort(422, 'Please select a household for this Household account.');
         }
     }
 }

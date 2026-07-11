@@ -22,6 +22,10 @@ return new class extends Migration
             $table->string('full_address', 500)->nullable();
             $table->unsignedInteger('barangay_id')->nullable();
             $table->string('barangay_name', 100)->nullable();
+            $table->unsignedInteger('street_address')->nullable();
+            $table->unsignedInteger('sitio_id')->nullable();
+            $table->unsignedInteger('purok_id')->nullable();
+            $table->unsignedInteger('zipcode_id')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

@@ -30,6 +30,13 @@ return new class extends Migration
             
             $table->string('special_needs', 50)->nullable();
             $table->boolean('is_graduate')->default(false);
+            $table->string('sex', 10)->nullable();
+            $table->string('gender', 50)->nullable();
+            $table->string('relation', 100)->nullable();
+            $table->string('civil_status', 50)->nullable();
+            $table->string('education_level', 100)->nullable();
+            $table->boolean('is_pwd')->default(false);
+            $table->boolean('is_pregnant')->default(false);
             $table->timestamps();
             $table->softDeletes();
 

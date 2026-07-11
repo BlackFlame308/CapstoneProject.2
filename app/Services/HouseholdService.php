@@ -7,10 +7,15 @@ use App\Models\Household;
 use App\Models\Member;
 use App\Models\Role;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * HouseholdService
+ *
+ * Handles household creation, update, and deletion including
+ * all related records (address, user account, members).
+ */
 class HouseholdService
 {
     /**
@@ -20,86 +25,28 @@ class HouseholdService
     public function create(array $data, string $createdBy): Household
     {
         return DB::transaction(function () use ($data, $createdBy) {
-            $role = Role::where('name', 'Household')->firstOrFail();
-
-            $address = Address::create([
-                'street'        => $data['street'] ?? null,
-                'purok_sitio'   => $data['purok_sitio'] ?? null,
-                'house_number'  => $data['house_number'] ?? null,
-                'zip_code'      => $data['zip_code'] ?? null,
-                'full_address'  => $data['full_address'] ?? null,
-                'barangay_id'   => $data['barangay_id'] ?? null,
-                'barangay_name' => $data['barangay_name'] ?? null,
-            ]);
+            $role    = Role::where('name', 'Household')->firstOrFail();
+            $address = Address::create($this->buildAddressData($data));
 
             $householdCode = Household::generateHouseholdId();
-            
-            // Collect all members including the head
-            $allMembers = [];
-            
-            // Add household head as first member (if provided)
-            if (!empty($data['head_first_name']) && !empty($data['head_last_name'])) {
-                $allMembers[] = [
-                    'first_name'   => $data['head_first_name'],
-                    'middle_name'  => $data['head_middle_name'] ?? null,
-                    'last_name'    => $data['head_last_name'],
-                    'birth_date'  => $data['head_birth_date'] ?? null,
-                    'sex'         => $data['head_sex'] ?? 'M',
-                    'relation'    => 'Head',
-                    'civil_status' => $data['head_civil_status'] ?? null,
-                    'education_level' => $data['head_education_level'] ?? null,
-                    'occupation'  => $data['head_occupation'] ?? null,
-                    'is_pwd'      => $data['head_is_pwd'] ?? false,
-                    'is_pregnant' => $data['head_is_pregnant'] ?? false,
-                ];
-            }
-            
-            // Add additional members from the members array
-            foreach ($data['members'] ?? [] as $memberData) {
-                if (!empty($memberData['first_name']) && !empty($memberData['last_name'])) {
-                    $allMembers[] = $memberData;
-                }
-            }
-            
-            $memberCount = count($allMembers);
+            $allMembers    = $this->collectMembers($data);
 
             $household = Household::create([
                 'household_id'      => $householdCode,
                 'household_code'    => $householdCode,
                 'household_name'    => $data['household_name'] ?? 'Unnamed Household',
                 'email'             => $data['email'] ?? null,
-                'member_count'      => $memberCount,
+                'member_count'      => count($allMembers),
                 'address_id'        => $address->address_id,
                 'contact_number'    => $data['contact_number'] ?? null,
                 'emergency_contact' => $data['emergency_contact'] ?? null,
                 'created_by'        => $createdBy,
             ]);
 
-            // Create user account for household head
-            $tempPassword = Str::random(10);
-            $headName = trim(
-                $data['head_first_name'] . ' ' .
-                (!empty($data['head_middle_name']) ? $data['head_middle_name'] . ' ' : '') .
-                $data['head_last_name']
-            );
+            $this->createHouseholdUser($household, $data, $role);
 
-            $userEmail = !empty($data['email'])
-                ? $data['email']
-                : strtolower("{$householdCode}@households.capstone.local");
-
-            User::create([
-                'name'                 => $headName,
-                'email'                => $userEmail,
-                'password'             => bcrypt($tempPassword),
-                'role_id'              => $role->role_id,
-                'household_id'         => $household->household_id,
-                'must_change_password' => true,
-                'temp_password'        => $tempPassword,
-            ]);
-
-            // Create member records for all members including the head
             foreach ($allMembers as $memberData) {
-                Member::create($this->buildMemberData($memberData, $household->household_id));
+                Member::create(MemberDataBuilder::build($memberData, $household->household_id));
             }
 
             return $household;
@@ -107,42 +54,19 @@ class HouseholdService
     }
 
     /**
-     * Update a household and its address.
+     * Update a household and its address and members.
      */
     public function update(Household $household, array $data): Household
     {
         return DB::transaction(function () use ($household, $data) {
-            // Process members (existing + new)
-            $allMembers = [];
-            
-            // Process existing members (keep ones with id)
+            $memberIds = [];
+
             if (array_key_exists('members', $data)) {
-                foreach ($data['members'] ?? [] as $memberData) {
-                    if (empty($memberData['first_name']) || empty($memberData['last_name'])) {
-                        continue;
-                    }
-
-                    if (!empty($memberData['member_id'])) {
-                        $member = Member::find($memberData['member_id']);
-                        if ($member && $member->household_id === $household->household_id) {
-                            $member->update($this->buildMemberData($memberData, $household->household_id));
-                            $allMembers[] = $member->member_id;
-                        }
-                    } else {
-                        $newMember = Member::create($this->buildMemberData($memberData, $household->household_id));
-                        $allMembers[] = $newMember->member_id;
-                    }
-                }
-
-                $currentMemberIds = $household->members()->pluck('member_id')->toArray();
-                $membersToDelete = array_diff($currentMemberIds, $allMembers);
-                if (!empty($membersToDelete)) {
-                    Member::whereIn('member_id', $membersToDelete)->delete();
-                }
+                $memberIds = $this->syncMembers($household, $data['members'] ?? []);
             }
 
             $memberCount = array_key_exists('members', $data)
-                ? count($allMembers)
+                ? count($memberIds)
                 : $household->members()->count();
 
             $household->update([
@@ -154,15 +78,7 @@ class HouseholdService
             ]);
 
             if ($household->address) {
-                $household->address->update([
-                    'street'        => $data['street']       ?? $household->address->street,
-                    'purok_sitio'   => $data['purok_sitio']  ?? $household->address->purok_sitio,
-                    'house_number'  => array_key_exists('house_number', $data)  ? $data['house_number']  : $household->address->house_number,
-                    'zip_code'      => array_key_exists('zip_code', $data)      ? $data['zip_code']      : $household->address->zip_code,
-                    'full_address'  => array_key_exists('full_address', $data)  ? $data['full_address']  : $household->address->full_address,
-                    'barangay_id'   => array_key_exists('barangay_id', $data)   ? $data['barangay_id']   : $household->address->barangay_id,
-                    'barangay_name' => array_key_exists('barangay_name', $data) ? $data['barangay_name'] : $household->address->barangay_name,
-                ]);
+                $household->address->update($this->buildAddressUpdate($data, $household->address));
             }
 
             return $household->fresh(['address', 'members']);
@@ -177,69 +93,121 @@ class HouseholdService
         DB::transaction(function () use ($household) {
             $household->members()->delete();
             User::where('household_id', $household->household_id)->delete();
-            if ($household->address) {
-                $household->address->delete();
-            }
+            $household->address?->delete();
             $household->delete();
         });
     }
 
-    /**
-     * Build normalized member data array.
-     * IMPORTANT: sex stored as 'M'/'F' to match enum column.
-     */
-    private function buildMemberData(array $data, string $householdId): array
-    {
-        // Handle birth date
-        $birthDate = $data['birth_date'] ?? null;
-        $age = null;
-        
-        if ($birthDate) {
-            try {
-                $age = (int) Carbon::parse($birthDate)->diffInYears(now());
-            } catch (\Exception $e) {
-                $age = null;
-            }
-        }
-        
-        // Accept both 'M'/'F' and 'male'/'female'
-        $sexRaw = strtoupper(trim($data['sex'] ?? 'M'));
-        $sex = in_array($sexRaw, ['M', 'F']) ? $sexRaw : (str_starts_with(strtolower($sexRaw), 'm') ? 'M' : 'F');
-        // gender column stores 'male'/'female' display value
-        $gender = $sex === 'M' ? 'male' : 'female';
-        $isPwd = $this->booleanValue($data['is_pwd'] ?? false);
+    // ── Private helpers ───────────────────────────────────────────────────────
 
+    private function buildAddressData(array $data): array
+    {
         return [
-            'household_id'    => $householdId,
-            'name'            => trim(
-                $data['first_name'] . ' ' .
-                (!empty($data['middle_name']) ? $data['middle_name'] . ' ' : '') .
-                $data['last_name']
-            ),
-            'gender'          => $gender,
-            'sex'             => $sex,         // M or F (matches enum)
-            'age'             => $age,
-            'special_needs'   => $isPwd ? 'pwd' : ($age !== null && $age >= 60 ? 'senior' : ($age !== null && $age < 18 ? 'child' : 'adult')),
-            'first_name'      => $data['first_name'],
-            'middle_name'     => $data['middle_name'] ?? null,
-            'last_name'       => $data['last_name'],
-            'birth_date'      => $birthDate,
-            'civil_status'    => $data['civil_status']    ?? null,
-            'education_level' => $data['education_level'] ?? null,
-            'occupation'      => $data['occupation']      ?? null,
-            'relation'        => $data['relation']        ?? null,
-            'is_pwd'          => $isPwd,
-            'is_pregnant'     => $this->booleanValue($data['is_pregnant'] ?? false),
-            'is_graduate'     => false,
+            'street'        => $data['street']        ?? null,
+            'purok_sitio'   => $data['purok_sitio']   ?? null,
+            'house_number'  => $data['house_number']  ?? null,
+            'zip_code'      => $data['zip_code']      ?? null,
+            'full_address'  => $data['full_address']  ?? null,
+            'barangay_id'   => $data['barangay_id']   ?? null,
+            'barangay_name' => $data['barangay_name'] ?? null,
         ];
     }
 
-    private function booleanValue(mixed $value): bool
+    private function buildAddressUpdate(array $data, $address): array
     {
-        if (is_bool($value)) {
-            return $value;
+        $pick = fn($key) => array_key_exists($key, $data) ? $data[$key] : $address->$key;
+
+        return [
+            'street'        => $pick('street'),
+            'purok_sitio'   => $pick('purok_sitio'),
+            'house_number'  => $pick('house_number'),
+            'zip_code'      => $pick('zip_code'),
+            'full_address'  => $pick('full_address'),
+            'barangay_id'   => $pick('barangay_id'),
+            'barangay_name' => $pick('barangay_name'),
+        ];
+    }
+
+    private function collectMembers(array $data): array
+    {
+        $members = [];
+
+        if (!empty($data['head_first_name']) && !empty($data['head_last_name'])) {
+            $members[] = [
+                'first_name'      => $data['head_first_name'],
+                'middle_name'     => $data['head_middle_name'] ?? null,
+                'last_name'       => $data['head_last_name'],
+                'birth_date'      => $data['head_birth_date'] ?? null,
+                'sex'             => $data['head_sex'] ?? 'M',
+                'relation'        => 'Head',
+                'civil_status'    => $data['head_civil_status'] ?? null,
+                'education_level' => $data['head_education_level'] ?? null,
+                'occupation'      => $data['head_occupation'] ?? null,
+                'is_pwd'          => $data['head_is_pwd'] ?? false,
+                'is_pregnant'     => $data['head_is_pregnant'] ?? false,
+            ];
         }
 
-        return in_array(strtoupper(trim((string) $value)), ['1', 'Y', 'YES', 'TRUE', 'PWD'], true);
+        foreach ($data['members'] ?? [] as $m) {
+            if (!empty($m['first_name']) && !empty($m['last_name'])) {
+                $members[] = $m;
+            }
+        }
+
+        return $members;
+    }
+
+    private function createHouseholdUser(Household $household, array $data, $role): void
+    {
+        $tempPassword = Str::random(10);
+        $headName     = trim(
+            $data['head_first_name'] . ' ' .
+            (!empty($data['head_middle_name']) ? $data['head_middle_name'] . ' ' : '') .
+            $data['head_last_name']
+        );
+        $userEmail = !empty($data['email'])
+            ? $data['email']
+            : strtolower("{$household->household_code}@households.capstone.local");
+
+        User::create([
+            'name'                 => $headName,
+            'email'                => $userEmail,
+            'password'             => bcrypt($tempPassword),
+            'role_id'              => $role->role_id,
+            'household_id'         => $household->household_id,
+            'must_change_password' => true,
+            'temp_password'        => $tempPassword,
+        ]);
+    }
+
+    private function syncMembers(Household $household, array $members): array
+    {
+        $keptIds = [];
+
+        foreach ($members as $memberData) {
+            if (empty($memberData['first_name']) || empty($memberData['last_name'])) continue;
+
+            $built = MemberDataBuilder::build($memberData, $household->household_id);
+
+            if (!empty($memberData['member_id'])) {
+                $member = Member::find($memberData['member_id']);
+                if ($member && $member->household_id === $household->household_id) {
+                    $member->update($built);
+                    $keptIds[] = $member->member_id;
+                }
+            } else {
+                $keptIds[] = Member::create($built)->member_id;
+            }
+        }
+
+        $toDelete = array_diff(
+            $household->members()->pluck('member_id')->toArray(),
+            $keptIds
+        );
+        if (!empty($toDelete)) {
+            Member::whereIn('member_id', $toDelete)->delete();
+        }
+
+        return $keptIds;
     }
 }

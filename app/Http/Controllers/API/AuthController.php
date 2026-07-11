@@ -25,7 +25,7 @@ public function register(Request $request): JsonResponse
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'role_id'  => 'required|exists:roles,id',
+            'role_id'  => 'required|exists:roles,role_id',
         ]);
 
         $user = User::create([
