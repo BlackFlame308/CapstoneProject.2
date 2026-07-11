@@ -80,6 +80,7 @@ class MemberQueryBuilder extends Builder
         return $this->where('gender_id', '=', $genderId, $boolean);
     }
 
+
     private function applyRelationFilter($operator, $value, string $boolean): static
     {
         $val    = trim((string) $value);

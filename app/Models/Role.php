@@ -7,6 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
+/**
+ * Role Model
+ * 
+ * Represents user access roles (table: roles).
+ * 
+ * CLEAN CODE DELEGATION STRUCTURE:
+ * 1. Display Name Normalization: Resolves role names transparently through the DISPLAY_NAME_MAP constant.
+ * 2. Scope & Filter Queries: Delegated to Builders\RoleQueryBuilder to map key filter checks.
+ */
 class Role extends Model
 {
     protected $primaryKey = 'role_id';

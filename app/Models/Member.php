@@ -10,6 +10,18 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Member Model
+ * 
+ * Represents a single member/resident inside a household (table: household_members).
+ * 
+ * CLEAN CODE DELEGATION STRUCTURE:
+ * 1. Virtual Attributes / Accessors / Mutators: Delegated to traits to keep this file slim:
+ *    - Traits\MemberAttributes (for name, age, relation, civil_status, occupation, gender, etc.)
+ *    - Traits\MemberVulnerabilityAttributes (for PWD, pregnancy, and senior checks)
+ * 2. Scopes and Query Filters: Delegated to:
+ *    - Builders\MemberQueryBuilder (intercepts SQL filters like where('relation', 'Head') and automatically maps them to relational IDs)
+ */
 class Member extends Model
 {
     use SoftDeletes;

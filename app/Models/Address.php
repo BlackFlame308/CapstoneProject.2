@@ -9,6 +9,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Address Model
+ * 
+ * Manages physical locations and coordinates for households.
+ * 
+ * CLEAN CODE DELEGATION STRUCTURE:
+ * 1. Geographic Lookup Resolutions: Delegated to Traits\AddressResolvers (handles finding or
+ *    creating database IDs for Purok/Sitio/Zipcode on save/update).
+ * 2. Custom Primary Key: Uses 'address_id' rather than generic 'id'.
+ */
 class Address extends Model
 {
     use AddressResolvers;

@@ -13,6 +13,17 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * API HouseholdController
+ * 
+ * Exposes REST API endpoints for managing households, including CSV uploads, CRUD,
+ * and location-based filtering.
+ * 
+ * CLEAN CODE DELEGATION STRUCTURE:
+ * 1. Filtering & Complex Creation Operations: Delegated to Services\HouseholdApiService
+ *    (handles mapping index filters and creating household-related address, user, and member models).
+ * 2. Request Validation: Delegated to FormRequest StoreHouseholdApiRequest.
+ */
 class HouseholdController extends Controller
 {
     public function __construct(
