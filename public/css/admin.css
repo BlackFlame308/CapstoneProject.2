@@ -91,3 +91,35 @@
     .stat-value { font-size: 26px; }
     .stat-icon  { font-size: 22px; width: 44px; height: 44px; }
 }
+
+/* ================================
+   Residents Pagination Fix
+   ================================ */
+
+/* Keep pagination aligned */
+.residents-pagination .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+/* Normal page buttons */
+.residents-pagination .page-link {
+    font-size: 14px;
+    padding: .45rem .75rem;
+    line-height: 1.2;
+}
+
+/* Prevent giant SVG arrows */
+.residents-pagination svg {
+    width: 16px !important;
+    height: 16px !important;
+    display: inline-block;
+}
+
+/* Prevent oversized icons */
+.residents-pagination i {
+    font-size: 14px !important;
+}
