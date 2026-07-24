@@ -1,6 +1,17 @@
-/* ── SafeTrack Admin — shared design tokens ── */
+/* =====================================================
+   SafeTrack Admin — Public Stylesheet
+   Brand: Navy (#1a3a5c) + Teal (#1db87e)
+   ===================================================== */
 
-/* Stat card overrides for pages that use the public stylesheet */
+:root {
+    --st-navy:       #1a3a5c;
+    --st-navy-dark:  #0d2338;
+    --st-teal:       #1db87e;
+    --st-teal-dark:  #159962;
+    --st-teal-light: #22d492;
+}
+
+/* ── Stat card base ── */
 .stat-card {
     background: #ffffff;
     color: #1e293b;
@@ -16,14 +27,23 @@
     overflow: hidden;
 }
 
+/* Default top bar — brand navy */
 .stat-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #18181b, #27272a);
+    background: linear-gradient(90deg, var(--st-navy), var(--st-navy-dark));
     border-radius: 16px 16px 0 0;
 }
+
+/* Variant top bars */
+.stat-card.primary::before { background: linear-gradient(90deg, var(--st-navy), #2a5080); }
+.stat-card.info::before    { background: linear-gradient(90deg, #06b6d4, #0891b2); }
+.stat-card.success::before { background: linear-gradient(90deg, var(--st-teal), var(--st-teal-dark)); }
+.stat-card.warning::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.stat-card.danger::before  { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.stat-card.purple::before  { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
 
 .stat-card:hover {
     transform: translateY(-4px);
@@ -33,15 +53,20 @@
 .stat-icon {
     font-size: 26px;
     margin-bottom: 16px;
-    width: 52px;
-    height: 52px;
+    width: 52px; height: 52px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 13px;
-    background: #f4f4f5;
-    color: #18181b;
+    background: #e8f0fb;
+    color: var(--st-navy);
 }
+
+.stat-card.info    .stat-icon { background: #ecfeff; color: #0891b2; }
+.stat-card.success .stat-icon { background: #d1fae5; color: var(--st-teal-dark); }
+.stat-card.warning .stat-icon { background: #fffbeb; color: #d97706; }
+.stat-card.danger  .stat-icon { background: #fff1f2; color: #dc2626; }
+.stat-card.purple  .stat-icon { background: #f5f3ff; color: #7c3aed; }
 
 .stat-value {
     font-size: 34px;
@@ -55,38 +80,31 @@
 
 .stat-label {
     font-size: 13px;
-    font-weight: 500;
-    color: #64748b;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 }
 
-/* Responsive table */
+/* ── Responsive table ── */
 .table-responsive {
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 12px;
 }
+.table th, .table td { overflow-wrap: anywhere; }
 
-.table th,
-.table td {
-    overflow-wrap: anywhere;
-}
+/* ── Badge ── */
+.badge { white-space: nowrap; }
 
-.badge {
-    white-space: nowrap;
-}
+/* ── Card min-width guard ── */
+.card, .card-header, .card-body, .card-footer { min-width: 0; }
 
-.card,
-.card-header,
-.card-body,
-.card-footer {
-    min-width: 0;
-}
+/* ── Button ── */
+.btn { white-space: normal; }
 
-.btn {
-    white-space: normal;
-}
-
+/* ── Responsive ── */
 @media (max-width: 768px) {
     .stat-value { font-size: 26px; }
     .stat-icon  { font-size: 22px; width: 44px; height: 44px; }
