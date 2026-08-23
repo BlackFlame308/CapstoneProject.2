@@ -155,17 +155,18 @@ class AnalyticsAdminController extends Controller
                 DB::raw("COUNT({$memberTable}.member_id) as population"),
                 DB::raw("SUM(CASE WHEN ({$ageExpr} < 18) THEN 1 ELSE 0 END) as children_count"),
                 DB::raw("SUM(CASE WHEN ({$ageExpr} >= 60) THEN 1 ELSE 0 END) as seniors_count"),
-                DB::raw("SUM(CASE WHEN EXISTS(
+                DB::raw("SUM(CASE WHEN ({$memberTable}.is_pwd = 1 OR EXISTS(
                     SELECT 1 FROM member_vulnerable_groups mvg 
                     JOIN vulnerable_groups vg ON mvg.vulnerable_group_id = vg.vulnerable_group_id 
                     WHERE mvg.member_id = {$memberTable}.member_id AND vg.vulnerable_group_key = 'pwd'
-                ) THEN 1 ELSE 0 END) as pwd_count"),
-                DB::raw("SUM(CASE WHEN EXISTS(
+                )) THEN 1 ELSE 0 END) as pwd_count"),
+                DB::raw("SUM(CASE WHEN ({$memberTable}.is_pregnant = 1 OR EXISTS(
                     SELECT 1 FROM member_vulnerable_groups mvg 
                     JOIN vulnerable_groups vg ON mvg.vulnerable_group_id = vg.vulnerable_group_id 
                     WHERE mvg.member_id = {$memberTable}.member_id AND vg.vulnerable_group_key = 'pregnant'
-                ) THEN 1 ELSE 0 END) as pregnant_count"),
+                )) THEN 1 ELSE 0 END) as pregnant_count"),
                 DB::raw("SUM(CASE WHEN (
+                    {$memberTable}.is_pwd = 1 OR {$memberTable}.is_pregnant = 1 OR
                     EXISTS(SELECT 1 FROM member_vulnerable_groups WHERE member_vulnerable_groups.member_id = {$memberTable}.member_id) OR 
                     ({$ageExpr} >= 60) OR 
                     ({$ageExpr} < 18)

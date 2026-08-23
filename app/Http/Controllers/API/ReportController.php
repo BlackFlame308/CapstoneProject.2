@@ -110,24 +110,178 @@ class ReportController extends Controller
         }
     }
 
+    public function storeEvacuation(Request $request): JsonResponse
+    {
+        if ($err = $this->verifyHandshake($request)) return $err;
+
+        $validated = $request->validate([
+            'household_id'    => 'nullable|string',
+            'household_code'  => 'nullable|string',
+            'event_id'        => 'nullable|integer',
+            'center_id'       => 'nullable|integer',
+            'evacuated_count' => 'nullable|integer',
+            'status'          => 'nullable|string|max:50',
+        ]);
+
+        try {
+            if (!Schema::hasTable('evacuation_records')) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Table evacuation_records does not exist.',
+                ], 400);
+            }
+
+            $householdId = $validated['household_id'] ?? null;
+            if (!$householdId && !empty($validated['household_code'])) {
+                $householdId = DB::table('households')->where('household_code', $validated['household_code'])->value('household_id');
+            }
+
+            $id = DB::table('evacuation_records')->insertGetId([
+                'status'          => $validated['status'] ?? 'active',
+                'event_id'        => $validated['event_id'] ?? null,
+                'center_id'       => $validated['center_id'] ?? null,
+                'household_id'    => $householdId ?? 'N/A',
+                'evacuated_count' => $validated['evacuated_count'] ?? 1,
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Evacuation report stored successfully.',
+                'id'      => $id,
+            ], 201);
+        } catch (\Throwable $e) {
+            return $this->queryError('Store evacuation report error', $e);
+        }
+    }
+
+    public function storeRescue(Request $request): JsonResponse
+    {
+        if ($err = $this->verifyHandshake($request)) return $err;
+
+        $validated = $request->validate([
+            'responder_id' => 'nullable|integer',
+            'team_id'      => 'nullable|integer',
+            'status'       => 'nullable|string|max:50',
+            'assigned_at'  => 'nullable|date',
+            'completed_at' => 'nullable|date',
+        ]);
+
+        try {
+            if (!Schema::hasTable('responder_assignments')) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Table responder_assignments does not exist.',
+                ], 400);
+            }
+
+            $id = DB::table('responder_assignments')->insertGetId([
+                'status'       => $validated['status'] ?? 'assigned',
+                'assigned_at'  => $validated['assigned_at'] ?? now(),
+                'completed_at' => $validated['completed_at'] ?? null,
+                'responder_id' => $validated['responder_id'] ?? null,
+                'team_id'      => $validated['team_id'] ?? null,
+            ]);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Rescue report stored successfully.',
+                'id'      => $id,
+            ], 201);
+        } catch (\Throwable $e) {
+            return $this->queryError('Store rescue report error', $e);
+        }
+    }
+
+    public function storeLogistics(Request $request): JsonResponse
+    {
+        if ($err = $this->verifyHandshake($request)) return $err;
+
+        $validated = $request->validate([
+            'resource_type'        => 'required|string|max:255',
+            'quantity'             => 'required|integer|min:1',
+            'evacuation_center_id' => 'nullable|integer',
+            'urgency_id'           => 'nullable|integer',
+            'status_id'            => 'nullable|integer',
+        ]);
+
+        try {
+            if (!Schema::hasTable('resource_requests')) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Table resource_requests does not exist.',
+                ], 400);
+            }
+
+            $id = DB::table('resource_requests')->insertGetId([
+                'resource_type'        => $validated['resource_type'],
+                'quantity'             => $validated['quantity'],
+                'evacuation_center_id' => $validated['evacuation_center_id'] ?? null,
+                'urgency_id'           => $validated['urgency_id'] ?? null,
+                'status_id'            => $validated['status_id'] ?? null,
+                'created_at'           => now(),
+                'updated_at'           => now(),
+            ]);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Logistics report stored successfully.',
+                'id'      => $id,
+            ], 201);
+        } catch (\Throwable $e) {
+            return $this->queryError('Store logistics report error', $e);
+        }
+    }
+
     // ── Private query builders ────────────────────────────────────────────────
 
     private function queryEvacuationRecords(Request $request)
     {
-        $query = DB::table('evacuation_records')
-            ->leftJoin('disaster_events', 'evacuation_records.event_id', '=', 'disaster_events.event_id')
-            ->leftJoin('evacuation_centers', 'evacuation_records.center_id', '=', 'evacuation_centers.evacuation_center_id')
-            ->leftJoin('households', 'evacuation_records.household_id', '=', 'households.household_id')
-            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
-            ->select(
-                'evacuation_records.*',
-                'disaster_events.name as event_name',
-                'evacuation_centers.name as center_name',
-                'households.household_name',
-                'households.household_code',
-                'addresses.purok_sitio',
-                'addresses.barangay_name'
-            );
+        $query = DB::table('evacuation_records');
+
+        if (Schema::hasTable('disaster_events')) {
+            $query->leftJoin('disaster_events', 'evacuation_records.event_id', '=', 'disaster_events.event_id')
+                  ->addSelect('disaster_events.name as event_name');
+        } else {
+            $query->selectRaw('NULL as event_name');
+        }
+
+        if (Schema::hasTable('evacuation_centers')) {
+            $query->leftJoin('evacuation_centers', 'evacuation_records.center_id', '=', 'evacuation_centers.evacuation_center_id')
+                  ->addSelect('evacuation_centers.name as center_name');
+        } else {
+            $query->selectRaw('NULL as center_name');
+        }
+
+        if (Schema::hasTable('households')) {
+            $query->leftJoin('households', 'evacuation_records.household_id', '=', 'households.household_id')
+                  ->addSelect('households.household_name', 'households.household_code');
+
+            if (Schema::hasTable('addresses')) {
+                $query->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
+                      ->addSelect('addresses.purok_sitio');
+
+                if (Schema::hasTable('barangays')) {
+                    $query->leftJoin('barangays', 'addresses.barangay_id', '=', 'barangays.barangay_id');
+                    if (Schema::hasColumn('barangays', 'barangay_name')) {
+                        $query->addSelect('barangays.barangay_name as barangay_name');
+                    } elseif (Schema::hasColumn('barangays', 'name')) {
+                        $query->addSelect('barangays.name as barangay_name');
+                    } else {
+                        $query->selectRaw('NULL as barangay_name');
+                    }
+                } else {
+                    $query->selectRaw('NULL as barangay_name');
+                }
+            } else {
+                $query->selectRaw('NULL as purok_sitio', 'NULL as barangay_name');
+            }
+        } else {
+            $query->selectRaw('NULL as household_name', 'NULL as household_code', 'NULL as purok_sitio', 'NULL as barangay_name');
+        }
+
+        $query->addSelect('evacuation_records.*');
 
         if ($request->filled('date_from')) {
             $query->whereDate('evacuation_records.created_at', '>=', $request->date_from);
@@ -141,21 +295,29 @@ class ReportController extends Controller
 
     private function queryRescueRecords(Request $request)
     {
-        $query = DB::table('responder_assignments')
-            ->leftJoin('responders', 'responder_assignments.responder_id', '=', 'responders.responder_id')
-            ->leftJoin('rescue_teams', 'responder_assignments.team_id', '=', 'rescue_teams.team_id')
-            ->select(
-                'responder_assignments.*',
-                'responders.full_name as responder_name',
-                'rescue_teams.team_name',
-                'rescue_teams.team_type'
-            );
+        $query = DB::table('responder_assignments');
+
+        if (Schema::hasTable('responders')) {
+            $query->leftJoin('responders', 'responder_assignments.responder_id', '=', 'responders.responder_id')
+                  ->addSelect('responders.full_name as responder_name');
+        } else {
+            $query->selectRaw('NULL as responder_name');
+        }
+
+        if (Schema::hasTable('rescue_teams')) {
+            $query->leftJoin('rescue_teams', 'responder_assignments.team_id', '=', 'rescue_teams.team_id')
+                  ->addSelect('rescue_teams.team_name', 'rescue_teams.team_type');
+        } else {
+            $query->selectRaw('NULL as team_name', 'NULL as team_type');
+        }
+
+        $query->addSelect('responder_assignments.*');
 
         if ($request->filled('status')) {
             $query->where('responder_assignments.status',
                 $request->status === 'completed' ? 'completed' : '!= completed');
         }
-        if ($request->filled('incident_type')) {
+        if ($request->filled('incident_type') && Schema::hasTable('rescue_teams')) {
             $query->where('rescue_teams.team_type', $request->incident_type);
         }
         if ($request->filled('date_from')) {
@@ -170,19 +332,32 @@ class ReportController extends Controller
 
     private function queryLogisticsRecords(Request $request)
     {
-        $query = DB::table('resource_requests')
-            ->leftJoin('evacuation_centers', 'resource_requests.evacuation_center_id', '=', 'evacuation_centers.evacuation_center_id')
-            ->leftJoin('urgency_levels', 'resource_requests.urgency_id', '=', 'urgency_levels.urgency_id')
-            ->leftJoin('resource_request_status', 'resource_requests.status_id', '=', 'resource_request_status.status_id')
-            ->select(
-                'resource_requests.*',
-                'evacuation_centers.name as center_name',
-                'urgency_levels.urgency_label',
-                'resource_request_status.status_label',
-                'resource_request_status.status_key'
-            );
+        $query = DB::table('resource_requests');
 
-        if ($request->filled('status')) {
+        if (Schema::hasTable('evacuation_centers')) {
+            $query->leftJoin('evacuation_centers', 'resource_requests.evacuation_center_id', '=', 'evacuation_centers.evacuation_center_id')
+                  ->addSelect('evacuation_centers.name as center_name');
+        } else {
+            $query->selectRaw('NULL as center_name');
+        }
+
+        if (Schema::hasTable('urgency_levels')) {
+            $query->leftJoin('urgency_levels', 'resource_requests.urgency_id', '=', 'urgency_levels.urgency_id')
+                  ->addSelect('urgency_levels.urgency_label');
+        } else {
+            $query->selectRaw('NULL as urgency_label');
+        }
+
+        if (Schema::hasTable('resource_request_status')) {
+            $query->leftJoin('resource_request_status', 'resource_requests.status_id', '=', 'resource_request_status.status_id')
+                  ->addSelect('resource_request_status.status_label', 'resource_request_status.status_key');
+        } else {
+            $query->selectRaw('NULL as status_label', 'NULL as status_key');
+        }
+
+        $query->addSelect('resource_requests.*');
+
+        if ($request->filled('status') && Schema::hasTable('resource_request_status')) {
             $query->where('resource_request_status.status_key', $request->status);
         }
         if ($request->filled('item_type')) {

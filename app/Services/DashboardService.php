@@ -27,6 +27,7 @@ class DashboardService
             'totalHouseholds' => Household::count(),
             'totalMembers'    => Member::count(),
             'totalPWD'        => Member::where('is_pwd', true)->count(),
+            'totalPregnant'   => Member::where('is_pregnant', true)->count(),
             'totalSeniors'    => Member::whereDate('birth_date', '<=', $cutoffs['senior'])->count(),
             'totalAdults'     => Member::whereDate('birth_date', '<=', $cutoffs['adult'])
                 ->whereDate('birth_date', '>', $cutoffs['senior'])
@@ -57,15 +58,16 @@ class DashboardService
 
     public function getMembersByBarangay(): array
     {
-        return DB::table('members')
-            ->join('households', 'members.household_id', '=', 'households.id')
-            ->join('addresses', 'households.address_id', '=', 'addresses.id')
-            ->join('barangays', 'addresses.barangay_id', '=', 'barangays.id')
+        $memberTable = (new Member)->getTable();
+        return DB::table($memberTable)
+            ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+            ->join('barangays', 'addresses.barangay_id', '=', 'barangays.barangay_id')
             ->whereNull('households.deleted_at')
-            ->whereNull('members.deleted_at')
-            ->groupBy('barangays.id', 'barangays.name')
+            ->whereNull("{$memberTable}.deleted_at")
+            ->groupBy('barangays.barangay_id', 'barangays.name')
             ->select('barangays.name')
-            ->selectRaw('COUNT(members.id) as count')
+            ->selectRaw("COUNT({$memberTable}.member_id) as count")
             ->orderBy('barangays.name')
             ->get()
             ->all();
@@ -78,7 +80,7 @@ class DashboardService
             ->take($limit)
             ->get()
             ->map(fn ($household) => [
-                'id'             => $household->id,
+                'id'             => $household->household_id ?? $household->id,
                 'household_code' => $household->household_code,
                 'household_name' => $household->household_name,
                 'address' => [
@@ -104,18 +106,20 @@ class DashboardService
     public function getSitioVulnerabilityRanking(int $limit = 10): array
     {
         $cutoffs = $this->ageCutoffs();
+        $memberTable = (new Member)->getTable();
 
-        return DB::table('members')
-            ->join('households', 'members.household_id', '=', 'households.id')
-            ->join('addresses', 'households.address_id', '=', 'addresses.id')
+        return DB::table($memberTable)
+            ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
+            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->whereNull('households.deleted_at')
-            ->whereNull('members.deleted_at')
+            ->whereNull("{$memberTable}.deleted_at")
             ->groupBy(DB::raw("COALESCE(addresses.purok_sitio, 'Unassigned Sitio')"))
             ->selectRaw("COALESCE(addresses.purok_sitio, 'Unassigned Sitio') as sitio_name")
-            ->selectRaw('COUNT(members.id) as total_population')
-            ->selectRaw('SUM(CASE WHEN members.is_pwd = 1 THEN 1 ELSE 0 END) as total_pwd')
-            ->selectRaw('SUM(CASE WHEN members.birth_date <= ? THEN 1 ELSE 0 END) as total_seniors', [$cutoffs['senior']])
-            ->selectRaw('SUM(CASE WHEN members.birth_date > ? THEN 1 ELSE 0 END) as total_children', [$cutoffs['adult']])
+            ->selectRaw("COUNT({$memberTable}.member_id) as total_population")
+            ->selectRaw("SUM(CASE WHEN ({$memberTable}.is_pwd = 1 OR EXISTS(SELECT 1 FROM member_vulnerable_groups mvg JOIN vulnerable_groups vg ON mvg.vulnerable_group_id = vg.vulnerable_group_id WHERE mvg.member_id = {$memberTable}.member_id AND vg.vulnerable_group_key = 'pwd')) THEN 1 ELSE 0 END) as total_pwd")
+            ->selectRaw("SUM(CASE WHEN ({$memberTable}.is_pregnant = 1 OR EXISTS(SELECT 1 FROM member_vulnerable_groups mvg JOIN vulnerable_groups vg ON mvg.vulnerable_group_id = vg.vulnerable_group_id WHERE mvg.member_id = {$memberTable}.member_id AND vg.vulnerable_group_key = 'pregnant')) THEN 1 ELSE 0 END) as total_pregnant")
+            ->selectRaw("SUM(CASE WHEN {$memberTable}.birth_date <= ? THEN 1 ELSE 0 END) as total_seniors", [$cutoffs['senior']])
+            ->selectRaw("SUM(CASE WHEN {$memberTable}.birth_date > ? THEN 1 ELSE 0 END) as total_children", [$cutoffs['adult']])
             ->get()
             ->map(fn ($item) => $this->mapSitioItem($item))
             ->sortByDesc('vulnerability_score')
@@ -136,17 +140,24 @@ class DashboardService
 
     private function mapSitioItem(object $item): array
     {
-        $vulnerable = (int) $item->total_pwd + (int) $item->total_seniors + (int) $item->total_children;
-        $total      = (int) $item->total_population;
+        $pwd       = (int) ($item->total_pwd ?? 0);
+        $pregnant  = (int) ($item->total_pregnant ?? 0);
+        $seniors   = (int) ($item->total_seniors ?? 0);
+        $children  = (int) ($item->total_children ?? 0);
+        $total     = (int) ($item->total_population ?? 0);
+
+        $vulnerable = $pwd + $pregnant + $seniors + $children;
+        $vulnerabilityScore = ($children * 1.0) + ($seniors * 1.5) + ($pwd * 2.0) + ($pregnant * 1.5);
 
         return [
             'sitio'               => $item->sitio_name,
             'total_population'    => $total,
             'vulnerable_count'    => $vulnerable,
-            'vulnerability_score' => $total > 0 ? round(($vulnerable / $total) * 100, 2) : 0,
-            'pwd_count'           => (int) $item->total_pwd,
-            'senior_count'        => (int) $item->total_seniors,
-            'child_count'         => (int) $item->total_children,
+            'vulnerability_score' => round($vulnerabilityScore, 2),
+            'pwd_count'           => $pwd,
+            'pregnant_count'      => $pregnant,
+            'senior_count'        => $seniors,
+            'child_count'         => $children,
         ];
     }
 }
