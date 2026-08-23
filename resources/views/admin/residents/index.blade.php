@@ -100,10 +100,10 @@
                     </table>
                 </div>
                 @if($residents->hasPages())
-                <div class="card-footer">
-                    {{ $residents->links() }}
+                <div class="card-footer residents-pagination">
+                     {{ $residents->links() }}
                 </div>
-                @endif
+                 @endif
             </div>
         </div>
     </div>

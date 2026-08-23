@@ -57,8 +57,9 @@
 
         .sidebar-header small {
             display: block;
-            opacity: 0.8;
+            opacity: 0.95;
             font-size: 12px;
+            font-weight: 700;
             margin-top: 5px;
         }
 
@@ -74,6 +75,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            font-weight: 600;
             transition: all 0.3s ease;
             border-left: 4px solid transparent;
         }
@@ -85,7 +87,7 @@
         .sidebar-menu a.active {
             background-color: rgba(255, 255, 255, 0.15);
             border-left: 4px solid #ffffff;
-            font-weight: 600;
+            font-weight: 800;
         }
 
         .sidebar-logout {
@@ -98,6 +100,7 @@
             align-items: center;
             gap: 12px;
             text-align: left;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
         }

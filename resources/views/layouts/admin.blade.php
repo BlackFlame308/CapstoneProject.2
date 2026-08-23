@@ -22,25 +22,32 @@
         }
 
         :root {
-            --sidebar-w: 272px;
-            --sidebar-bg-start: #1f3042;
-            --sidebar-bg-end:   #101921;
-            --accent-blue:  #102b43;
-            --accent-indigo:#1a4060;
-            --accent-purple:#5f6f87;
-            --content-bg:   #eff4fa;
-            --navbar-bg:    rgba(255,255,255,0.96);
-            --card-bg:      #ffffff;
-            --text-main:    #111827;
-            --text-muted:   #596077;
-            --border:       rgba(0,0,0,0.08);
-            --shadow-sm:    0 2px 8px rgba(0,0,0,0.05);
-            --shadow-md:    0 6px 24 rgba(0,0,0,0.08);
-            --shadow-lg:    0 12px 40px rgba(0,0,0,0.12);
-            --radius-sm:    8px;
-            --radius-md:    12px;
-            --radius-lg:    16px;
-            --transition:   0.25s cubic-bezier(.4,0,.2,1);
+            --sidebar-w:     272px;
+            /* Brand colors from SafeTrack logo */
+            --navy:          #1a3a5c;
+            --navy-dark:     #0d2338;
+            --navy-mid:      #1e4a72;
+            --teal:          #1db87e;
+            --teal-dark:     #159962;
+            --teal-light:    #22d492;
+            --sidebar-bg-start: #1a3a5c;
+            --sidebar-bg-end:   #0d2338;
+            --accent-blue:   #1a3a5c;
+            --accent-indigo: #1e4a72;
+            --accent-purple: #1db87e;
+            --content-bg:    #eef3f9;
+            --navbar-bg:     rgba(255,255,255,0.97);
+            --card-bg:       #ffffff;
+            --text-main:     #111827;
+            --text-muted:    #596077;
+            --border:        rgba(0,0,0,0.08);
+            --shadow-sm:     0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md:     0 6px 24px rgba(0,0,0,0.08);
+            --shadow-lg:     0 12px 40px rgba(0,0,0,0.12);
+            --radius-sm:     8px;
+            --radius-md:     12px;
+            --radius-lg:     16px;
+            --transition:    0.25s cubic-bezier(.4,0,.2,1);
         }
 
         html, body {
@@ -65,10 +72,7 @@
         ════════════════════════════════════════ */
         .sidebar {
             width: var(--sidebar-w);
-            background: linear-gradient(180deg,
-                var(--sidebar-bg-start) 0%,
-                #152639 40%,
-                var(--sidebar-bg-end) 100%);
+            background: #ffffff;
             padding: 0;
             position: fixed;
             height: 100vh;
@@ -77,11 +81,10 @@
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            /* Subtle dark glow along the right edge */
-            box-shadow: 4px 0 30px rgba(0,0,0,0.25);
+            /* Clean shadow to separate from content area */
+            box-shadow: 2px 0 20px rgba(0,0,0,0.10), 1px 0 0 #e5eaf2;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.1) transparent;
-            /* Subtle entrance animation */
+            scrollbar-color: #d1d8e4 transparent;
             animation: sidebarLoad 0.6s ease-out;
         }
 
@@ -92,21 +95,22 @@
 
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.12);
+            background: #d1d8e4;
             border-radius: 4px;
         }
 
-        /* ── Animated top bar inside sidebar ── */
+        /* ── Top accent bar — brand teal/navy gradient ── */
         .sidebar::before {
             content: '';
             display: block;
-            height: 3px;
+            height: 4px;
             flex-shrink: 0;
             background: linear-gradient(90deg,
-                var(--accent-blue),
-                var(--accent-indigo),
-                var(--accent-purple),
-                var(--accent-blue));
+                var(--navy-mid),
+                var(--teal),
+                var(--teal-light),
+                var(--teal),
+                var(--navy-mid));
             background-size: 300% 100%;
             animation: shimmer 4s linear infinite;
         }
@@ -120,55 +124,62 @@
         .sidebar-header {
             padding: 28px 20px 22px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
+            border-bottom: 1px solid #e9edf4;
             position: relative;
         }
 
-        /* Subtle glow halo behind logo */
+        /* Subtle teal glow halo behind logo on white sidebar */
         .sidebar-header::after {
             content: '';
             position: absolute;
             top: 20px; left: 50%;
             transform: translateX(-50%);
-            width: 80px; height: 80px;
-            background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
+            width: 90px; height: 90px;
+            background: radial-gradient(circle, rgba(29,184,126,0.12), transparent 70%);
             filter: blur(16px);
             pointer-events: none;
         }
 
+        /* Logo has white background so it is fully visible on dark sidebar */
         .brand-logo-wrap {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 56px; height: 56px;
-            border-radius: 14px;
-            background: linear-gradient(135deg,
-                rgba(255,255,255,0.08),
-                rgba(255,255,255,0.03));
-            border: 1px solid rgba(255,255,255,0.12);
-            margin-bottom: 12px;
+            width: 72px; height: 72px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 2px solid rgba(29,184,126,0.4);
+            margin-bottom: 14px;
             position: relative;
             z-index: 1;
             transition: var(--transition);
+            box-shadow:
+                0 0 0 4px rgba(29,184,126,0.10),
+                0 6px 20px rgba(0,0,0,0.3);
         }
 
         .brand-logo-wrap:hover {
-            transform: scale(1.05);
-            border-color: rgba(255,255,255,0.25);
+            transform: scale(1.06);
+            border-color: rgba(29,184,126,0.7);
+            box-shadow:
+                0 0 0 6px rgba(29,184,126,0.15),
+                0 8px 28px rgba(0,0,0,0.35);
         }
 
         .brand-logo {
-            width: 36px; height: 36px;
+            width: 52px; height: 52px;
             object-fit: contain;
-            border-radius: 8px;
         }
 
         .sidebar-header h3 {
             font-size: 22px;
             font-weight: 800;
-            margin: 0 0 2px;
+            margin: 0 0 4px;
             letter-spacing: -0.3px;
-            background: linear-gradient(90deg, #e0eaff, #c7d7fd);
+        }
+        .sidebar-header h3 .brand-safe { color: var(--navy); }
+        .sidebar-header h3 .brand-track {
+            background: linear-gradient(90deg, var(--teal), var(--teal-dark));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -176,11 +187,11 @@
 
         .sidebar-header small {
             display: block;
-            font-size: 11px;
-            font-weight: 500;
+            font-size: 10.5px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: rgba(255,255,255,0.35);
+            color: #4b5563;
             margin-top: 2px;
         }
 
@@ -198,17 +209,17 @@
         /* Section divider label */
         .menu-section-label {
             font-size: 10px;
-            font-weight: 600;
+            font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: rgba(255,255,255,0.25);
+            color: #5c6b80;
             padding: 16px 12px 6px;
             display: block;
         }
 
         .sidebar-menu a,
         .sidebar-logout {
-            color: rgba(255,255,255,0.65);
+            color: #1e293b;
             padding: 10px 14px;
             text-decoration: none;
             display: flex;
@@ -216,7 +227,7 @@
             gap: 11px;
             border-radius: var(--radius-sm);
             font-size: 13.5px;
-            font-weight: 500;
+            font-weight: 600;
             transition: all var(--transition);
             border: 1px solid transparent;
             position: relative;
@@ -229,8 +240,8 @@
             position: absolute;
             inset: 0;
             background: linear-gradient(90deg,
-                rgba(255,255,255,0.08),
-                rgba(255,255,255,0.03));
+                rgba(29,184,126,0.07),
+                rgba(29,184,126,0.02));
             opacity: 0;
             border-radius: inherit;
             transition: opacity var(--transition);
@@ -238,8 +249,9 @@
 
         .sidebar-menu a:hover,
         .sidebar-logout:hover {
-            color: #fff;
-            border-color: rgba(255,255,255,0.08);
+            color: var(--navy);
+            border-color: rgba(26,58,92,0.1);
+            background: #f0f4fb;
         }
 
         .sidebar-menu a:hover::before,
@@ -262,25 +274,23 @@
         }
 
         .sidebar-menu a.active {
-            color: #fff;
-            background: linear-gradient(90deg,
-                rgba(255,255,255,0.12),
-                rgba(255,255,255,0.06));
-            border-color: rgba(255,255,255,0.25);
-            font-weight: 600;
+            color: var(--navy);
+            background: rgba(29,184,126,0.10);
+            border-color: rgba(29,184,126,0.25);
+            font-weight: 800;
         }
 
         .sidebar-menu a.active::after {
             content: '';
             position: absolute;
-            left: 0; top: 20%; bottom: 20%;
+            left: 0; top: 15%; bottom: 15%;
             width: 3px;
-            background: linear-gradient(180deg, #ffffff, #a1a1aa);
+            background: linear-gradient(180deg, var(--teal-light), var(--teal));
             border-radius: 0 2px 2px 0;
         }
 
         .sidebar-menu a.active i {
-            color: #ffffff;
+            color: var(--teal);
         }
 
         /* ── Sidebar logout button ── */
@@ -293,22 +303,22 @@
         }
 
         .sidebar-logout:hover {
-            background: rgba(239,68,68,0.1);
-            border-color: rgba(239,68,68,0.2);
-            color: #fca5a5;
+            background: #fff0f0;
+            border-color: rgba(239,68,68,0.18);
+            color: #dc2626 !important;
         }
 
         /* ── Sidebar divider ── */
         .sidebar-divider {
             height: 1px;
-            background: rgba(255,255,255,0.07);
+            background: #e9edf4;
             margin: 8px 12px;
         }
 
         /* ── Sidebar user pill ── */
         .sidebar-user {
             padding: 14px 16px;
-            border-top: 1px solid rgba(255,255,255,0.07);
+            border-top: 1px solid #e9edf4;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -540,7 +550,7 @@
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-indigo));
+            background: linear-gradient(90deg, var(--navy), var(--navy-mid));
             border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         }
 
@@ -1007,9 +1017,9 @@
                 <img src="{{ asset('images/logo.png') }}"
                      alt="SafeTrack Logo"
                      class="brand-logo"
-                     onerror="this.parentElement.innerHTML='<i class=\'fas fa-shield-alt\' style=\'font-size:24px;color:#ffffff;\'></i>'">
+                     onerror="this.parentElement.innerHTML='<i class=\'fas fa-shield-alt\' style=\'font-size:28px;color:#1db87e;\'></i>'">
             </div>
-            <h3>SafeTrack</h3>
+            <h3><span class="brand-safe">Safe</span><span class="brand-track">Track</span></h3>
             <small>Admin Dashboard</small>
         </div>
 
