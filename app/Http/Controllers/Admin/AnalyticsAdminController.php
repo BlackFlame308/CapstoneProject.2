@@ -53,10 +53,14 @@ class AnalyticsAdminController extends Controller
             $q->where('barangay_id', $selectedBarangayId);
         })->count();
 
+        $memberTable = (new \App\Models\Member)->getTable();
+        $hasAgeCol   = \Illuminate\Support\Facades\Schema::hasColumn($memberTable, 'age');
+        $ageFallback = $hasAgeCol ? 'age' : '0';
+
         $isSqlite = DB::connection()->getDriverName() === 'sqlite';
         $ageRaw = $isSqlite
-            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', birth_date) as integer), age)"
-            : "COALESCE(TIMESTAMPDIFF(YEAR, birth_date, CURDATE()), age)";
+            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', birth_date) as integer), {$ageFallback})"
+            : "COALESCE(TIMESTAMPDIFF(YEAR, birth_date, CURDATE()), {$ageFallback})";
 
         $childrenCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
             $q->where('barangay_id', $selectedBarangayId);
@@ -142,9 +146,10 @@ class AnalyticsAdminController extends Controller
             ->get();
 
         // Sitio distribution — leftJoin so members without address are still counted
+        $tableAgeFallback = $hasAgeCol ? "{$memberTable}.age" : "0";
         $ageExpr = $isSqlite 
-            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$memberTable}.age)"
-            : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$memberTable}.age)";
+            ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$tableAgeFallback})"
+            : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$tableAgeFallback})";
 
         $sitioDistribution = DB::table($memberTable)
             ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')

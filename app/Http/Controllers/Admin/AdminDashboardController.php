@@ -40,23 +40,30 @@ class AdminDashboardController extends Controller
         $adultCutoff = now()->subYears(18)->toDateString();
         $seniorCutoff = now()->subYears(60)->toDateString();
         
+        $memberTable = (new \App\Models\Member)->getTable();
+        $hasAgeCol   = \Illuminate\Support\Facades\Schema::hasColumn($memberTable, 'age');
+
         // Get demographics (scoping to Mambaling)
         $childrenCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
             $q->where('barangay_id', $mambalingId);
-        })->where(function ($query) use ($adultCutoff) {
-            $query->whereDate('birth_date', '>', $adultCutoff)
-                ->orWhere(function ($fallback) {
+        })->where(function ($query) use ($adultCutoff, $hasAgeCol) {
+            $query->whereDate('birth_date', '>', $adultCutoff);
+            if ($hasAgeCol) {
+                $query->orWhere(function ($fallback) {
                     $fallback->whereNull('birth_date')->where('age', '<', 18);
                 });
+            }
         })->count();
 
         $seniorsCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
             $q->where('barangay_id', $mambalingId);
-        })->where(function ($query) use ($seniorCutoff) {
-            $query->whereDate('birth_date', '<=', $seniorCutoff)
-                ->orWhere(function ($fallback) {
+        })->where(function ($query) use ($seniorCutoff, $hasAgeCol) {
+            $query->whereDate('birth_date', '<=', $seniorCutoff);
+            if ($hasAgeCol) {
+                $query->orWhere(function ($fallback) {
                     $fallback->whereNull('birth_date')->where('age', '>=', 60);
                 });
+            }
         })->count();
 
         $pwdCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
@@ -69,21 +76,23 @@ class AdminDashboardController extends Controller
 
         $adultsCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
             $q->where('barangay_id', $mambalingId);
-        })->where(function ($query) use ($adultCutoff, $seniorCutoff) {
-            $query->whereBetween('birth_date', [$seniorCutoff, $adultCutoff])
-                ->orWhere(function ($fallback) {
+        })->where(function ($query) use ($adultCutoff, $seniorCutoff, $hasAgeCol) {
+            $query->whereBetween('birth_date', [$seniorCutoff, $adultCutoff]);
+            if ($hasAgeCol) {
+                $query->orWhere(function ($fallback) {
                     $fallback->whereNull('birth_date')->whereBetween('age', [18, 59]);
                 });
+            }
         })->count();
         
         // Get sitio rankings (most vulnerable areas ranked by unique vulnerable resident count)
         $sitioRankings = collect([]);
         if (class_exists('App\Models\Address')) {
             $isSqlite = DB::connection()->getDriverName() === 'sqlite';
-            $memberTable = (new \App\Models\Member)->getTable();
+            $ageFallback = $hasAgeCol ? "{$memberTable}.age" : "0";
             $ageExpr = $isSqlite 
-                ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$memberTable}.age)"
-                : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$memberTable}.age)";
+                ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$ageFallback})"
+                : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$ageFallback})";
 
             $sitioRankings = DB::table($memberTable)
                 ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')

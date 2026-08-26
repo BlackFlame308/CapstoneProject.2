@@ -76,20 +76,50 @@ class ReportAdminController extends Controller
             ]);
         }
         
-        $query = \Illuminate\Support\Facades\DB::table('evacuation_records')
-            ->leftJoin('disaster_events', 'evacuation_records.event_id', '=', 'disaster_events.event_id')
-            ->leftJoin('evacuation_centers', 'evacuation_records.center_id', '=', 'evacuation_centers.evacuation_center_id')
-            ->leftJoin('households', 'evacuation_records.household_id', '=', 'households.household_id')
-            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
-            ->select(
-                'evacuation_records.*',
-                'disaster_events.name as event_name',
-                'evacuation_centers.name as center_name',
-                'households.household_name',
-                'households.household_code',
-                'addresses.purok_sitio',
-                'addresses.barangay_name'
-            );
+        $query = \Illuminate\Support\Facades\DB::table('evacuation_records');
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('disaster_events')) {
+            $query->leftJoin('disaster_events', 'evacuation_records.event_id', '=', 'disaster_events.event_id')
+                  ->addSelect('disaster_events.name as event_name');
+        } else {
+            $query->selectRaw('NULL as event_name');
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('evacuation_centers')) {
+            $query->leftJoin('evacuation_centers', 'evacuation_records.center_id', '=', 'evacuation_centers.evacuation_center_id')
+                  ->addSelect('evacuation_centers.name as center_name');
+        } else {
+            $query->selectRaw('NULL as center_name');
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('households')) {
+            $query->leftJoin('households', 'evacuation_records.household_id', '=', 'households.household_id')
+                  ->addSelect('households.household_name', 'households.household_code');
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('addresses')) {
+                $query->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
+                      ->addSelect('addresses.purok_sitio');
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('barangays')) {
+                    $query->leftJoin('barangays', 'addresses.barangay_id', '=', 'barangays.barangay_id');
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('barangays', 'barangay_name')) {
+                        $query->addSelect('barangays.barangay_name as barangay_name');
+                    } elseif (\Illuminate\Support\Facades\Schema::hasColumn('barangays', 'name')) {
+                        $query->addSelect('barangays.name as barangay_name');
+                    } else {
+                        $query->selectRaw('NULL as barangay_name');
+                    }
+                } else {
+                    $query->selectRaw('NULL as barangay_name');
+                }
+            } else {
+                $query->selectRaw('NULL as purok_sitio', 'NULL as barangay_name');
+            }
+        } else {
+            $query->selectRaw('NULL as household_name', 'NULL as household_code', 'NULL as purok_sitio', 'NULL as barangay_name');
+        }
+
+        $query->addSelect('evacuation_records.*');
 
         if ($request->filled('date_from')) {
             $query->whereDate('evacuation_records.created_at', '>=', $request->date_from);
@@ -120,15 +150,23 @@ class ReportAdminController extends Controller
             ]);
         }
         
-        $query = \Illuminate\Support\Facades\DB::table('responder_assignments')
-            ->leftJoin('responders', 'responder_assignments.responder_id', '=', 'responders.responder_id')
-            ->leftJoin('rescue_teams', 'responder_assignments.team_id', '=', 'rescue_teams.team_id')
-            ->select(
-                'responder_assignments.*',
-                'responders.full_name as responder_name',
-                'rescue_teams.team_name',
-                'rescue_teams.team_type'
-            );
+        $query = \Illuminate\Support\Facades\DB::table('responder_assignments');
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('responders')) {
+            $query->leftJoin('responders', 'responder_assignments.responder_id', '=', 'responders.responder_id')
+                  ->addSelect('responders.full_name as responder_name');
+        } else {
+            $query->selectRaw('NULL as responder_name');
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('rescue_teams')) {
+            $query->leftJoin('rescue_teams', 'responder_assignments.team_id', '=', 'rescue_teams.team_id')
+                  ->addSelect('rescue_teams.team_name', 'rescue_teams.team_type');
+        } else {
+            $query->selectRaw('NULL as team_name', 'NULL as team_type');
+        }
+
+        $query->addSelect('responder_assignments.*');
 
         if ($request->filled('status')) {
             if ($request->status === 'completed') {
@@ -137,7 +175,7 @@ class ReportAdminController extends Controller
                 $query->where('responder_assignments.status', '!=', 'completed');
             }
         }
-        if ($request->filled('incident_type')) {
+        if ($request->filled('incident_type') && \Illuminate\Support\Facades\Schema::hasTable('rescue_teams')) {
             $query->where('rescue_teams.team_type', $request->incident_type);
         }
         if ($request->filled('date_from')) {
@@ -169,19 +207,32 @@ class ReportAdminController extends Controller
             ]);
         }
         
-        $query = \Illuminate\Support\Facades\DB::table('resource_requests')
-            ->leftJoin('evacuation_centers', 'resource_requests.evacuation_center_id', '=', 'evacuation_centers.evacuation_center_id')
-            ->leftJoin('urgency_levels', 'resource_requests.urgency_id', '=', 'urgency_levels.urgency_id')
-            ->leftJoin('resource_request_status', 'resource_requests.status_id', '=', 'resource_request_status.status_id')
-            ->select(
-                'resource_requests.*',
-                'evacuation_centers.name as center_name',
-                'urgency_levels.urgency_label',
-                'resource_request_status.status_label',
-                'resource_request_status.status_key'
-            );
+        $query = \Illuminate\Support\Facades\DB::table('resource_requests');
 
-        if ($request->filled('status')) {
+        if (\Illuminate\Support\Facades\Schema::hasTable('evacuation_centers')) {
+            $query->leftJoin('evacuation_centers', 'resource_requests.evacuation_center_id', '=', 'evacuation_centers.evacuation_center_id')
+                  ->addSelect('evacuation_centers.name as center_name');
+        } else {
+            $query->selectRaw('NULL as center_name');
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('urgency_levels')) {
+            $query->leftJoin('urgency_levels', 'resource_requests.urgency_id', '=', 'urgency_levels.urgency_id')
+                  ->addSelect('urgency_levels.urgency_label');
+        } else {
+            $query->selectRaw('NULL as urgency_label');
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('resource_request_status')) {
+            $query->leftJoin('resource_request_status', 'resource_requests.status_id', '=', 'resource_request_status.status_id')
+                  ->addSelect('resource_request_status.status_label', 'resource_request_status.status_key');
+        } else {
+            $query->selectRaw('NULL as status_label', 'NULL as status_key');
+        }
+
+        $query->addSelect('resource_requests.*');
+
+        if ($request->filled('status') && \Illuminate\Support\Facades\Schema::hasTable('resource_request_status')) {
             $query->where('resource_request_status.status_key', $request->status);
         }
         if ($request->filled('item_type')) {
