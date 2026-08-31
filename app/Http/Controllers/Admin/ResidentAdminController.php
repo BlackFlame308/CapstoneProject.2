@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Household;
 use App\Models\Member;
+use App\Services\MemberDataBuilder;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -32,12 +33,33 @@ class ResidentAdminController extends Controller
     /**
      * Display all residents
      */
-    public function index()
+    public function index(Request $request)
     {
-        $residents = Member::with('household')->paginate(20);
+        // Load all active households for the filter dropdown
+        $households = Household::orderBy('household_name')->get();
+        $selectedHouseholdId = $request->input('household_id');
+
+        if ($selectedHouseholdId) {
+            // Filtered mode: paginate residents of the selected household
+            $residents = Member::with('household')
+                ->where('household_id', $selectedHouseholdId)
+                ->paginate(20)
+                ->withQueryString();
+            $groupedResidents = null;
+        } else {
+            // Grouped mode: load all valid residents (those with active households) grouped by household
+            $residents = null;
+            $groupedResidents = Member::with('household')
+                ->whereHas('household')
+                ->get()
+                ->groupBy('household_id');
+        }
 
         return view('admin.residents.index', [
-            'residents' => $residents,
+            'residents'          => $residents,
+            'groupedResidents'   => $groupedResidents,
+            'households'         => $households,
+            'selectedHouseholdId'=> $selectedHouseholdId,
         ]);
     }
 
@@ -72,38 +94,26 @@ class ResidentAdminController extends Controller
         ]);
 
         try {
-            // Compute gender from sex (M = Male, F = Female)
-            $gender = $validated['sex'] === 'F' ? 'Female' : 'Male';
-
-            // Calculate age from birth date
-            $age = null;
-            $isSenior = false;
-            if (!empty($validated['birth_date'])) {
-                $age = Carbon::parse($validated['birth_date'])->age;
-                $isSenior = $age >= 60;
-            }
-
-            $member = Member::create([
-                'household_id'    => $household->household_id,
+            $memberData = MemberDataBuilder::build([
                 'first_name'      => $validated['first_name'],
                 'middle_name'     => $validated['middle_name'] ?? null,
                 'last_name'       => $validated['last_name'],
-                'name'            => $validated['first_name'] . ' ' . $validated['last_name'],
                 'birth_date'      => $validated['birth_date'] ?? null,
-                'age'             => $age,
                 'sex'             => $validated['sex'],
-                'gender'          => $gender,
                 'relation'        => $validated['relation'],
                 'civil_status'    => $validated['civil_status'],
                 'education_level' => $validated['education_level'] ?? null,
                 'occupation'      => $validated['occupation'] ?? null,
                 'is_pwd'          => $request->boolean('is_pwd'),
                 'is_pregnant'     => $request->boolean('is_pregnant'),
-                'is_senior'       => $isSenior,
-                'special_needs'   => $validated['special_needs'] ?? null,
-            ]);
+            ], $household->household_id);
 
-            // Update household member count
+            $memberData['special_needs'] = $validated['special_needs'] ?? null;
+            $memberData['is_senior'] = !empty($validated['birth_date']) && Carbon::parse($validated['birth_date'])->age >= 60;
+
+            $member = Member::create(Member::sanitizeInsertData($memberData));
+
+            $household->refresh();
             $household->update(['member_count' => $household->members()->count()]);
 
             return redirect()->route('admin.households.show', $household)
@@ -195,14 +205,22 @@ class ResidentAdminController extends Controller
     public function destroy(Member $member)
     {
         try {
+            // Capture household BEFORE deleting so we can update member count
             $household = $member->household;
             $name = $member->name;
+
             $member->delete();
 
-            // Update household member count
-            $household->update(['member_count' => $household->members()->count()]);
+            // Only update member count if the member had an associated household.
+            // Guards against "Call to a member function update() on null" when
+            // the member has no household (orphan/injected record).
+            if ($household) {
+                $household->update(['member_count' => $household->members()->count()]);
+                return redirect()->route('admin.households.show', $household)
+                    ->with('success', "Resident '{$name}' deleted successfully!");
+            }
 
-            return redirect()->route('admin.households.show', $household)
+            return redirect()->route('admin.residents.index')
                 ->with('success', "Resident '{$name}' deleted successfully!");
         } catch (\Exception $e) {
             report($e);

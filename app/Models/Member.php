@@ -8,6 +8,7 @@ use App\Models\Traits\MemberVulnerabilityAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -71,7 +72,12 @@ class Member extends Model
     protected static function booted(): void
     {
         static::creating(function (Member $member) {
+            $member->normalizeAttributesForSchema();
             $member->member_id ??= (string) Str::uuid();
+        });
+
+        static::updating(function (Member $member) {
+            $member->normalizeAttributesForSchema();
         });
 
         static::saved(function (Member $member) {
@@ -107,6 +113,39 @@ class Member extends Model
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private function normalizeAttributesForSchema(): void
+    {
+        try {
+            $tableColumns = array_flip(Schema::getColumnListing($this->getTable()));
+            $this->attributes = array_intersect_key($this->attributes, $tableColumns);
+
+            if ($this->exists) {
+                $this->syncOriginal();
+            }
+        } catch (\Throwable) {
+            // Ignore schema lookups for legacy / partially migrated databases.
+        }
+    }
+
+    public static function sanitizeInsertData(array $data): array
+    {
+        $clean = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key) && !is_int($key)) {
+                continue;
+            }
+
+            $clean[$key] = $value;
+        }
+
+        try {
+            $tableColumns = array_flip(Schema::getColumnListing((new static)->getTable()));
+            return array_intersect_key($clean, $tableColumns);
+        } catch (\Throwable) {
+            return $clean;
+        }
+    }
 
     private function syncVulnerabilityGroup(string $key, ?bool $flag): void
     {

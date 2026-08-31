@@ -178,6 +178,27 @@ class AdminBladeSmokeTest extends TestCase
             ->assertRedirect(route('admin.households.show', $created));
 
         $resident = Member::where('last_name', 'Santos')->firstOrFail();
+        $this->assertSame('Spouse', $resident->relation);
+
+        $this->actingAs($this->captain)
+            ->post(route('admin.residents.store', $created), [
+                'first_name' => 'Anna',
+                'middle_name' => '',
+                'last_name' => 'Reyes',
+                'birth_date' => '2000-01-10',
+                'sex' => 'F',
+                'gender' => 'Female',
+                'relation' => 'Sibling',
+                'civil_status' => 'Single',
+                'education_level' => 'College',
+                'occupation' => 'Nurse',
+                'special_needs' => '',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('admin.households.show', $created));
+
+        $sibling = Member::where('last_name', 'Reyes')->firstOrFail();
+        $this->assertSame('Sibling', $sibling->relation);
 
         $this->actingAs($this->captain)
             ->put(route('admin.residents.update', $resident), [
@@ -195,6 +216,34 @@ class AdminBladeSmokeTest extends TestCase
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('admin.households.show', $created));
+    }
+
+    public function test_admin_add_member_uses_standardized_household_member_data(): void
+    {
+        $this->actingAs($this->captain)
+            ->post(route('admin.residents.store', $this->household), [
+                'first_name' => 'Maria',
+                'middle_name' => 'L',
+                'last_name' => 'Santos',
+                'birth_date' => '1995-06-15',
+                'sex' => 'F',
+                'relation' => 'Spouse',
+                'civil_status' => 'Married',
+                'education_level' => 'College',
+                'occupation' => 'Teacher',
+                'is_pwd' => false,
+                'is_pregnant' => false,
+                'special_needs' => '',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('admin.households.show', $this->household));
+
+        $resident = Member::where('last_name', 'Santos')->firstOrFail();
+
+        $this->assertSame($this->household->household_id, $resident->household_id);
+        $this->assertSame('Maria L Santos', $resident->name);
+        $this->assertSame('Female', $resident->gender);
+        $this->assertSame(2, $this->household->fresh()->members()->count());
     }
 
     public function test_admin_account_form_actions_work(): void

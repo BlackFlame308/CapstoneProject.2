@@ -245,7 +245,7 @@
                                         <small style="color: #999;">{{ $member->birth_date?->format('M d, Y') ?? 'DOB: N/A' }}</small>
                                     </td>
                                     <td style="padding: 15px; vertical-align: middle;">
-                                        <small style="color: #555;">{{ $member->relation ?? 'N/A' }}</small>
+                                        <small style="color: #555;">{{ $member->relation ?: 'N/A' }}</small>
                                     </td>
                                     <td style="padding: 15px; vertical-align: middle;">
                                         {{ $member->age ?? 'N/A' }}

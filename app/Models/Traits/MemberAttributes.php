@@ -3,6 +3,7 @@
 namespace App\Models\Traits;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * MemberAttributes Trait
@@ -61,8 +62,11 @@ trait MemberAttributes
     {
         $val    = strtolower(trim((string) $value));
         $isMale = ($val === 'm' || $val === 'male');
-        $this->attributes['sex']       = $isMale ? 'M' : 'F';
-        $this->attributes['gender_id'] = $isMale ? 1 : 2;
+        $this->attributes['sex'] = $isMale ? 'M' : 'F';
+
+        if (Schema::hasColumn($this->getTable(), 'gender_id')) {
+            $this->attributes['gender_id'] = $isMale ? 1 : 2;
+        }
     }
 
     public function getGenderAttribute(): ?string
@@ -80,6 +84,7 @@ trait MemberAttributes
     public function getRelationAttribute(): ?string
     {
         $val = $this->attributes['relation'] ?? null;
+
         if (!$val) {
             $relId = $this->attributes['relationship_id'] ?? null;
             if ($relId) {
@@ -87,28 +92,44 @@ trait MemberAttributes
                 $val = $rel ? $rel->relationship_label : null;
             }
         }
-        if ($val) {
-            $lower = strtolower($val);
-            if ($lower === 'head of household') return 'Head';
-            if ($lower === 'other relative')    return 'Others';
-            return $val;
+
+        if (!$val) {
+            return null;
         }
-        return null;
+
+        $lower = strtolower(trim((string) $val));
+
+        return match ($lower) {
+            'head of household', 'head' => 'Head',
+            'spouse' => 'Spouse',
+            'child' => 'Child',
+            'parent' => 'Parent',
+            'sibling' => 'Sibling',
+            'grandchild' => 'Grandchild',
+            'other relative', 'others', 'other' => 'Others',
+            default => trim((string) $val),
+        };
     }
 
     public function setRelationAttribute($value): void
     {
-        $val    = trim((string) $value);
+        $val = trim((string) $value);
+        $this->attributes['relation'] = $val;
+
+        if (!Schema::hasColumn($this->getTable(), 'relationship_id')) {
+            return;
+        }
+
         $mapped = match (strtolower($val)) {
-            'head'          => 'Head of Household',
+            'head' => 'Head of Household',
             'others', 'other', 'grandchild' => 'Other Relative',
-            default         => $val,
+            default => $val,
         };
+
         $rel = DB::table('relationships')->where('relationship_label', 'like', $mapped)->first();
         if ($rel) {
             $this->attributes['relationship_id'] = $rel->relationship_id;
         }
-        $this->attributes['relation'] = $val;
     }
 
     // ── Civil Status ─────────────────────────────────────────────────────────
@@ -126,9 +147,14 @@ trait MemberAttributes
     public function setCivilStatusAttribute($value): void
     {
         $val    = trim((string) $value);
+        $this->attributes['civil_status'] = $val;
+
+        if (!Schema::hasColumn($this->getTable(), 'civil_status_id')) {
+            return;
+        }
+
         $status = DB::table('civil_statuses')->where('status_label', 'like', $val)->first();
         if ($status) $this->attributes['civil_status_id'] = $status->status_id;
-        $this->attributes['civil_status'] = $val;
     }
 
     // ── Education Level ───────────────────────────────────────────────────────
@@ -146,9 +172,14 @@ trait MemberAttributes
     public function setEducationLevelAttribute($value): void
     {
         $val = trim((string) $value);
-        $el  = DB::table('education_levels')->where('education_level_label', 'like', $val)->first();
-        if ($el) $this->attributes['education_level_id'] = $el->education_level_id;
         $this->attributes['education_level'] = $val;
+
+        if (!Schema::hasColumn($this->getTable(), 'education_level_id')) {
+            return;
+        }
+
+        $el = DB::table('education_levels')->where('education_level_label', 'like', $val)->first();
+        if ($el) $this->attributes['education_level_id'] = $el->education_level_id;
     }
 
     // ── Occupation ────────────────────────────────────────────────────────────

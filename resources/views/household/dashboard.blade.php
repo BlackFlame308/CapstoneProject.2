@@ -174,7 +174,7 @@
                                         <strong style="color: #333;">{{ $member->name }}</strong>
                                     </td>
                                     <td style="padding: 15px;">
-                                        <span class="badge bg-light text-dark" style="border: 1px solid #ddd; font-weight: 500;">{{ $member->relation ?? 'Member' }}</span>
+                                        <span class="badge bg-light text-dark" style="border: 1px solid #ddd; font-weight: 500;">{{ $member->relation ?: 'Member' }}</span>
                                     </td>
                                     <td style="padding: 15px; text-align: center; font-weight: 600; color: #18181b;">
                                         {{ $member->age ?? 'N/A' }}
