@@ -44,7 +44,7 @@ class MemberDataBuilder
             'occupation'      => $data['occupation']      ?? null,
             'relation'        => $data['relation']        ?? null,
             'is_pwd'          => $isPwd,
-            'is_pregnant'     => static::parseBooleanValue($data['is_pregnant'] ?? false),
+            'is_pregnant'     => ($sex === 'F') && static::parseBooleanValue($data['is_pregnant'] ?? false),
             'is_graduate'     => false,
         ];
     }

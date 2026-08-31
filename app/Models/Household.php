@@ -70,7 +70,9 @@ class Household extends Model
 
     public function members(): HasMany
     {
-        return $this->hasMany(Member::class, 'household_id', 'household_id');
+        return $this->hasMany(Member::class, 'household_id', 'household_id')
+            ->orderBy('last_name', 'asc')
+            ->orderBy('first_name', 'asc');
     }
 
     public function user(): HasOne

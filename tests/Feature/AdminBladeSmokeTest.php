@@ -298,4 +298,119 @@ class AdminBladeSmokeTest extends TestCase
             ->assertOk()
             ->assertSee($this->household->household_code);
     }
+
+    public function test_manual_member_relation_handles_typo_sibing_and_custom_text(): void
+    {
+        $this->actingAs($this->captain)
+            ->post(route('admin.residents.store', $this->household), [
+                'first_name'   => 'James',
+                'middle_name'  => 'M',
+                'last_name'    => 'Santos',
+                'birth_date'   => '1998-04-12',
+                'sex'          => 'M',
+                'relation'     => 'sibing',
+                'civil_status' => 'Single',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $member = Member::where('first_name', 'James')->where('last_name', 'Santos')->firstOrFail();
+        $this->assertSame('Sibling', $member->relation);
+        $this->assertEquals(5, $member->relationship_id);
+
+        $this->actingAs($this->captain)
+            ->get(route('admin.households.show', $this->household))
+            ->assertOk()
+            ->assertSee('Sibling');
+    }
+
+    public function test_male_resident_cannot_be_marked_as_pregnant(): void
+    {
+        $this->actingAs($this->captain)
+            ->post(route('admin.residents.store', $this->household), [
+                'first_name'   => 'Robert',
+                'last_name'    => 'Santos',
+                'birth_date'   => '1995-03-10',
+                'sex'          => 'M',
+                'relation'     => 'Sibling',
+                'civil_status' => 'Single',
+                'is_pregnant'  => true,
+            ])
+            ->assertSessionHasErrors(['is_pregnant']);
+    }
+
+    public function test_resident_list_is_ordered_alphabetically_by_surname(): void
+    {
+        Member::create([
+            'household_id' => $this->household->household_id,
+            'first_name'   => 'Zoe',
+            'last_name'    => 'Abad',
+            'birth_date'   => '1992-01-01',
+            'sex'          => 'F',
+            'relation'     => 'Child',
+            'civil_status' => 'Single',
+        ]);
+
+        Member::create([
+            'household_id' => $this->household->household_id,
+            'first_name'   => 'Adam',
+            'last_name'    => 'Zeta',
+            'birth_date'   => '1993-01-01',
+            'sex'          => 'M',
+            'relation'     => 'Child',
+            'civil_status' => 'Single',
+        ]);
+
+        $response = $this->actingAs($this->captain)
+            ->get(route('admin.residents.index', ['household_id' => $this->household->household_id]))
+            ->assertOk();
+
+        $residents = $response->viewData('residents');
+        $surnames = $residents->pluck('last_name')->toArray();
+        $sortedSurnames = $surnames;
+        sort($sortedSurnames);
+
+        $this->assertSame($sortedSurnames, $surnames);
+    }
+
+    public function test_grouped_residents_are_ordered_alphabetically_by_household_name(): void
+    {
+        $hhZeta = Household::create([
+            'household_code' => 'HH-ZETA',
+            'household_name' => 'Zeta Family',
+        ]);
+        Member::create([
+            'household_id' => $hhZeta->household_id,
+            'first_name'   => 'John',
+            'last_name'    => 'Zeta',
+            'birth_date'   => '1990-01-01',
+            'sex'          => 'M',
+            'relation'     => 'Head',
+            'civil_status' => 'Single',
+        ]);
+
+        $hhAlpha = Household::create([
+            'household_code' => 'HH-ALPHA',
+            'household_name' => 'Alpha Family',
+        ]);
+        Member::create([
+            'household_id' => $hhAlpha->household_id,
+            'first_name'   => 'Alice',
+            'last_name'    => 'Alpha',
+            'birth_date'   => '1991-01-01',
+            'sex'          => 'F',
+            'relation'     => 'Head',
+            'civil_status' => 'Single',
+        ]);
+
+        $response = $this->actingAs($this->captain)
+            ->get(route('admin.residents.index'))
+            ->assertOk();
+
+        $grouped = $response->viewData('groupedResidents');
+        $householdNames = $grouped->map(fn($members) => $members->first()->household->household_name)->values()->toArray();
+        $sortedNames = $householdNames;
+        sort($sortedNames);
+
+        $this->assertSame($sortedNames, $householdNames);
+    }
 }

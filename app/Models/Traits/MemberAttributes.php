@@ -100,13 +100,13 @@ trait MemberAttributes
         $lower = strtolower(trim((string) $val));
 
         return match ($lower) {
-            'head of household', 'head' => 'Head',
-            'spouse' => 'Spouse',
-            'child' => 'Child',
-            'parent' => 'Parent',
-            'sibling' => 'Sibling',
-            'grandchild' => 'Grandchild',
-            'other relative', 'others', 'other' => 'Others',
+            'head of household', 'head', 'household head', 'leader' => 'Head',
+            'spouse', 'husband', 'wife', 'partner' => 'Spouse',
+            'child', 'son', 'daughter', 'kid', 'kids', 'baby' => 'Child',
+            'parent', 'father', 'mother', 'dad', 'mom', 'papa', 'mama' => 'Parent',
+            'sibling', 'sibing', 'siblings', 'brother', 'sister', 'bro', 'sis' => 'Sibling',
+            'grandchild', 'grandson', 'granddaughter' => 'Grandchild',
+            'other relative', 'others', 'other', 'relative', 'cousin', 'aunt', 'uncle', 'nephew', 'niece', 'in-law' => 'Others',
             default => trim((string) $val),
         };
     }
@@ -114,19 +114,50 @@ trait MemberAttributes
     public function setRelationAttribute($value): void
     {
         $val = trim((string) $value);
-        $this->attributes['relation'] = $val;
+        if ($val === '') {
+            $this->attributes['relation'] = null;
+            if (Schema::hasColumn($this->getTable(), 'relationship_id')) {
+                $this->attributes['relationship_id'] = null;
+            }
+            return;
+        }
+
+        $lower = strtolower($val);
+        $normalizedRelation = match ($lower) {
+            'head of household', 'head', 'household head', 'leader' => 'Head',
+            'spouse', 'husband', 'wife', 'partner' => 'Spouse',
+            'child', 'son', 'daughter', 'kid', 'kids', 'baby' => 'Child',
+            'parent', 'father', 'mother', 'dad', 'mom', 'papa', 'mama' => 'Parent',
+            'sibling', 'sibing', 'siblings', 'brother', 'sister', 'bro', 'sis' => 'Sibling',
+            'grandchild', 'grandson', 'granddaughter' => 'Grandchild',
+            'other relative', 'others', 'other', 'relative', 'cousin', 'aunt', 'uncle', 'nephew', 'niece', 'in-law' => 'Others',
+            default => $val,
+        };
+
+        $this->attributes['relation'] = $normalizedRelation;
 
         if (!Schema::hasColumn($this->getTable(), 'relationship_id')) {
             return;
         }
 
-        $mapped = match (strtolower($val)) {
-            'head' => 'Head of Household',
-            'others', 'other', 'grandchild' => 'Other Relative',
+        $mappedLabel = match ($lower) {
+            'head of household', 'head', 'household head', 'leader' => 'Head of Household',
+            'spouse', 'husband', 'wife', 'partner' => 'Spouse',
+            'child', 'son', 'daughter', 'kid', 'kids', 'baby' => 'Child',
+            'parent', 'father', 'mother', 'dad', 'mom', 'papa', 'mama' => 'Parent',
+            'sibling', 'sibing', 'siblings', 'brother', 'sister', 'bro', 'sis' => 'Sibling',
+            'grandchild', 'grandson', 'granddaughter', 'other relative', 'others', 'other', 'relative', 'cousin', 'aunt', 'uncle', 'nephew', 'niece', 'in-law' => 'Other Relative',
             default => $val,
         };
 
-        $rel = DB::table('relationships')->where('relationship_label', 'like', $mapped)->first();
+        $rel = DB::table('relationships')->where('relationship_label', 'like', $mappedLabel)->first();
+        if (!$rel) {
+            $rel = DB::table('relationships')->where('relationship_key', 'like', $lower)->first();
+        }
+        if (!$rel) {
+            $rel = DB::table('relationships')->where('relationship_key', 'other_relative')->first();
+        }
+
         if ($rel) {
             $this->attributes['relationship_id'] = $rel->relationship_id;
         }

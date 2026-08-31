@@ -49,10 +49,12 @@ class AuthenticatedSessionController extends Controller
         $role = auth()->user()->normalizedRole();
         // Redirect users to the correct dashboard based on their role.
         if ($role === 'household') {
-            return redirect()->route('household.dashboard');
+            return redirect()->route('household.dashboard')
+                ->with('success', 'Logged in successfully.');
         }
 
-        return redirect()->route('admin.dashboard');
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Logged in successfully.');
     }
 
     public function destroy(Request $request)

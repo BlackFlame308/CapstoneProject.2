@@ -43,7 +43,7 @@ class HouseholdAdminController extends Controller
         }
 
         return view('admin.households.index', [
-            'households' => $query->latest()->paginate(15)->withQueryString(),
+            'households' => $query->orderBy('household_name', 'asc')->paginate(15)->withQueryString(),
             'barangays'  => Barangay::all(),
             'filters'    => [
                 'search'      => $request->input('search'),

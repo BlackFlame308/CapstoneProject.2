@@ -203,6 +203,31 @@
             </div>
         </div>
     </div>
-</div>
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sexSelect = document.getElementById('sex');
+        var pregnantCheck = document.getElementById('is_pregnant');
+        if (sexSelect && pregnantCheck) {
+            function togglePregnant() {
+                if (sexSelect.value === 'M') {
+                    pregnantCheck.checked = false;
+                    pregnantCheck.disabled = true;
+                    if (pregnantCheck.closest('.form-check')) {
+                        pregnantCheck.closest('.form-check').style.opacity = '0.5';
+                    }
+                } else {
+                    pregnantCheck.disabled = false;
+                    if (pregnantCheck.closest('.form-check')) {
+                        pregnantCheck.closest('.form-check').style.opacity = '1';
+                    }
+                }
+            }
+            sexSelect.addEventListener('change', togglePregnant);
+            togglePregnant();
+        }
+    });
+</script>
+@endpush
 
 @endsection

@@ -119,10 +119,6 @@ class Member extends Model
         try {
             $tableColumns = array_flip(Schema::getColumnListing($this->getTable()));
             $this->attributes = array_intersect_key($this->attributes, $tableColumns);
-
-            if ($this->exists) {
-                $this->syncOriginal();
-            }
         } catch (\Throwable) {
             // Ignore schema lookups for legacy / partially migrated databases.
         }

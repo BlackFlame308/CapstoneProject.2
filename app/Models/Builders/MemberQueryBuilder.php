@@ -83,11 +83,23 @@ class MemberQueryBuilder extends Builder
 
     private function applyRelationFilter($operator, $value, string $boolean): static
     {
-        $val    = trim((string) $value);
-        $mapped = strtolower($val) === 'head' ? 'Head of Household'
-                : (in_array(strtolower($val), ['others', 'other', 'grandchild']) ? 'Other Relative' : $val);
+        $val   = trim((string) $value);
+        $lower = strtolower($val);
 
-        $rel   = DB::table('relationships')->where('relationship_label', 'like', $mapped)->first();
+        $mappedLabel = match ($lower) {
+            'head of household', 'head', 'household head', 'leader' => 'Head of Household',
+            'spouse', 'husband', 'wife', 'partner' => 'Spouse',
+            'child', 'son', 'daughter', 'kid', 'kids', 'baby' => 'Child',
+            'parent', 'father', 'mother', 'dad', 'mom', 'papa', 'mama' => 'Parent',
+            'sibling', 'sibing', 'siblings', 'brother', 'sister', 'bro', 'sis' => 'Sibling',
+            'grandchild', 'grandson', 'granddaughter', 'other relative', 'others', 'other', 'relative', 'cousin', 'aunt', 'uncle', 'nephew', 'niece', 'in-law' => 'Other Relative',
+            default => $val,
+        };
+
+        $rel = DB::table('relationships')->where('relationship_label', 'like', $mappedLabel)->first();
+        if (!$rel) {
+            $rel = DB::table('relationships')->where('relationship_key', 'like', $lower)->first();
+        }
         $relId = $rel ? $rel->relationship_id : 0;
         return $this->where('relationship_id', '=', $relId, $boolean);
     }

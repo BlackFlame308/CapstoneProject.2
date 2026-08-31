@@ -40,19 +40,27 @@ class ResidentAdminController extends Controller
         $selectedHouseholdId = $request->input('household_id');
 
         if ($selectedHouseholdId) {
-            // Filtered mode: paginate residents of the selected household
+            // Filtered mode: paginate residents of the selected household ordered alphabetically by surname (last_name)
             $residents = Member::with('household')
                 ->where('household_id', $selectedHouseholdId)
+                ->orderBy('last_name', 'asc')
+                ->orderBy('first_name', 'asc')
                 ->paginate(20)
                 ->withQueryString();
             $groupedResidents = null;
         } else {
-            // Grouped mode: load all valid residents (those with active households) grouped by household
+            // Grouped mode: load all valid residents ordered alphabetically by surname (last_name)
+            // and sort households alphabetically by household_name.
             $residents = null;
             $groupedResidents = Member::with('household')
                 ->whereHas('household')
+                ->orderBy('last_name', 'asc')
+                ->orderBy('first_name', 'asc')
                 ->get()
-                ->groupBy('household_id');
+                ->groupBy('household_id')
+                ->sortBy(function ($members) {
+                    return strtolower($members->first()->household?->household_name ?? '');
+                });
         }
 
         return view('admin.residents.index', [
@@ -84,7 +92,7 @@ class ResidentAdminController extends Controller
             'last_name'       => 'required|string|max:100',
             'birth_date'      => 'nullable|date|before:today',
             'sex'             => 'required|in:M,F',
-            'relation'        => 'required|in:Head,Spouse,Child,Parent,Sibling,Grandchild,Others',
+            'relation'        => 'required|string|max:50',
             'civil_status'    => 'required|in:Single,Married,Widowed,Separated',
             'education_level' => 'nullable|in:Elementary,High School,College,Post Graduate',
             'occupation'      => 'nullable|string|max:100',
@@ -92,6 +100,12 @@ class ResidentAdminController extends Controller
             'is_pregnant'     => 'boolean',
             'special_needs'   => 'nullable|string|max:255',
         ]);
+
+        if ($validated['sex'] === 'M' && $request->boolean('is_pregnant')) {
+            return back()->withInput()->withErrors([
+                'is_pregnant' => 'A male resident cannot be marked as pregnant.',
+            ]);
+        }
 
         try {
             $memberData = MemberDataBuilder::build([
@@ -147,7 +161,7 @@ class ResidentAdminController extends Controller
             'last_name'       => 'required|string|max:100',
             'birth_date'      => 'nullable|date|before:today',
             'sex'             => 'required|in:M,F',
-            'relation'        => 'required|in:Head,Spouse,Child,Parent,Sibling,Grandchild,Others',
+            'relation'        => 'required|string|max:50',
             'civil_status'    => 'required|in:Single,Married,Widowed,Separated',
             'education_level' => 'nullable|in:Elementary,High School,College,Post Graduate',
             'occupation'      => 'nullable|string|max:100',
@@ -155,6 +169,12 @@ class ResidentAdminController extends Controller
             'is_pregnant'     => 'boolean',
             'special_needs'   => 'nullable|string|max:255',
         ]);
+
+        if ($validated['sex'] === 'M' && $request->boolean('is_pregnant')) {
+            return back()->withInput()->withErrors([
+                'is_pregnant' => 'A male resident cannot be marked as pregnant.',
+            ]);
+        }
 
         try {
             // Compute gender from sex (M = Male, F = Female)
