@@ -345,16 +345,34 @@ try {
         });
 
         echo "[~] Backfilling 'analytics' table columns from count columns...\n";
-        DB::statement("UPDATE analytics SET total_households = total_household WHERE total_households = 0 AND total_household > 0");
-        DB::statement("UPDATE analytics SET total_males = male_count WHERE total_males = 0 AND male_count > 0");
-        DB::statement("UPDATE analytics SET total_females = female_count WHERE total_females = 0 AND female_count > 0");
-        DB::statement("UPDATE analytics SET total_pwd = pwd_count WHERE total_pwd = 0 AND pwd_count > 0");
-        DB::statement("UPDATE analytics SET total_seniors = elderly_count WHERE total_seniors = 0 AND elderly_count > 0");
-        DB::statement("UPDATE analytics SET total_children = children_count WHERE total_children = 0 AND children_count > 0");
-        DB::statement("UPDATE analytics SET total_adults = adult_count WHERE total_adults = 0 AND adult_count > 0");
-        DB::statement("UPDATE analytics SET total_pregnant = pregnant_count WHERE total_pregnant = 0 AND pregnant_count > 0");
-        DB::statement("UPDATE analytics SET record_period = CAST(recorded_at AS DATE) WHERE record_period IS NULL AND recorded_at IS NOT NULL");
-        DB::statement("UPDATE analytics SET created_at = recorded_at WHERE created_at IS NULL AND recorded_at IS NOT NULL");
+        if (Schema::hasColumn('analytics', 'total_household')) {
+            DB::statement("UPDATE analytics SET total_households = total_household WHERE total_households = 0 AND total_household > 0");
+        }
+        if (Schema::hasColumn('analytics', 'male_count')) {
+            DB::statement("UPDATE analytics SET total_males = male_count WHERE total_males = 0 AND male_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'female_count')) {
+            DB::statement("UPDATE analytics SET total_females = female_count WHERE total_females = 0 AND female_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'pwd_count')) {
+            DB::statement("UPDATE analytics SET total_pwd = pwd_count WHERE total_pwd = 0 AND pwd_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'elderly_count')) {
+            DB::statement("UPDATE analytics SET total_seniors = elderly_count WHERE total_seniors = 0 AND elderly_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'children_count')) {
+            DB::statement("UPDATE analytics SET total_children = children_count WHERE total_children = 0 AND children_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'adult_count')) {
+            DB::statement("UPDATE analytics SET total_adults = adult_count WHERE total_adults = 0 AND adult_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'pregnant_count')) {
+            DB::statement("UPDATE analytics SET total_pregnant = pregnant_count WHERE total_pregnant = 0 AND pregnant_count > 0");
+        }
+        if (Schema::hasColumn('analytics', 'recorded_at')) {
+            DB::statement("UPDATE analytics SET record_period = CAST(recorded_at AS DATE) WHERE record_period IS NULL AND recorded_at IS NOT NULL");
+            DB::statement("UPDATE analytics SET created_at = recorded_at WHERE created_at IS NULL AND recorded_at IS NOT NULL");
+        }
     }
 
     echo "\n========================================================\n";
