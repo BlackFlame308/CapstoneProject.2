@@ -47,7 +47,13 @@ class Household extends Model
     protected static function booted(): void
     {
         static::creating(function (Household $household) {
-            $household->household_id ??= $household->household_code ?: static::generateHouseholdId();
+            if (empty($household->household_id)) {
+                if (!empty($household->household_code) && !static::withTrashed()->where('household_id', $household->household_code)->exists()) {
+                    $household->household_id = $household->household_code;
+                } else {
+                    $household->household_id = static::generateHouseholdId();
+                }
+            }
             $household->household_code ??= $household->household_id;
         });
     }
@@ -56,7 +62,7 @@ class Household extends Model
     {
         do {
             $id = 'HH' . random_int(100000, 999999);
-        } while (static::where('household_id', $id)->orWhere('household_code', $id)->exists());
+        } while (static::withTrashed()->where('household_id', $id)->orWhere('household_code', $id)->exists());
 
         return $id;
     }

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\Barangay;
+use App\Models\City;
 use App\Models\Household;
 use App\Models\Region;
 use App\Services\HouseholdAccountService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * HouseholdAdminController
@@ -36,32 +38,52 @@ class HouseholdAdminController extends Controller
             );
         }
 
-        $barangayId = $this->resolveDefaultBarangay($request);
+        $locationFilter = $request->input('location');
+        $barangayId = $request->input('barangay_id');
+        $cityId = $request->input('city_id');
 
-        if (!empty($barangayId)) {
+        if (!empty($locationFilter)) {
+            if (str_starts_with($locationFilter, 'city:')) {
+                $cityId = (int) substr($locationFilter, 5);
+                $query->whereHas('address.barangay', fn($q) => $q->where('city_id', $cityId));
+            } elseif (str_starts_with($locationFilter, 'barangay:')) {
+                $barangayId = (int) substr($locationFilter, 9);
+                $query->whereHas('address', fn($q) => $q->where('barangay_id', $barangayId));
+            } elseif (is_numeric($locationFilter)) {
+                $barangayId = (int) $locationFilter;
+                $query->whereHas('address', fn($q) => $q->where('barangay_id', $barangayId));
+            } elseif (stripos($locationFilter, 'carcar') !== false || stripos($locationFilter, 'car-car') !== false) {
+                $query->whereHas('address.barangay.city', fn($q) => $q->where('city_name', 'like', '%Carcar%'));
+            }
+        } elseif (!empty($barangayId)) {
             $query->whereHas('address', fn($q) => $q->where('barangay_id', $barangayId));
+        } elseif (!empty($cityId)) {
+            $query->whereHas('address.barangay', fn($q) => $q->where('city_id', $cityId));
         }
 
         return view('admin.households.index', [
             'households' => $query->orderBy('household_name', 'asc')->paginate(15)->withQueryString(),
-            'barangays'  => Barangay::all(),
+            'cities'     => City::orderBy('city_name')->get(),
+            'barangays'  => Barangay::with('city')->orderBy('barangay_name')->get(),
             'filters'    => [
                 'search'      => $request->input('search'),
                 'purok_sitio' => $request->input('purok_sitio'),
+                'location'    => $locationFilter,
                 'barangay_id' => $barangayId,
+                'city_id'     => $cityId,
             ],
         ]);
     }
 
     public function create()
     {
-        return view('admin.households.create', ['regions' => Region::all()]);
+        return view('admin.households.create', ['regions' => Region::orderBy('name')->get()]);
     }
 
     public function store(Request $request, HouseholdAccountService $accountService)
     {
         $validated = $request->validate([
-            'household_code'    => 'required|string|unique:households|max:50',
+            'household_code'    => ['required', 'string', 'max:50', Rule::unique('households', 'household_code')->whereNull('deleted_at')],
             'household_name'    => 'nullable|string|max:255',
             'contact_number'    => 'nullable|string|max:20',
             'email'             => 'nullable|email|max:255',
@@ -117,7 +139,7 @@ class HouseholdAdminController extends Controller
         $household->load('address');
         return view('admin.households.edit', [
             'household' => $household,
-            'regions'   => Region::all(),
+            'regions'   => Region::orderBy('name')->get(),
         ]);
     }
 
@@ -176,14 +198,7 @@ class HouseholdAdminController extends Controller
 
     private function resolveDefaultBarangay(Request $request): ?string
     {
-        $barangayId = $request->input('barangay_id');
-
-        if (empty($barangayId) && !$request->hasAny(['search', 'purok_sitio'])) {
-            $mambaling = Barangay::where('name', 'like', 'Mambaling')->first();
-            if ($mambaling) $barangayId = $mambaling->barangay_id;
-        }
-
-        return $barangayId ?: null;
+        return $request->input('barangay_id') ?: null;
     }
 
     private function createAddressIfProvided(array $validated): ?Address

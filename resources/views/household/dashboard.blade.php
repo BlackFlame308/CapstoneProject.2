@@ -23,43 +23,25 @@
     </div>
 </div>
 
-<!-- Access Scope Notice -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: none;">
-            <div class="card-body" style="padding: 20px;">
-                <h6 style="margin: 0 0 12px 0; font-weight: 700; color: #333;">
-                    <i class="fas fa-user-shield"></i> Resident Account Access
-                </h6>
-                <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
-                    Your household account can view SafeTrack and connected subsystem information in read-only mode.
-                </p>
-                <div style="display: flex; gap: 18px; flex-wrap: wrap;">
-                    <div style="min-width: 260px;">
-                        <small style="display:block; color:#16a34a; font-weight:700; margin-bottom:6px;">ALLOWED</small>
-                        <small style="display:block; color:#555;">Login, view household details, family members, analytics, and reports.</small>
-                    </div>
-                    <div style="min-width: 260px;">
-                        <small style="display:block; color:#dc2626; font-weight:700; margin-bottom:6px;">NOT INCLUDED</small>
-                        <small style="display:block; color:#555;">No encoding, no system-wide edits, no report submission, and no admin controls.</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Basic Demographics Analytics (Cards) -->
 <div class="row mb-4">
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="stat-card" style="border-top-color: #18181b;">
             <div class="stat-icon"><i class="fas fa-users"></i></div>
             <div class="stat-value">{{ $totalMembers }}</div>
-            <div class="stat-label">Total Family Members</div>
+            <div class="stat-label">Total Members</div>
         </div>
     </div>
 
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="stat-card" style="border-top-color: #10b981;">
+            <div class="stat-icon"><i class="fas fa-user"></i></div>
+            <div class="stat-value">{{ $adultsCount }}</div>
+            <div class="stat-label">Adults (18-59)</div>
+        </div>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="stat-card" style="border-top-color: #f59e0b;">
             <div class="stat-icon"><i class="fas fa-child"></i></div>
             <div class="stat-value">{{ $childrenCount }}</div>
@@ -67,7 +49,7 @@
         </div>
     </div>
 
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="stat-card" style="border-top-color: #8b5cf6;">
             <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
             <div class="stat-value">{{ $seniorsCount }}</div>
@@ -75,7 +57,15 @@
         </div>
     </div>
 
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="stat-card" style="border-top-color: #ec4899;">
+            <div class="stat-icon"><i class="fas fa-heart"></i></div>
+            <div class="stat-value">{{ $pregnantCount }}</div>
+            <div class="stat-label">Pregnant</div>
+        </div>
+    </div>
+
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="stat-card" style="border-top-color: #ef4444;">
             <div class="stat-icon"><i class="fas fa-wheelchair"></i></div>
             <div class="stat-value">{{ $pwdCount }}</div>

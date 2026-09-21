@@ -21,37 +21,23 @@ class AnalyticsAdminController extends Controller
         // Get all barangays for the filter selector
         $availableBarangays = Barangay::with('city')->get()->sortBy('name')->values();
 
-        // Determine selected barangay
-        $selectedBarangayId = $request->input('barangay_id');
-        if (empty($selectedBarangayId)) {
-            // Focus on Mambaling barangay as the default
-            $mambaling = Barangay::where('name', 'like', 'Mambaling')->first();
-            if ($mambaling) {
-                $selectedBarangayId = $mambaling->barangay_id;
-            } else {
-                // Default to the barangay with the most households in active database
-                $mostPopulated = DB::table('addresses')
-                    ->join('households', 'addresses.address_id', '=', 'households.address_id')
-                    ->whereNull('households.deleted_at')
-                    ->groupBy('addresses.barangay_id')
-                    ->select('addresses.barangay_id', DB::raw('COUNT(*) as count'))
-                    ->orderByDesc('count')
-                    ->first();
-                    
-                $selectedBarangayId = $mostPopulated ? $mostPopulated->barangay_id : (Barangay::first()?->barangay_id ?? null);
-            }
-        }
-
+        // Determine selected barangay (null = All Barangays)
+        $selectedBarangayId = $request->input('barangay_id') ?: null;
         $selectedBarangay = $selectedBarangayId ? Barangay::with('city')->find($selectedBarangayId) : null;
 
-        // Total counts filtered by selected barangay
-        $totalHouseholds = Household::whereHas('address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->count();
+        // Total counts filtered by selected barangay if provided, otherwise all valid records
+        if ($selectedBarangayId) {
+            $totalHouseholds = Household::whereHas('address', function($q) use ($selectedBarangayId) {
+                $q->where('barangay_id', $selectedBarangayId);
+            })->count();
 
-        $totalMembers = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->count();
+            $totalMembers = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
+                $q->where('barangay_id', $selectedBarangayId);
+            })->count();
+        } else {
+            $totalHouseholds = Household::count();
+            $totalMembers = Member::whereHas('household')->count();
+        }
 
         $memberTable = (new \App\Models\Member)->getTable();
         $hasAgeCol   = \Illuminate\Support\Facades\Schema::hasColumn($memberTable, 'age');
@@ -62,34 +48,26 @@ class AnalyticsAdminController extends Controller
             ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', birth_date) as integer), {$ageFallback})"
             : "COALESCE(TIMESTAMPDIFF(YEAR, birth_date, CURDATE()), {$ageFallback})";
 
-        $childrenCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->whereRaw("({$ageRaw}) < 18")->count();
+        $memberScope = function($query) use ($selectedBarangayId) {
+            if ($selectedBarangayId) {
+                $query->whereHas('household.address', fn($q) => $q->where('barangay_id', $selectedBarangayId));
+            } else {
+                $query->whereHas('household');
+            }
+        };
 
-        $seniorsCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->whereRaw("({$ageRaw}) >= 60")->count();
-
-        $pwdCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->where('is_pwd', true)->count();
-
-        $pregnantCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->where('is_pregnant', true)->count();
+        $childrenCount = Member::where($memberScope)->whereRaw("({$ageRaw}) < 18")->count();
+        $seniorsCount  = Member::where($memberScope)->whereRaw("({$ageRaw}) >= 60")->count();
+        $pwdCount      = Member::where($memberScope)->where('is_pwd', true)->count();
+        $pregnantCount = Member::where($memberScope)->where('is_pregnant', true)->count();
 
         // Adults = everyone who is not a child and not a senior
         $adultsCount = $totalMembers - $childrenCount - $seniorsCount;
         if ($adultsCount < 0) $adultsCount = 0;
 
         // Gender counts
-        $maleCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->whereRaw("LOWER(sex) IN ('m', 'male')")->count();
-
-        $femaleCount = Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-            $q->where('barangay_id', $selectedBarangayId);
-        })->whereRaw("LOWER(sex) IN ('f', 'female')")->count();
+        $maleCount   = Member::where($memberScope)->whereRaw("LOWER(sex) IN ('m', 'male')")->count();
+        $femaleCount = Member::where($memberScope)->whereRaw("LOWER(sex) IN ('f', 'female')")->count();
 
         // Gender distribution for the table (keeps backward-compat with blade)
         $genderDistribution = collect([
@@ -99,51 +77,43 @@ class AnalyticsAdminController extends Controller
 
         // Age distribution
         $ageDistribution = collect([
-            ['range' => '0-5',   'count' => Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-                $q->where('barangay_id', $selectedBarangayId);
-            })->whereRaw("({$ageRaw}) BETWEEN 0 AND 5")->count()],
-            ['range' => '6-12',  'count' => Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-                $q->where('barangay_id', $selectedBarangayId);
-            })->whereRaw("({$ageRaw}) BETWEEN 6 AND 12")->count()],
-            ['range' => '13-17', 'count' => Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-                $q->where('barangay_id', $selectedBarangayId);
-            })->whereRaw("({$ageRaw}) BETWEEN 13 AND 17")->count()],
-            ['range' => '18-35', 'count' => Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-                $q->where('barangay_id', $selectedBarangayId);
-            })->whereRaw("({$ageRaw}) BETWEEN 18 AND 35")->count()],
-            ['range' => '36-59', 'count' => Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-                $q->where('barangay_id', $selectedBarangayId);
-            })->whereRaw("({$ageRaw}) BETWEEN 36 AND 59")->count()],
-            ['range' => '60+',   'count' => Member::whereHas('household.address', function($q) use ($selectedBarangayId) {
-                $q->where('barangay_id', $selectedBarangayId);
-            })->whereRaw("({$ageRaw}) >= 60")->count()],
+            ['range' => '0-5',   'count' => Member::where($memberScope)->whereRaw("({$ageRaw}) BETWEEN 0 AND 5")->count()],
+            ['range' => '6-12',  'count' => Member::where($memberScope)->whereRaw("({$ageRaw}) BETWEEN 6 AND 12")->count()],
+            ['range' => '13-17', 'count' => Member::where($memberScope)->whereRaw("({$ageRaw}) BETWEEN 13 AND 17")->count()],
+            ['range' => '18-35', 'count' => Member::where($memberScope)->whereRaw("({$ageRaw}) BETWEEN 18 AND 35")->count()],
+            ['range' => '36-59', 'count' => Member::where($memberScope)->whereRaw("({$ageRaw}) BETWEEN 36 AND 59")->count()],
+            ['range' => '60+',   'count' => Member::where($memberScope)->whereRaw("({$ageRaw}) >= 60")->count()],
         ]);
 
         // Civil status
-        $memberTable = (new \App\Models\Member)->getTable();
-
-        $civilStatus = DB::table($memberTable)
+        $civilStatusQuery = DB::table($memberTable)
             ->join('civil_statuses', "{$memberTable}.civil_status_id", '=', 'civil_statuses.status_id')
             ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
-            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->select('civil_statuses.status_label as civil_status', DB::raw('COUNT(*) as count'))
             ->whereNull("{$memberTable}.deleted_at")
-            ->whereNull('households.deleted_at')
-            ->where('addresses.barangay_id', $selectedBarangayId)
-            ->groupBy('civil_statuses.status_label')
-            ->get();
+            ->whereNull('households.deleted_at');
+
+        if ($selectedBarangayId) {
+            $civilStatusQuery->where('addresses.barangay_id', $selectedBarangayId);
+        }
+
+        $civilStatus = $civilStatusQuery->groupBy('civil_statuses.status_label')->get();
 
         // Education level
-        $educationLevel = DB::table($memberTable)
+        $educationLevelQuery = DB::table($memberTable)
             ->join('education_levels', "{$memberTable}.education_level_id", '=', 'education_levels.education_level_id')
             ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
-            ->join('addresses', 'households.address_id', '=', 'addresses.address_id')
+            ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->select('education_levels.education_level_label as education_level', DB::raw('COUNT(*) as count'))
             ->whereNull("{$memberTable}.deleted_at")
-            ->whereNull('households.deleted_at')
-            ->where('addresses.barangay_id', $selectedBarangayId)
-            ->groupBy('education_levels.education_level_label')
-            ->get();
+            ->whereNull('households.deleted_at');
+
+        if ($selectedBarangayId) {
+            $educationLevelQuery->where('addresses.barangay_id', $selectedBarangayId);
+        }
+
+        $educationLevel = $educationLevelQuery->groupBy('education_levels.education_level_label')->get();
 
         // Sitio distribution — leftJoin so members without address are still counted
         $tableAgeFallback = $hasAgeCol ? "{$memberTable}.age" : "0";
@@ -151,7 +121,7 @@ class AnalyticsAdminController extends Controller
             ? "COALESCE(cast(strftime('%Y', 'now') - strftime('%Y', {$memberTable}.birth_date) as integer), {$tableAgeFallback})"
             : "COALESCE(TIMESTAMPDIFF(YEAR, {$memberTable}.birth_date, CURDATE()), {$tableAgeFallback})";
 
-        $sitioDistribution = DB::table($memberTable)
+        $sitioQuery = DB::table($memberTable)
             ->join('households', "{$memberTable}.household_id", '=', 'households.household_id')
             ->leftJoin('addresses', 'households.address_id', '=', 'addresses.address_id')
             ->select(
@@ -178,8 +148,13 @@ class AnalyticsAdminController extends Controller
                 ) THEN 1 ELSE 0 END) as vulnerable_count")
             )
             ->whereNull("{$memberTable}.deleted_at")
-            ->whereNull('households.deleted_at')
-            ->where('addresses.barangay_id', $selectedBarangayId)
+            ->whereNull('households.deleted_at');
+
+        if ($selectedBarangayId) {
+            $sitioQuery->where('addresses.barangay_id', $selectedBarangayId);
+        }
+
+        $sitioDistribution = $sitioQuery
             ->groupBy('sitio_name')
             ->get()
             ->sortByDesc('vulnerable_count')

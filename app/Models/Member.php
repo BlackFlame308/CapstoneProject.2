@@ -49,7 +49,7 @@ class Member extends Model
         'relation', 'civil_status', 'education_level',
         'occupation', 'special_needs', 'is_graduate',
         'gender_id', 'relationship_id', 'civil_status_id',
-        'education_level_id', 'is_pwd', 'is_pregnant',
+        'education_level_id', 'is_pwd', 'is_pregnant', 'is_senior',
     ];
 
     protected $casts = [
@@ -72,11 +72,39 @@ class Member extends Model
     protected static function booted(): void
     {
         static::creating(function (Member $member) {
-            $member->normalizeAttributesForSchema();
             $member->member_id ??= (string) Str::uuid();
+            if (!empty($member->birth_date)) {
+                $age = \Carbon\Carbon::parse($member->birth_date)->age;
+                $member->attributes['age'] ??= $age;
+                $member->attributes['is_senior'] ??= ($age >= 60 ? 1 : 0);
+            }
+            if (!empty($member->sex) && empty($member->attributes['gender'])) {
+                $member->attributes['gender'] = ($member->sex === 'M' || $member->sex === 'm') ? 'Male' : 'Female';
+            }
+            if ($member->tempIsPwd !== null) {
+                $member->attributes['is_pwd'] = $member->tempIsPwd ? 1 : 0;
+            }
+            if ($member->tempIsPregnant !== null) {
+                $member->attributes['is_pregnant'] = $member->tempIsPregnant ? 1 : 0;
+            }
+            $member->normalizeAttributesForSchema();
         });
 
         static::updating(function (Member $member) {
+            if (!empty($member->birth_date)) {
+                $age = \Carbon\Carbon::parse($member->birth_date)->age;
+                $member->attributes['age'] = $age;
+                $member->attributes['is_senior'] = ($age >= 60 ? 1 : 0);
+            }
+            if (!empty($member->sex)) {
+                $member->attributes['gender'] = ($member->sex === 'M' || $member->sex === 'm') ? 'Male' : 'Female';
+            }
+            if ($member->tempIsPwd !== null) {
+                $member->attributes['is_pwd'] = $member->tempIsPwd ? 1 : 0;
+            }
+            if ($member->tempIsPregnant !== null) {
+                $member->attributes['is_pregnant'] = $member->tempIsPregnant ? 1 : 0;
+            }
             $member->normalizeAttributesForSchema();
         });
 

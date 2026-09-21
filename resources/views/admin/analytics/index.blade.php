@@ -20,6 +20,7 @@
                 <div>
                     <form action="{{ route('admin.analytics.index') }}" method="GET" style="display: flex; gap: 10px; align-items: center;">
                         <select name="barangay_id" class="form-select" style="min-width: 250px; border-radius: 8px; border: 1px solid #dee2e6; padding: 8px 12px;" onchange="this.form.submit()">
+                            <option value="" {{ empty($selectedBarangayId) ? 'selected' : '' }}>-- All Barangays --</option>
                             @foreach($availableBarangays as $b)
                                 <option value="{{ $b->barangay_id }}" {{ $selectedBarangayId == $b->barangay_id ? 'selected' : '' }}>
                                     {{ $b->name }} ({{ $b->city?->name ?? 'Unknown City' }})

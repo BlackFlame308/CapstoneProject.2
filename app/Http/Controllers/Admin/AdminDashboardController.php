@@ -28,14 +28,10 @@ class AdminDashboardController extends Controller
         $mambaling = \App\Models\Barangay::where('name', 'like', 'Mambaling')->first();
         $mambalingId = $mambaling?->barangay_id ?? 396;
 
-        // Get statistics (scoping to Mambaling)
-        $totalHouseholds = Household::whereHas('address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->count();
+        // Get statistics (all households and residents system-wide)
+        $totalHouseholds = Household::count();
 
-        $totalPopulation = Member::whereHas('household.address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->count();
+        $totalPopulation = Member::whereHas('household')->count();
 
         $adultCutoff = now()->subYears(18)->toDateString();
         $seniorCutoff = now()->subYears(60)->toDateString();
@@ -43,10 +39,9 @@ class AdminDashboardController extends Controller
         $memberTable = (new \App\Models\Member)->getTable();
         $hasAgeCol   = \Illuminate\Support\Facades\Schema::hasColumn($memberTable, 'age');
 
-        // Get demographics (scoping to Mambaling)
-        $childrenCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->where(function ($query) use ($adultCutoff, $hasAgeCol) {
+        // Get demographics (all members system-wide)
+        $childrenCount = Member::whereHas('household')
+            ->where(function ($query) use ($adultCutoff, $hasAgeCol) {
             $query->whereDate('birth_date', '>', $adultCutoff);
             if ($hasAgeCol) {
                 $query->orWhere(function ($fallback) {
@@ -55,9 +50,8 @@ class AdminDashboardController extends Controller
             }
         })->count();
 
-        $seniorsCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->where(function ($query) use ($seniorCutoff, $hasAgeCol) {
+        $seniorsCount = Member::whereHas('household')
+            ->where(function ($query) use ($seniorCutoff, $hasAgeCol) {
             $query->whereDate('birth_date', '<=', $seniorCutoff);
             if ($hasAgeCol) {
                 $query->orWhere(function ($fallback) {
@@ -66,17 +60,12 @@ class AdminDashboardController extends Controller
             }
         })->count();
 
-        $pwdCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->where('is_pwd', true)->count();
+        $pwdCount = Member::whereHas('household')->where('is_pwd', true)->count();
 
-        $pregnantCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->where('is_pregnant', true)->count();
+        $pregnantCount = Member::whereHas('household')->where('is_pregnant', true)->count();
 
-        $adultsCount = Member::whereHas('household.address', function($q) use ($mambalingId) {
-            $q->where('barangay_id', $mambalingId);
-        })->where(function ($query) use ($adultCutoff, $seniorCutoff, $hasAgeCol) {
+        $adultsCount = Member::whereHas('household')
+            ->where(function ($query) use ($adultCutoff, $seniorCutoff, $hasAgeCol) {
             $query->whereBetween('birth_date', [$seniorCutoff, $adultCutoff]);
             if ($hasAgeCol) {
                 $query->orWhere(function ($fallback) {

@@ -108,24 +108,37 @@ class ResidentAdminController extends Controller
         }
 
         try {
-            $memberData = MemberDataBuilder::build([
+            $gender = $validated['sex'] === 'F' ? 'Female' : 'Male';
+            $age = !empty($validated['birth_date']) ? Carbon::parse($validated['birth_date'])->age : null;
+            $isSenior = $age !== null && $age >= 60;
+            $isPwd = $request->boolean('is_pwd');
+            $isPregnant = ($validated['sex'] === 'F') && $request->boolean('is_pregnant');
+
+            $fullName = trim(
+                $validated['first_name'] . ' ' .
+                (!empty($validated['middle_name']) ? $validated['middle_name'] . ' ' : '') .
+                $validated['last_name']
+            );
+
+            $member = Member::create([
+                'household_id'    => $household->household_id,
+                'name'            => $fullName,
                 'first_name'      => $validated['first_name'],
                 'middle_name'     => $validated['middle_name'] ?? null,
                 'last_name'       => $validated['last_name'],
                 'birth_date'      => $validated['birth_date'] ?? null,
+                'age'             => $age,
                 'sex'             => $validated['sex'],
+                'gender'          => $gender,
                 'relation'        => $validated['relation'],
                 'civil_status'    => $validated['civil_status'],
                 'education_level' => $validated['education_level'] ?? null,
                 'occupation'      => $validated['occupation'] ?? null,
-                'is_pwd'          => $request->boolean('is_pwd'),
-                'is_pregnant'     => $request->boolean('is_pregnant'),
-            ], $household->household_id);
-
-            $memberData['special_needs'] = $validated['special_needs'] ?? null;
-            $memberData['is_senior'] = !empty($validated['birth_date']) && Carbon::parse($validated['birth_date'])->age >= 60;
-
-            $member = Member::create(Member::sanitizeInsertData($memberData));
+                'is_pwd'          => $isPwd,
+                'is_pregnant'     => $isPregnant,
+                'is_senior'       => $isSenior,
+                'special_needs'   => $validated['special_needs'] ?? null,
+            ]);
 
             $household->refresh();
             $household->update(['member_count' => $household->members()->count()]);

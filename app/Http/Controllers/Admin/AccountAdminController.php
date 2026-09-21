@@ -41,7 +41,7 @@ class AccountAdminController extends Controller
 
         return view('admin.accounts.index', [
             'users'   => $query->latest()->paginate(15)->withQueryString(),
-            'roles'   => Role::where('name', '!=', 'Household')->orderBy('name')->get(),
+            'roles'   => Role::where('name', '!=', 'Household')->orderBy('name')->get()->unique(fn($r) => strtolower($r->name))->values(),
             'filters' => $request->only(['search', 'role']),
         ]);
     }
@@ -173,7 +173,8 @@ class AccountAdminController extends Controller
     {
         return Role::whereIn('name', self::MANAGEABLE_ROLES)
             ->get()
-            ->unique(fn($r) => $r->name);
+            ->unique(fn($r) => strtolower($r->name))
+            ->values();
     }
 
     private function assertHouseholdAssigned(?Role $role, array $validated): void

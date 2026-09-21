@@ -34,14 +34,36 @@
             </div>
 
             <div class="col-md-4">
-                <select name="barangay_id" class="form-select">
-                    <option value="">-- Select Barangay --</option>
-                    @foreach($barangays as $barangay)
-                        <option value="{{ $barangay->barangay_id }}"
-                            @if(($filters['barangay_id'] ?? '') == $barangay->barangay_id) selected @endif>
-                            {{ $barangay->name }}
-                        </option>
-                    @endforeach
+                <select name="location" class="form-select">
+                    <option value="">-- All Locations --</option>
+                    @if(isset($cities) && $cities->count() > 0)
+                        <optgroup label="Cities / Municipalities">
+                            @foreach($cities as $city)
+                                @php
+                                    $val = 'city:' . $city->city_id;
+                                    $displayName = $city->name;
+                                    if (stripos($displayName, 'carcar') !== false) {
+                                        $displayName .= ' (Car-Car)';
+                                    }
+                                @endphp
+                                <option value="{{ $val }}"
+                                    @if(($filters['location'] ?? '') == $val || ($filters['city_id'] ?? '') == $city->city_id) selected @endif>
+                                    {{ $displayName }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                    @if(isset($barangays) && $barangays->count() > 0)
+                        <optgroup label="Barangays">
+                            @foreach($barangays as $barangay)
+                                @php $bVal = 'barangay:' . $barangay->barangay_id; @endphp
+                                <option value="{{ $bVal }}"
+                                    @if(($filters['location'] ?? '') == $bVal || ($filters['barangay_id'] ?? '') == $barangay->barangay_id) selected @endif>
+                                    {{ $barangay->name }}@if($barangay->city) ({{ $barangay->city->name }})@endif
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endif
                 </select>
             </div>
 
